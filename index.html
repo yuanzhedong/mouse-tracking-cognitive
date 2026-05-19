@@ -312,21 +312,24 @@ function centerOf(el){
   return { x: r.left + r.width/2, y: r.top + r.height/2 };
 }
 
-/* ---------- metrics (Freeman & Ambady 2010 convention) ---------- */
+/* ---------- metrics ----------
+   AUC and MD are unsigned: the area / max distance between the actual
+   cursor path and the ideal straight line from start to chosen target,
+   in normalized (0,0)→(1,1.5) coordinates. No mirroring; direction of
+   deviation doesn't matter. */
 
 function computeMetrics(samples, startPos, chosenPos){
   const dx = chosenPos.x - startPos.x;
   const dy = startPos.y - chosenPos.y;          // browser y-axis is inverted
-  const mirror = dx < 0 ? -1 : 1;
-  const xScale = Math.abs(dx);
-  const yScale = dy;
-  if (xScale === 0 || yScale === 0 || samples.length < 2){
+  if (dx === 0 || dy === 0 || samples.length < 2){
     return { auc: 0, md: 0, xFlips: 0, normalized: [] };
   }
 
+  // Translate to start; scale x by signed dx and y by dy so the chosen
+  // target lands at (1, 1.5) regardless of which side it was on.
   const normalized = samples.map(p => ({
-    x: ((p.x - startPos.x) / xScale) * mirror,
-    y: ((startPos.y - p.y) / yScale) * 1.5,
+    x: (p.x - startPos.x) / dx,
+    y: ((startPos.y - p.y) / dy) * 1.5,
     t: p.t,
   }));
 
@@ -339,24 +342,26 @@ function computeMetrics(samples, startPos, chosenPos){
 
   const tNorm = timeNormalize(normalized, N_TIME_BINS);
 
-  // ideal line from (0,0) to (1, 1.5)
+  // ideal line from (0,0) to (1, 1.5); unit tangent & normal
   const L = Math.sqrt(1 + 2.25);
   const ux =  1   / L, uy = 1.5 / L;
-  const nx = -uy,      ny = ux;   // normal toward unchosen side
+  const nx = -uy,      ny = ux;
 
   const proj = tNorm.map(p => ({
-    s: p.x * ux + p.y * uy,
-    d: p.x * nx + p.y * ny,
+    s: p.x * ux + p.y * uy,           // distance along ideal line
+    d: p.x * nx + p.y * ny,           // perpendicular distance (signed)
   }));
 
+  // AUC = ∫ |d| ds  (unsigned swept area between path and ideal line)
   let auc = 0;
   for (let i = 0; i < proj.length - 1; i++){
-    const ds  = proj[i+1].s - proj[i].s;
-    const avg = (proj[i].d + proj[i+1].d) / 2;
+    const ds  = Math.abs(proj[i+1].s - proj[i].s);
+    const avg = (Math.abs(proj[i].d) + Math.abs(proj[i+1].d)) / 2;
     auc += avg * ds;
   }
-  let md = -Infinity;
-  for (const p of proj) if (p.d > md) md = p.d;
+  // MD = max |perpendicular distance|
+  let md = 0;
+  for (const p of proj) if (Math.abs(p.d) > md) md = Math.abs(p.d);
 
   return { auc, md, xFlips, normalized: tNorm };
 }
@@ -401,10 +406,9 @@ function showReview(trial){
   $('nextBtn').classList.remove('hidden');
 
   const meta = $('reviewMeta');
-  const sign = trial.auc >= 0 ? '+' : '−';
   meta.innerHTML =
     `chose <b>${trial.chosen}</b> (${trial.chosenType})<br>` +
-    `AUC <b>${sign}${Math.abs(trial.auc).toFixed(3)}</b> · ` +
+    `AUC <b>${trial.auc.toFixed(3)}</b> · ` +
     `MD <b>${trial.md.toFixed(3)}</b><br>` +
     `x-flips ${trial.xFlips} · RT ${Math.round(trial.rt)} ms<br>` +
     `init ${trial.initTime !== null ? Math.round(trial.initTime) + ' ms' : '—'}` +
@@ -482,27 +486,25 @@ function drawReview(trial){
   dot(chosen, '#1f1e2c', 5);
   dot(other,  '#bdb7a4', 4);
 
-  // 5) MD marker — find the time-normalized sample with max signed perp dist
+  // 5) MD marker — find the time-normalized sample with max |perp dist|
   if (trial.normalized && trial.normalized.length > 0){
     const dx = trial.chosenPos.x - trial.startPos.x;
-    const mirror = dx < 0 ? -1 : 1;
-    const xScale = Math.abs(dx);
-    const yScale = trial.startPos.y - trial.chosenPos.y;
+    const dy = trial.startPos.y - trial.chosenPos.y;
     const L  = Math.sqrt(1 + 2.25);
     const ux =  1   / L, uy = 1.5 / L;
     const nx = -uy,      ny = ux;
 
-    let mdIdx = 0, mdVal = -Infinity;
+    let mdIdx = 0, mdVal = 0;
     for (let i = 0; i < trial.normalized.length; i++){
       const p = trial.normalized[i];
-      const d = p.x * nx + p.y * ny;
+      const d = Math.abs(p.x * nx + p.y * ny);
       if (d > mdVal) { mdVal = d; mdIdx = i; }
     }
     const mdNorm = trial.normalized[mdIdx];
     // invert normalization → viewport → local
     const mdView = {
-      x: trial.startPos.x + (mdNorm.x * mirror) * xScale,
-      y: trial.startPos.y - (mdNorm.y / 1.5) * yScale,
+      x: trial.startPos.x + mdNorm.x * dx,
+      y: trial.startPos.y - (mdNorm.y / 1.5) * dy,
     };
     const mdL = toLocal(mdView);
     // perpendicular foot on the ideal line (in viewport space)
