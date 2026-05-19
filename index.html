@@ -288,14 +288,17 @@ function pickOption(side){
     }
   }
 
-  // AUC / MD are measured against a FIXED reference line (start → right
-  // option), regardless of which side the participant chose. This way
-  // every trial is scored against the same baseline.
-  const m = computeMetrics(trial.samples, trial.startPos, trial.rightPos);
+  // AUC / MD are measured against a FIXED L-shaped baseline:
+  //   start → right option → left option
+  // (the diagonal up to the right corner, then horizontal across the top).
+  // Every trial uses this same baseline regardless of the chosen side.
+  const m = computeMetrics(trial.samples, trial.startPos,
+                           trial.leftPos, trial.rightPos);
   trial.auc        = m.auc;
   trial.md         = m.md;
   trial.xFlips     = m.xFlips;
   trial.normalized = m.normalized;
+  trial.mdIdx      = m.mdIdx;
 
   state.trials.push(trial);
   updatePanels();
@@ -316,56 +319,94 @@ function centerOf(el){
 }
 
 /* ---------- metrics ----------
-   AUC and MD are unsigned and measured against a FIXED reference line
-   from `startPos` to `refPos` (in practice, the right option). The
-   reference line is the same on every trial regardless of which side
-   was actually chosen, so trials are scored against a single baseline. */
+   AUC and MD are unsigned and measured against a fixed L-shaped baseline
+   that runs   start → right option → left option   (a diagonal up to the
+   right option, then a horizontal across the top to the left option).
+   AUC = sum of polygon areas between consecutive samples and their
+   perpendicular projections onto this two-segment path. MD = max
+   perpendicular distance from any sample to the path. */
 
-function computeMetrics(samples, startPos, refPos){
-  const dx = refPos.x - startPos.x;
-  const dy = startPos.y - refPos.y;             // browser y-axis is inverted
+function projectOntoSegment(p, seg){
+  const vx   = seg.b.x - seg.a.x;
+  const vy   = seg.b.y - seg.a.y;
+  const len2 = vx * vx + vy * vy;
+  let t = ((p.x - seg.a.x) * vx + (p.y - seg.a.y) * vy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  return { x: seg.a.x + t * vx, y: seg.a.y + t * vy };
+}
+
+function projectOntoPath(p, segments){
+  let best = null, bestD = Infinity, bestSeg = -1;
+  for (let i = 0; i < segments.length; i++){
+    const f = projectOntoSegment(p, segments[i]);
+    const d = Math.hypot(p.x - f.x, p.y - f.y);
+    if (d < bestD){ bestD = d; best = f; bestSeg = i; }
+  }
+  return { proj: best, dist: bestD, seg: bestSeg };
+}
+
+function polygonArea(pts){
+  let s = 0;
+  for (let i = 0; i < pts.length; i++){
+    const j = (i + 1) % pts.length;
+    s += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+  }
+  return Math.abs(s / 2);
+}
+
+function computeMetrics(samples, startPos, leftPos, rightPos){
+  const dx = rightPos.x - startPos.x;
+  const dy = startPos.y - rightPos.y;           // browser y-axis is inverted
   if (dx === 0 || dy === 0 || samples.length < 2){
-    return { auc: 0, md: 0, xFlips: 0, normalized: [] };
+    return { auc: 0, md: 0, xFlips: 0, normalized: [], mdIdx: 0 };
   }
 
-  // Translate to start; scale so the reference target lands at (1, 1.5).
-  const normalized = samples.map(p => ({
+  // Translate to start; scale so the right option lands at (1, 1.5).
+  // Left option ends up at roughly (-1, 1.5) for a centered start.
+  const normalizeXY = p => ({
     x: (p.x - startPos.x) / dx,
     y: ((startPos.y - p.y) / dy) * 1.5,
-    t: p.t,
-  }));
+  });
+  const norm = samples.map(p => ({ ...normalizeXY(p), t: p.t }));
+
+  // L-baseline in normalized coords
+  const corner = { x: 1, y: 1.5 };
+  const leftN  = normalizeXY(leftPos);
+  const segments = [
+    { a: { x: 0, y: 0 }, b: corner },   // start → right option
+    { a: corner,         b: leftN  },   // right option → left option
+  ];
+
+  const proj = norm.map(p => projectOntoPath(p, segments));
+
+  // AUC = Σ polygon area for [s_i, s_{i+1}, f_{i+1}, (corner?), f_i]
+  // If consecutive projections fall on different segments, insert the
+  // corner so the polygon follows the L-path instead of cutting across it.
+  let auc = 0;
+  for (let i = 0; i < norm.length - 1; i++){
+    const a  = norm[i],   b  = norm[i + 1];
+    const ra = proj[i],   rb = proj[i + 1];
+    const pts = (ra.seg === rb.seg)
+      ? [a, b, rb.proj, ra.proj]
+      : [a, b, rb.proj, corner, ra.proj];
+    auc += polygonArea(pts);
+  }
+
+  // MD = max distance to L-path
+  let md = 0, mdIdx = 0;
+  for (let i = 0; i < proj.length; i++){
+    if (proj[i].dist > md){ md = proj[i].dist; mdIdx = i; }
+  }
 
   let xFlips = 0;
-  for (let i = 2; i < normalized.length; i++){
-    const a = normalized[i-1].x - normalized[i-2].x;
-    const b = normalized[i].x   - normalized[i-1].x;
+  for (let i = 2; i < norm.length; i++){
+    const a = norm[i - 1].x - norm[i - 2].x;
+    const b = norm[i].x     - norm[i - 1].x;
     if (a * b < 0 && Math.abs(b) > 0.01) xFlips++;
   }
 
-  const tNorm = timeNormalize(normalized, N_TIME_BINS);
-
-  // ideal line from (0,0) to (1, 1.5); unit tangent & normal
-  const L = Math.sqrt(1 + 2.25);
-  const ux =  1   / L, uy = 1.5 / L;
-  const nx = -uy,      ny = ux;
-
-  const proj = tNorm.map(p => ({
-    s: p.x * ux + p.y * uy,           // distance along ideal line
-    d: p.x * nx + p.y * ny,           // perpendicular distance (signed)
-  }));
-
-  // AUC = ∫ |d| ds  (unsigned swept area between path and ideal line)
-  let auc = 0;
-  for (let i = 0; i < proj.length - 1; i++){
-    const ds  = Math.abs(proj[i+1].s - proj[i].s);
-    const avg = (Math.abs(proj[i].d) + Math.abs(proj[i+1].d)) / 2;
-    auc += avg * ds;
-  }
-  // MD = max |perpendicular distance|
-  let md = 0;
-  for (const p of proj) if (Math.abs(p.d) > md) md = Math.abs(p.d);
-
-  return { auc, md, xFlips, normalized: tNorm };
+  const tNorm = timeNormalize(norm, N_TIME_BINS);
+  return { auc, md, xFlips, normalized: tNorm, mdIdx };
 }
 
 function timeNormalize(traj, n){
@@ -437,54 +478,54 @@ function drawReview(trial){
   const r0 = trial.stageRect || rect;
   const toLocal = p => ({ x: p.x - r0.left, y: p.y - r0.top });
 
-  // Fixed reference line: start → right option (regardless of which side
-  // was chosen). Everything below is measured against this line.
-  const refPos = trial.rightPos;
-  const start  = toLocal(trial.startPos);
-  const ref    = toLocal(refPos);
-  const left   = toLocal(trial.leftPos);
-  const right  = toLocal(trial.rightPos);
-  const chosen = toLocal(trial.chosenPos);
+  // L-shaped baseline (in viewport coords):
+  //   start → right option → left option
+  const corner   = trial.rightPos;
+  const segments = [
+    { a: trial.startPos, b: trial.rightPos },
+    { a: trial.rightPos, b: trial.leftPos  },
+  ];
 
-  // Precompute the foot-of-perpendicular function for the reference line.
-  const sVec  = { x: refPos.x - trial.startPos.x,
-                  y: refPos.y - trial.startPos.y };
-  const sLen2 = sVec.x * sVec.x + sVec.y * sVec.y;
-  const footOf = p => {
-    const vx = p.x - trial.startPos.x;
-    const vy = p.y - trial.startPos.y;
-    const t  = (vx * sVec.x + vy * sVec.y) / sLen2;
-    return { x: trial.startPos.x + t * sVec.x,
-             y: trial.startPos.y + t * sVec.y };
-  };
+  const startL  = toLocal(trial.startPos);
+  const rightL  = toLocal(trial.rightPos);
+  const leftL   = toLocal(trial.leftPos);
+  const chosenL = toLocal(trial.chosenPos);
 
-  // 1) AUC area: ribbon of trapezoids between each path segment and its
-  // perpendicular projection onto the reference line. Drawn segment-by-
-  // segment so both sides shade correctly if the path crosses the line.
+  // Project every raw sample onto the L-path (in viewport coords).
+  const proj = trial.samples.map(p => projectOntoPath(p, segments));
+
+  // 1) AUC area: per-segment quadrilateral between the trajectory and the
+  // L-path. When consecutive samples project onto different segments,
+  // insert the corner so the polygon follows the L instead of cutting
+  // across it.
   if (trial.samples.length >= 2){
     ctx.fillStyle = 'rgba(168, 50, 74, 0.14)';
+    const cL = toLocal(corner);
     for (let i = 0; i < trial.samples.length - 1; i++){
       const a  = toLocal(trial.samples[i]);
       const b  = toLocal(trial.samples[i + 1]);
-      const fa = toLocal(footOf(trial.samples[i]));
-      const fb = toLocal(footOf(trial.samples[i + 1]));
+      const ra = proj[i], rb = proj[i + 1];
+      const fa = toLocal(ra.proj);
+      const fb = toLocal(rb.proj);
       ctx.beginPath();
       ctx.moveTo(a.x,  a.y);
       ctx.lineTo(b.x,  b.y);
       ctx.lineTo(fb.x, fb.y);
+      if (ra.seg !== rb.seg) ctx.lineTo(cL.x, cL.y);
       ctx.lineTo(fa.x, fa.y);
       ctx.closePath();
       ctx.fill();
     }
   }
 
-  // 2) reference line (dashed) — always start → right option
+  // 2) L-baseline (dashed): start → right → left
   ctx.strokeStyle = 'rgba(31, 30, 44, 0.55)';
   ctx.setLineDash([5, 4]);
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(start.x, start.y);
-  ctx.lineTo(ref.x,   ref.y);
+  ctx.moveTo(startL.x, startL.y);
+  ctx.lineTo(rightL.x, rightL.y);
+  ctx.lineTo(leftL.x,  leftL.y);
   ctx.stroke();
   ctx.setLineDash([]);
 
@@ -492,7 +533,7 @@ function drawReview(trial){
   ctx.strokeStyle = '#a8324a';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(start.x, start.y);
+  ctx.moveTo(startL.x, startL.y);
   for (const s of trial.samples){
     const p = toLocal(s);
     ctx.lineTo(p.x, p.y);
@@ -500,55 +541,37 @@ function drawReview(trial){
   ctx.stroke();
 
   // 4) endpoint markers
-  //   - start: dark dot
-  //   - right option (reference endpoint): dark ring
-  //   - left option: light gray
-  //   - chosen: highlighted with accent ring
-  const dot = (p, fill, r = 5) => {
+  const dot = (p, fill, r = 4) => {
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.fill();
   };
-  const ring = (p, stroke, r = 7) => {
+  const ring = (p, stroke, r = 8) => {
     ctx.strokeStyle = stroke;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.stroke();
   };
-  dot(start, '#1f1e2c', 4);
-  dot(right, '#1f1e2c', 4);
-  dot(left,  '#bdb7a4', 4);
-  ring(chosen, '#a8324a', 8);
+  dot(startL, '#1f1e2c', 4);
+  dot(rightL, '#1f1e2c', 4);
+  dot(leftL,  '#1f1e2c', 4);
+  ring(chosenL, '#a8324a', 8);
 
-  // 5) MD marker — find the time-normalized sample with max |perp dist|
-  if (trial.normalized && trial.normalized.length > 0){
-    const dx = refPos.x - trial.startPos.x;
-    const dy = trial.startPos.y - refPos.y;
-    const L  = Math.sqrt(1 + 2.25);
-    const ux =  1   / L, uy = 1.5 / L;
-    const nx = -uy,      ny = ux;
-
-    let mdIdx = 0, mdVal = 0;
-    for (let i = 0; i < trial.normalized.length; i++){
-      const p = trial.normalized[i];
-      const d = Math.abs(p.x * nx + p.y * ny);
-      if (d > mdVal) { mdVal = d; mdIdx = i; }
-    }
-    const mdNorm = trial.normalized[mdIdx];
-    const mdView = {
-      x: trial.startPos.x + mdNorm.x * dx,
-      y: trial.startPos.y - (mdNorm.y / 1.5) * dy,
-    };
-    const mdL    = toLocal(mdView);
-    const footL  = toLocal(footOf(mdView));
-
+  // 5) MD marker — raw sample with max distance from the L-path
+  let mdMax = 0, mdIdx = -1;
+  for (let i = 0; i < proj.length; i++){
+    if (proj[i].dist > mdMax){ mdMax = proj[i].dist; mdIdx = i; }
+  }
+  if (mdIdx >= 0){
+    const mdL   = toLocal(trial.samples[mdIdx]);
+    const footL = toLocal(proj[mdIdx].proj);
     ctx.strokeStyle = 'rgba(31, 30, 44, 0.7)';
     ctx.setLineDash([2, 3]);
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(mdL.x,  mdL.y);
+    ctx.moveTo(mdL.x,   mdL.y);
     ctx.lineTo(footL.x, footL.y);
     ctx.stroke();
     ctx.setLineDash([]);
