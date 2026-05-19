@@ -270,13 +270,13 @@ function pickOption(side){
   const trial = state.current;
   trial.rt = performance.now() - trial.startTime;
 
-  const chosenEl  = side === 'left' ? $('optLeft')  : $('optRight');
-  const otherEl   = side === 'left' ? $('optRight') : $('optLeft');
-  trial.chosen     = side === 'left' ? trial.left      : trial.right;
-  trial.chosenType = side === 'left' ? trial.leftType  : trial.rightType;
+  trial.leftPos    = centerOf($('optLeft'));
+  trial.rightPos   = centerOf($('optRight'));
+  trial.chosen     = side === 'left' ? trial.left     : trial.right;
+  trial.chosenType = side === 'left' ? trial.leftType : trial.rightType;
   trial.chosenSide = side;
-  trial.chosenPos  = centerOf(chosenEl);
-  trial.otherPos   = centerOf(otherEl);
+  trial.chosenPos  = side === 'left' ? trial.leftPos  : trial.rightPos;
+  trial.otherPos   = side === 'left' ? trial.rightPos : trial.leftPos;
 
   trial.initTime = null;
   for (let i = 1; i < trial.samples.length; i++){
@@ -288,7 +288,10 @@ function pickOption(side){
     }
   }
 
-  const m = computeMetrics(trial.samples, trial.startPos, trial.chosenPos);
+  // AUC / MD are measured against a FIXED reference line (start → right
+  // option), regardless of which side the participant chose. This way
+  // every trial is scored against the same baseline.
+  const m = computeMetrics(trial.samples, trial.startPos, trial.rightPos);
   trial.auc        = m.auc;
   trial.md         = m.md;
   trial.xFlips     = m.xFlips;
@@ -313,20 +316,19 @@ function centerOf(el){
 }
 
 /* ---------- metrics ----------
-   AUC and MD are unsigned: the area / max distance between the actual
-   cursor path and the ideal straight line from start to chosen target,
-   in normalized (0,0)→(1,1.5) coordinates. No mirroring; direction of
-   deviation doesn't matter. */
+   AUC and MD are unsigned and measured against a FIXED reference line
+   from `startPos` to `refPos` (in practice, the right option). The
+   reference line is the same on every trial regardless of which side
+   was actually chosen, so trials are scored against a single baseline. */
 
-function computeMetrics(samples, startPos, chosenPos){
-  const dx = chosenPos.x - startPos.x;
-  const dy = startPos.y - chosenPos.y;          // browser y-axis is inverted
+function computeMetrics(samples, startPos, refPos){
+  const dx = refPos.x - startPos.x;
+  const dy = startPos.y - refPos.y;             // browser y-axis is inverted
   if (dx === 0 || dy === 0 || samples.length < 2){
     return { auc: 0, md: 0, xFlips: 0, normalized: [] };
   }
 
-  // Translate to start; scale x by signed dx and y by dy so the chosen
-  // target lands at (1, 1.5) regardless of which side it was on.
+  // Translate to start; scale so the reference target lands at (1, 1.5).
   const normalized = samples.map(p => ({
     x: (p.x - startPos.x) / dx,
     y: ((startPos.y - p.y) / dy) * 1.5,
@@ -435,25 +437,31 @@ function drawReview(trial){
   const r0 = trial.stageRect || rect;
   const toLocal = p => ({ x: p.x - r0.left, y: p.y - r0.top });
 
+  // Fixed reference line: start → right option (regardless of which side
+  // was chosen). Everything below is measured against this line.
+  const refPos = trial.rightPos;
   const start  = toLocal(trial.startPos);
+  const ref    = toLocal(refPos);
+  const left   = toLocal(trial.leftPos);
+  const right  = toLocal(trial.rightPos);
   const chosen = toLocal(trial.chosenPos);
-  const other  = toLocal(trial.otherPos);
 
-  // 1) AUC area: ribbon of trapezoids between each segment of the actual path
-  // and its perpendicular projection onto the ideal line. Drawing it
-  // segment-by-segment (instead of one closed polygon) ensures both sides of
-  // the line are shaded when the trajectory crosses it.
+  // Precompute the foot-of-perpendicular function for the reference line.
+  const sVec  = { x: refPos.x - trial.startPos.x,
+                  y: refPos.y - trial.startPos.y };
+  const sLen2 = sVec.x * sVec.x + sVec.y * sVec.y;
+  const footOf = p => {
+    const vx = p.x - trial.startPos.x;
+    const vy = p.y - trial.startPos.y;
+    const t  = (vx * sVec.x + vy * sVec.y) / sLen2;
+    return { x: trial.startPos.x + t * sVec.x,
+             y: trial.startPos.y + t * sVec.y };
+  };
+
+  // 1) AUC area: ribbon of trapezoids between each path segment and its
+  // perpendicular projection onto the reference line. Drawn segment-by-
+  // segment so both sides shade correctly if the path crosses the line.
   if (trial.samples.length >= 2){
-    const sVec  = { x: trial.chosenPos.x - trial.startPos.x,
-                    y: trial.chosenPos.y - trial.startPos.y };
-    const sLen2 = sVec.x * sVec.x + sVec.y * sVec.y;
-    const footOf = p => {
-      const vx = p.x - trial.startPos.x;
-      const vy = p.y - trial.startPos.y;
-      const t  = (vx * sVec.x + vy * sVec.y) / sLen2;
-      return { x: trial.startPos.x + t * sVec.x,
-               y: trial.startPos.y + t * sVec.y };
-    };
     ctx.fillStyle = 'rgba(168, 50, 74, 0.14)';
     for (let i = 0; i < trial.samples.length - 1; i++){
       const a  = toLocal(trial.samples[i]);
@@ -470,18 +478,17 @@ function drawReview(trial){
     }
   }
 
-  // 2) ideal straight line
+  // 2) reference line (dashed) — always start → right option
   ctx.strokeStyle = 'rgba(31, 30, 44, 0.55)';
   ctx.setLineDash([5, 4]);
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(start.x, start.y);
-  ctx.lineTo(chosen.x, chosen.y);
+  ctx.lineTo(ref.x,   ref.y);
   ctx.stroke();
   ctx.setLineDash([]);
 
   // 3) actual trajectory
-  ctx.strokeStyle = 'var(--accent)';
   ctx.strokeStyle = '#a8324a';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -493,20 +500,32 @@ function drawReview(trial){
   ctx.stroke();
 
   // 4) endpoint markers
+  //   - start: dark dot
+  //   - right option (reference endpoint): dark ring
+  //   - left option: light gray
+  //   - chosen: highlighted with accent ring
   const dot = (p, fill, r = 5) => {
     ctx.fillStyle = fill;
     ctx.beginPath();
     ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.fill();
   };
-  dot(start,  '#1f1e2c', 4);
-  dot(chosen, '#1f1e2c', 5);
-  dot(other,  '#bdb7a4', 4);
+  const ring = (p, stroke, r = 7) => {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  };
+  dot(start, '#1f1e2c', 4);
+  dot(right, '#1f1e2c', 4);
+  dot(left,  '#bdb7a4', 4);
+  ring(chosen, '#a8324a', 8);
 
   // 5) MD marker — find the time-normalized sample with max |perp dist|
   if (trial.normalized && trial.normalized.length > 0){
-    const dx = trial.chosenPos.x - trial.startPos.x;
-    const dy = trial.startPos.y - trial.chosenPos.y;
+    const dx = refPos.x - trial.startPos.x;
+    const dy = trial.startPos.y - refPos.y;
     const L  = Math.sqrt(1 + 2.25);
     const ux =  1   / L, uy = 1.5 / L;
     const nx = -uy,      ny = ux;
@@ -518,23 +537,12 @@ function drawReview(trial){
       if (d > mdVal) { mdVal = d; mdIdx = i; }
     }
     const mdNorm = trial.normalized[mdIdx];
-    // invert normalization → viewport → local
     const mdView = {
       x: trial.startPos.x + mdNorm.x * dx,
       y: trial.startPos.y - (mdNorm.y / 1.5) * dy,
     };
-    const mdL = toLocal(mdView);
-    // perpendicular foot on the ideal line (in viewport space)
-    const sVec = { x: trial.chosenPos.x - trial.startPos.x,
-                   y: trial.chosenPos.y - trial.startPos.y };
-    const sLen2 = sVec.x*sVec.x + sVec.y*sVec.y;
-    const v = { x: mdView.x - trial.startPos.x, y: mdView.y - trial.startPos.y };
-    const tProj = (v.x*sVec.x + v.y*sVec.y) / sLen2;
-    const footView = {
-      x: trial.startPos.x + tProj * sVec.x,
-      y: trial.startPos.y + tProj * sVec.y,
-    };
-    const footL = toLocal(footView);
+    const mdL    = toLocal(mdView);
+    const footL  = toLocal(footOf(mdView));
 
     ctx.strokeStyle = 'rgba(31, 30, 44, 0.7)';
     ctx.setLineDash([2, 3]);
