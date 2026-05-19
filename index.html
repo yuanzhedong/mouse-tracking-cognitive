@@ -439,18 +439,35 @@ function drawReview(trial){
   const chosen = toLocal(trial.chosenPos);
   const other  = toLocal(trial.otherPos);
 
-  // 1) AUC area: polygon from start → samples → chosen → close along ideal line
+  // 1) AUC area: ribbon of trapezoids between each segment of the actual path
+  // and its perpendicular projection onto the ideal line. Drawing it
+  // segment-by-segment (instead of one closed polygon) ensures both sides of
+  // the line are shaded when the trajectory crosses it.
   if (trial.samples.length >= 2){
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    for (const s of trial.samples){
-      const p = toLocal(s);
-      ctx.lineTo(p.x, p.y);
+    const sVec  = { x: trial.chosenPos.x - trial.startPos.x,
+                    y: trial.chosenPos.y - trial.startPos.y };
+    const sLen2 = sVec.x * sVec.x + sVec.y * sVec.y;
+    const footOf = p => {
+      const vx = p.x - trial.startPos.x;
+      const vy = p.y - trial.startPos.y;
+      const t  = (vx * sVec.x + vy * sVec.y) / sLen2;
+      return { x: trial.startPos.x + t * sVec.x,
+               y: trial.startPos.y + t * sVec.y };
+    };
+    ctx.fillStyle = 'rgba(168, 50, 74, 0.14)';
+    for (let i = 0; i < trial.samples.length - 1; i++){
+      const a  = toLocal(trial.samples[i]);
+      const b  = toLocal(trial.samples[i + 1]);
+      const fa = toLocal(footOf(trial.samples[i]));
+      const fb = toLocal(footOf(trial.samples[i + 1]));
+      ctx.beginPath();
+      ctx.moveTo(a.x,  a.y);
+      ctx.lineTo(b.x,  b.y);
+      ctx.lineTo(fb.x, fb.y);
+      ctx.lineTo(fa.x, fa.y);
+      ctx.closePath();
+      ctx.fill();
     }
-    ctx.lineTo(chosen.x, chosen.y);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(168, 50, 74, 0.18)';
-    ctx.fill();
   }
 
   // 2) ideal straight line
