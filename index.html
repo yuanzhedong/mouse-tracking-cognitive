@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mouse-tracking apparatus — AUC & MD replication</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:       #f4efe4;
+    --paper-deep:  #ece5d3;
+    --rule:        #d8cfb6;
+    --ink:         #1f1e2c;
+    --ink-soft:    #4a4858;
+    --ink-faint:   #7a7587;
+    --accent:      #a8324a;
+    --accent-soft: #c75f72;
+    --grid:        #e2dac3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Newsreader', Georgia, serif;
+    font-feature-settings: "kern", "liga", "onum";
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  body {
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: -1px -1px;
+  }
+  .container {
+    max-width: 1340px;
+    margin: 0 auto;
+    padding: 40px 36px 60px;
+  }
+
+  /* HEADER */
+  header.page-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 28px;
+    gap: 24px;
+  }
+  .title-block .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .title-block h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(38px, 5vw, 62px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  .title-block h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  .title-block .subtitle {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+    font-style: italic;
+    max-width: 56ch;
+  }
+  .trial-info {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .trial-info .trial-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .trial-info .trial-number {
+    font-size: 44px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .trial-info .trial-of {
+    font-size: 14px;
+    color: var(--ink-faint);
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  /* EXPERIMENT STAGE */
+  .stage-wrap {
+    position: relative;
+  }
+  .stage {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--paper-deep);
+    border: 1.5px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    overflow: hidden;
+    user-select: none;
+    cursor: default;
+  }
+  .stage::before {
+    content: "";
+    position: absolute;
+    inset: 16px;
+    border: 1px dashed var(--rule);
+    pointer-events: none;
+  }
+  .stage .corner-mark {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.1em;
+  }
+  .corner-mark.tl { top: 6px; left: 10px; }
+  .corner-mark.tr { top: 6px; right: 10px; }
+  .corner-mark.bl { bottom: 6px; left: 10px; }
+  .corner-mark.br { bottom: 6px; right: 10px; }
+
+  .option {
+    position: absolute;
+    top: 30px;
+    min-width: 140px;
+    padding: 14px 22px;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 80ms ease;
+    font-variation-settings: "opsz" 36;
+  }
+  .option:hover { background: var(--paper-deep); }
+  .option.opt-left { left: 30px; }
+  .option.opt-right { right: 30px; }
+
+  .stimulus {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fraunces', serif;
+    font-size: 56px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-align: center;
+    font-variation-settings: "opsz" 144;
+    font-style: italic;
+  }
+  .stimulus .prompt {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 14px;
+    font-style: normal;
+  }
+
+  .start-button {
+    position: absolute;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 13px 36px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 120ms ease;
+  }
+  .start-button:hover { transform: translateX(-50%) translateY(-2px); }
+  .start-button:active { transform: translateX(-50%) translateY(0); }
+
+  .stage-intro {
+    position: absolute;
+    top: 32%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    max-width: 380px;
+  }
+  .stage-intro h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 30px;
+    margin-bottom: 12px;
+    font-variation-settings: "opsz" 80;
+  }
+  .stage-intro p {
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .warning {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--accent);
+    color: var(--paper);
+    padding: 16px 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms;
+  }
+  .warning.visible { opacity: 1; }
+
+  /* SIDE PANEL */
+  aside.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .panel-card {
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    padding: 20px 22px;
+  }
+  .panel-card h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  dl.metrics {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  dl.metrics dt {
+    color: var(--ink-soft);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    align-self: center;
+  }
+  dl.metrics dd {
+    text-align: right;
+    font-weight: 500;
+    font-size: 15px;
+  }
+  dl.metrics dd.dim { color: var(--ink-faint); }
+  dl.metrics dd .unit { font-size: 11px; color: var(--ink-faint); margin-left: 3px; }
+
+  canvas.viz {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: var(--paper-deep);
+    border: 1px solid var(--rule);
+  }
+  .viz-legend {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .legend-row { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch {
+    width: 18px; height: 2px;
+  }
+  .legend-swatch.dashed {
+    border-top: 1.5px dashed var(--ink);
+    height: 0;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .controls button {
+    padding: 12px 14px;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 80ms ease;
+  }
+  .controls button:hover { background: var(--ink); color: var(--paper); }
+  .controls button.primary { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+  .controls button.primary:hover { background: var(--ink); border-color: var(--ink); }
+  .controls button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* FOOTER NOTES */
+  footer.notes {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1.5px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 28px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  footer.notes h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  footer.notes p { margin-bottom: 8px; }
+  footer.notes .ref {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  /* Responsive */
+  @media (max-width: 980px) {
+    main { grid-template-columns: 1fr; }
+    footer.notes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="page-head">
+    <div class="title-block">
+      <div class="eyebrow">Mouse-tracking apparatus · v.1</div>
+      <h1>Tracing <em>conflict</em><br>in real time.</h1>
+      <p class="subtitle">A binary-choice mouse-tracking task that records cursor trajectories, then computes area-under-the-curve and maximum-deviation — after Stillman, Shen &amp; Ferguson (2018).</p>
+    </div>
+    <div class="trial-info">
+      <span class="trial-label">Trial</span>
+      <span class="trial-number" id="trialNum">—</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <span class="corner-mark tl">[ option · left ]</span>
+        <span class="corner-mark tr">[ option · right ]</span>
+        <span class="corner-mark bl">x = 0</span>
+        <span class="corner-mark br">cursor → live</span>
+
+        <div class="stage-intro" id="intro">
+          <h2>Ready when you are.</h2>
+          <p>Click the start button below. A choice will appear at the top corners — move quickly and choose the one you’d rather eat right now.</p>
+        </div>
+
+        <button class="option opt-left" id="optLeft" style="display:none"></button>
+        <button class="option opt-right" id="optRight" style="display:none"></button>
+        <div class="stimulus" id="stimulus" style="display:none"><span class="prompt">choose</span></div>
+        <button class="start-button" id="startBtn">Start</button>
+        <div class="warning" id="warning">Begin moving sooner.</div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="panel-card">
+        <h3>Last trial</h3>
+        <dl class="metrics">
+          <dt>chose</dt>          <dd id="lastChoice" class="dim">—</dd>
+          <dt>AUC</dt>            <dd id="lastAUC" class="dim">—</dd>
+          <dt>MD</dt>             <dd id="lastMD" class="dim">—</dd>
+          <dt>x-flips</dt>        <dd id="lastFlips" class="dim">—</dd>
+          <dt>RT</dt>             <dd id="lastRT" class="dim">—</dd>
+          <dt>init time</dt>      <dd id="lastInit" class="dim">—</dd>
+        </dl>
+      </div>
+
+      <div class="panel-card">
+        <h3>Aggregate · n = <span id="nTrials">0</span></h3>
+        <dl class="metrics">
+          <dt>mean AUC</dt>       <dd id="meanAUC" class="dim">—</dd>
+          <dt>mean MD</dt>        <dd id="meanMD" class="dim">—</dd>
+          <dt>mean RT</dt>        <dd id="meanRT" class="dim">—</dd>
+        </dl>
+      </div>
+
+      <div class="panel-card">
+        <h3>Trajectories (normalized)</h3>
+        <canvas id="trajCanvas" class="viz" width="320" height="320"></canvas>
+        <div class="viz-legend">
+          <div class="legend-row"><span class="legend-swatch" style="background:var(--ink-soft);opacity:0.5"></span><span>past trial</span></div>
+          <div class="legend-row"><span class="legend-swatch" style="background:var(--accent);height:2.5px"></span><span>most recent trial</span></div>
+          <div class="legend-row"><span class="legend-swatch dashed"></span><span>ideal straight path</span></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="exportBtn" class="primary">Export CSV</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="notes">
+    <div>
+      <h4>How it computes AUC</h4>
+      <p>Each trial’s cursor samples are translated so the start is at <code>(0,0)</code> and scaled so the chosen option lands at <code>(1, 1.5)</code> — with trajectories <em>mirrored</em> so the chosen target is always on the right. Sampling is then re-interpolated to 101 equally-spaced time bins.</p>
+      <p>AUC is the trapezoidal integral of signed perpendicular distance from the ideal start→target line, with positive values meaning deviation <em>toward the unchosen option</em>. MD is the maximum perpendicular distance.</p>
+    </div>
+    <div>
+      <h4>Why mirror &amp; normalize</h4>
+      <p>Raw pixel trajectories aren’t comparable across screens, monitors, or which side the chosen option fell on. Mirroring puts every chosen target on the same side so AUC is signed consistently; the (0,0)→(1,1.5) frame is the convention from Freeman &amp; Ambady’s MouseTracker.</p>
+      <p>You will want at least 25–50 trials per condition before treating means as stable.</p>
+    </div>
+    <div>
+      <h4>Caveats</h4>
+      <p>If participants reach a decision before they begin moving, trajectories will be uninformatively straight. The apparatus shows a soft warning when initiation time exceeds 500 ms. For published studies, researchers typically also enforce a deadline (e.g. require movement within 400 ms) and exclude offending trials.</p>
+      <p class="ref">— Stillman, Shen &amp; Ferguson (2018). <em>Trends in Cognitive Sciences</em> 22(6).</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+/* =============================================================
+   MOUSE-TRACKING APPARATUS
+   AUC & MD computation after Freeman & Ambady (2010) MouseTracker
+   ============================================================= */
+
+const STIMULI = [
+  { vice: "Brownie",     virtue: "Broccoli" },
+  { vice: "Pizza",       virtue: "Salad" },
+  { vice: "Donut",       virtue: "Apple" },
+  { vice: "Cheeseburger",virtue: "Carrots" },
+  { vice: "Ice cream",   virtue: "Yogurt" },
+  { vice: "French fries",virtue: "Berries" },
+  { vice: "Chocolate",   virtue: "Almonds" },
+  { vice: "Cookie",      virtue: "Banana" },
+  { vice: "Bacon",       virtue: "Spinach" },
+  { vice: "Milkshake",   virtue: "Water" },
+];
+
+const INIT_WARN_MS = 500;      // soft warning if movement starts later than this
+const MOVE_THRESHOLD_PX = 10;  // distance for "movement initiated"
+const N_TIME_BINS = 101;
+
+const $ = id => document.getElementById(id);
+
+const state = {
+  pool: [],
+  trials: [],
+  current: null,
+  stage: 'idle',   // idle | awaiting_move | in_trial
+};
+
+/* ---------- shuffle / setup ---------- */
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function nextStimulus(){
+  if (state.pool.length === 0) state.pool = shuffle(STIMULI);
+  return state.pool.pop();
+}
+
+function setupTrial(){
+  const pair = nextStimulus();
+  const leftIsVirtue = Math.random() < 0.5;
+  state.current = {
+    left:      leftIsVirtue ? pair.virtue : pair.vice,
+    right:     leftIsVirtue ? pair.vice  : pair.virtue,
+    leftType:  leftIsVirtue ? 'virtue'   : 'vice',
+    rightType: leftIsVirtue ? 'vice'     : 'virtue',
+    pair,
+    samples: [],
+  };
+  $('intro').style.display = state.trials.length === 0 ? '' : 'none';
+  $('optLeft').textContent = state.current.left;
+  $('optRight').textContent = state.current.right;
+  $('optLeft').style.display = 'none';
+  $('optRight').style.display = 'none';
+  $('stimulus').style.display = 'none';
+  $('startBtn').style.display = '';
+  $('warning').classList.remove('visible');
+  $('trialNum').textContent = state.trials.length + 1;
+  state.stage = 'awaiting_start';
+}
+
+/* ---------- trial flow ---------- */
+
+$('startBtn').addEventListener('click', e => {
+  if (state.stage !== 'awaiting_start') return;
+  const c = state.current;
+  c.startPos = { x: e.clientX, y: e.clientY };
+  c.startTime = performance.now();
+  c.samples.push({ x: e.clientX, y: e.clientY, t: 0 });
+
+  $('intro').style.display = 'none';
+  $('startBtn').style.display = 'none';
+  $('optLeft').style.display = '';
+  $('optRight').style.display = '';
+  $('stimulus').style.display = '';
+  state.stage = 'in_trial';
+});
+
+document.addEventListener('mousemove', e => {
+  if (state.stage !== 'in_trial') return;
+  const t = performance.now() - state.current.startTime;
+  state.current.samples.push({ x: e.clientX, y: e.clientY, t });
+});
+
+function pickOption(side){
+  if (state.stage !== 'in_trial') return;
+  const trial = state.current;
+  const tEnd = performance.now() - trial.startTime;
+
+  const chosenEl = side === 'left' ? $('optLeft') : $('optRight');
+  const otherEl  = side === 'left' ? $('optRight') : $('optLeft');
+  const chosenPos = centerOf(chosenEl);
+  const otherPos  = centerOf(otherEl);
+
+  trial.rt        = tEnd;
+  trial.chosen    = side === 'left' ? trial.left  : trial.right;
+  trial.chosenType= side === 'left' ? trial.leftType : trial.rightType;
+  trial.chosenSide= side;
+  trial.chosenPos = chosenPos;
+  trial.otherPos  = otherPos;
+
+  // initiation time
+  trial.initTime = null;
+  for (let i = 1; i < trial.samples.length; i++){
+    const dx = trial.samples[i].x - trial.startPos.x;
+    const dy = trial.samples[i].y - trial.startPos.y;
+    if (Math.hypot(dx, dy) > MOVE_THRESHOLD_PX){
+      trial.initTime = trial.samples[i].t;
+      break;
+    }
+  }
+
+  const m = computeMetrics(trial.samples, trial.startPos, chosenPos);
+  trial.auc = m.auc;
+  trial.md = m.md;
+  trial.xFlips = m.xFlips;
+  trial.normalized = m.normalized;
+
+  state.trials.push(trial);
+  state.stage = 'idle';
+
+  updatePanels();
+  drawViz();
+
+  if (trial.initTime !== null && trial.initTime > INIT_WARN_MS){
+    $('warning').classList.add('visible');
+    setTimeout(() => $('warning').classList.remove('visible'), 1100);
+  }
+
+  setTimeout(setupTrial, 650);
+}
+
+$('optLeft').addEventListener('click',  () => pickOption('left'));
+$('optRight').addEventListener('click', () => pickOption('right'));
+
+function centerOf(el){
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2 };
+}
+
+/* ---------- metrics ---------- */
+
+function computeMetrics(samples, startPos, chosenPos){
+  // Normalize: translate, scale, mirror so chosen target is (1, 1.5)
+  const dx = chosenPos.x - startPos.x;
+  const dy = startPos.y - chosenPos.y;   // browser y-axis is inverted
+  const mirror = dx < 0 ? -1 : 1;
+  const xScale = Math.abs(dx);
+  const yScale = dy;
+  if (xScale === 0 || yScale === 0 || samples.length < 2){
+    return { auc: 0, md: 0, xFlips: 0, normalized: [] };
+  }
+
+  const normalized = samples.map(p => ({
+    x: ((p.x - startPos.x) / xScale) * mirror,
+    y: ((startPos.y - p.y) / yScale) * 1.5,
+    t: p.t,
+  }));
+
+  // x-flips: counted on raw (mirrored) normalized x before time-norm
+  let xFlips = 0;
+  for (let i = 2; i < normalized.length; i++){
+    const a = normalized[i-1].x - normalized[i-2].x;
+    const b = normalized[i].x   - normalized[i-1].x;
+    if (a * b < 0 && Math.abs(b) > 0.01) xFlips++;
+  }
+
+  // Time-normalize to N_TIME_BINS points
+  const tNorm = timeNormalize(normalized, N_TIME_BINS);
+
+  // Ideal line: from (0,0) to (1, 1.5). Unit tangent u, unit normal n (toward unchosen side).
+  const L = Math.sqrt(1 + 2.25);
+  const ux = 1 / L, uy = 1.5 / L;
+  const nx = -uy,   ny = ux;  // 90° CCW rotation → points toward (-x, +y), i.e. unchosen side
+
+  const proj = tNorm.map(p => ({
+    s: p.x * ux + p.y * uy,   // distance along ideal line
+    d: p.x * nx + p.y * ny,   // signed perpendicular distance (positive → toward unchosen)
+  }));
+
+  // AUC = trapezoidal integral of d w.r.t. s
+  let auc = 0;
+  for (let i = 0; i < proj.length - 1; i++){
+    const ds = proj[i+1].s - proj[i].s;
+    const avg = (proj[i].d + proj[i+1].d) / 2;
+    auc += avg * ds;
+  }
+  // MD = max signed perpendicular distance
+  let md = -Infinity;
+  for (const p of proj) if (p.d > md) md = p.d;
+
+  return { auc, md, xFlips, normalized: tNorm };
+}
+
+function timeNormalize(traj, n){
+  if (traj.length < 2) return traj.slice();
+  const t0 = traj[0].t;
+  const tEnd = traj[traj.length - 1].t;
+  const dur = tEnd - t0;
+  if (dur <= 0) return Array.from({length: n}, () => ({...traj[0]}));
+
+  const out = [];
+  let j = 0;
+  for (let i = 0; i < n; i++){
+    const target = t0 + (i / (n - 1)) * dur;
+    while (j < traj.length - 1 && traj[j+1].t < target) j++;
+    if (j >= traj.length - 1){
+      out.push({ ...traj[traj.length - 1] });
+    } else {
+      const p1 = traj[j], p2 = traj[j+1];
+      const span = p2.t - p1.t;
+      const f = span > 0 ? (target - p1.t) / span : 0;
+      out.push({
+        x: p1.x + f * (p2.x - p1.x),
+        y: p1.y + f * (p2.y - p1.y),
+        t: target,
+      });
+    }
+  }
+  return out;
+}
+
+/* ---------- panels & viz ---------- */
+
+function updatePanels(){
+  const last = state.trials[state.trials.length - 1];
+  if (!last) return;
+  const setVal = (id, val) => {
+    const el = $(id);
+    el.textContent = val;
+    el.classList.remove('dim');
+  };
+  setVal('lastChoice', `${last.chosen} · ${last.chosenType}`);
+  setVal('lastAUC', last.auc.toFixed(3));
+  setVal('lastMD', last.md.toFixed(3));
+  setVal('lastFlips', last.xFlips);
+  setVal('lastRT', `${Math.round(last.rt)} ms`);
+  setVal('lastInit', last.initTime !== null ? `${Math.round(last.initTime)} ms` : '—');
+
+  const n = state.trials.length;
+  $('nTrials').textContent = n;
+  const mean = arr => arr.reduce((s,v) => s+v, 0) / arr.length;
+  setVal('meanAUC', mean(state.trials.map(t => t.auc)).toFixed(3));
+  setVal('meanMD',  mean(state.trials.map(t => t.md)).toFixed(3));
+  setVal('meanRT',  `${Math.round(mean(state.trials.map(t => t.rt)))} ms`);
+}
+
+function drawViz(){
+  const canvas = $('trajCanvas');
+  const ctx = canvas.getContext('2d');
+  // Render at device pixel ratio for crispness
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth;
+  const cssH = canvas.clientWidth; // square
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const W = cssW, H = cssH;
+  const pad = 30;
+
+  // Normalized x in [-1, 1], y in [0, 1.5]
+  const xToPx = x => pad + ((x + 1) / 2) * (W - 2*pad);
+  const yToPx = y => H - pad - (y / 1.5) * (H - 2*pad);
+
+  // background
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.fillRect(0, 0, W, H);
+
+  // axes / target markers
+  const startPx = { x: xToPx(0), y: yToPx(0) };
+  const chosenPx = { x: xToPx(1), y: yToPx(1.5) };
+  const otherPx  = { x: xToPx(-1), y: yToPx(1.5) };
+
+  // ideal line
+  ctx.strokeStyle = 'rgba(31, 30, 44, 0.5)';
+  ctx.setLineDash([4, 4]);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(startPx.x, startPx.y);
+  ctx.lineTo(chosenPx.x, chosenPx.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // past trajectories
+  ctx.strokeStyle = 'rgba(74, 72, 88, 0.28)';
+  ctx.lineWidth = 1.2;
+  const past = state.trials.slice(0, -1);
+  for (const t of past){
+    if (!t.normalized || t.normalized.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(xToPx(t.normalized[0].x), yToPx(t.normalized[0].y));
+    for (let i = 1; i < t.normalized.length; i++){
+      ctx.lineTo(xToPx(t.normalized[i].x), yToPx(t.normalized[i].y));
+    }
+    ctx.stroke();
+  }
+
+  // most recent
+  const last = state.trials[state.trials.length - 1];
+  if (last && last.normalized && last.normalized.length > 1){
+    ctx.strokeStyle = '#a8324a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(xToPx(last.normalized[0].x), yToPx(last.normalized[0].y));
+    for (let i = 1; i < last.normalized.length; i++){
+      ctx.lineTo(xToPx(last.normalized[i].x), yToPx(last.normalized[i].y));
+    }
+    ctx.stroke();
+  }
+
+  // marker dots
+  const dot = (p, fill, r = 4) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  dot(startPx, '#1f1e2c');
+  dot(chosenPx, '#1f1e2c');
+  ctx.fillStyle = '#7a7587';
+  ctx.beginPath();
+  ctx.arc(otherPx.x, otherPx.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // labels
+  ctx.fillStyle = '#4a4858';
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('chosen', chosenPx.x, chosenPx.y - 10);
+  ctx.fillText('unchosen', otherPx.x, otherPx.y - 10);
+  ctx.fillText('start', startPx.x, startPx.y + 18);
+}
+
+/* ---------- export ---------- */
+
+$('exportBtn').addEventListener('click', () => {
+  if (state.trials.length === 0) return;
+  // sample-level CSV with trial-level metrics repeated
+  const header = [
+    'trial','left_option','right_option','left_type','right_type',
+    'chosen','chosen_type','chosen_side',
+    'rt_ms','init_time_ms','auc','md','x_flips',
+    'sample_idx','t_norm','x_norm','y_norm'
+  ];
+  const rows = [header.join(',')];
+  state.trials.forEach((t, ti) => {
+    t.normalized.forEach((p, si) => {
+      rows.push([
+        ti + 1, q(t.left), q(t.right), t.leftType, t.rightType,
+        q(t.chosen), t.chosenType, t.chosenSide,
+        Math.round(t.rt), t.initTime !== null ? Math.round(t.initTime) : '',
+        t.auc.toFixed(6), t.md.toFixed(6), t.xFlips,
+        si, (si / (N_TIME_BINS - 1)).toFixed(4),
+        p.x.toFixed(6), p.y.toFixed(6),
+      ].join(','));
+    });
+  });
+  const csv = rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mouse-tracking-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+function q(s){ return /[,"\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }
+
+/* ---------- reset ---------- */
+
+$('resetBtn').addEventListener('click', () => {
+  if (state.trials.length > 0 && !confirm('Clear all recorded trials?')) return;
+  state.trials = [];
+  state.pool = [];
+  state.stage = 'idle';
+  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit',
+   'meanAUC','meanMD','meanRT'].forEach(id => {
+    const el = $(id);
+    el.textContent = '—';
+    el.classList.add('dim');
+  });
+  $('nTrials').textContent = '0';
+  drawViz();
+  setupTrial();
+});
+
+/* ---------- init ---------- */
+
+setupTrial();
+drawViz();
+window.addEventListener('resize', drawViz);
+</script>
+</body>
+</html>

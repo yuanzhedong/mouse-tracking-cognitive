@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Data exports from local runs
+data/
+*.csv
+!docs/example.csv
+
+# Node (if we ever add a build step)
+node_modules/
+dist/
+.cache/
+
+# Python (if we add analysis scripts)
+__pycache__/
+*.pyc
+.venv/
+.env
