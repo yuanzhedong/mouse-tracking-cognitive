@@ -322,10 +322,13 @@ document.addEventListener('mousemove', e => {
   state.current.samples.push({ x: e.clientX, y: e.clientY, t });
 });
 
-function pickOption(side){
+function pickOption(side, e){
   if (state.stage !== 'in_trial') return;
   const trial = state.current;
   trial.rt = performance.now() - trial.startTime;
+  // Record the click position as the trajectory's true endpoint — the
+  // idealized line (per Freeman & Ambady, 2010) runs start → endpoint.
+  trial.samples.push({ x: e.clientX, y: e.clientY, t: trial.rt });
 
   trial.leftPos    = centerOf($('optLeft'));
   trial.rightPos   = centerOf($('optRight'));
@@ -360,8 +363,8 @@ function pickOption(side){
   showReview(trial);
 }
 
-$('optLeft').addEventListener('click',  () => pickOption('left'));
-$('optRight').addEventListener('click', () => pickOption('right'));
+$('optLeft').addEventListener('click',  e => pickOption('left', e));
+$('optRight').addEventListener('click', e => pickOption('right', e));
 
 $('nextBtn').addEventListener('click', () => {
   if (state.stage !== 'review') return;
@@ -375,11 +378,12 @@ function centerOf(el){
 
 /* ---------- metrics ----------
    Freeman & Ambady (2010) MouseTracker convention.
-   Trajectories are remapped into a normalized space with the start at
-   (0,0) and the CHOSEN option at (-1, 1.5) — i.e. every trajectory is
+   Trajectories are space-rescaled into a normalized space with the start
+   at (0,0) and the CHOSEN option at (-1, 1.5) — i.e. every trajectory is
    mirrored so the chosen option is top-left, so the unchosen option
-   lies toward +x. The ideal trajectory is the straight line from
-   (0,0) to (-1, 1.5).
+   lies toward +x. The idealized response trajectory is "a straight line
+   between each trajectory's start and endpoints" (p. 230) — i.e. from
+   (0,0) to the trajectory's actual final sample, NOT the button center.
    MD  = signed maximum perpendicular deviation from the ideal line
          (positive = toward the unchosen option).
    AUC = signed geometric area between actual and ideal trajectory;
@@ -401,14 +405,19 @@ function computeMetrics(samples, startPos, chosenPos){
   });
   const norm = samples.map(p => ({ ...normalizeXY(p), t: p.t }));
 
-  // Ideal line: (0,0) → (-1, 1.5), direction d = (-1, 1.5), |d| = √3.25.
+  // Ideal line: (0,0) → trajectory endpoint d = (end.x, end.y).
   // For point p:
   //   s(p) = along-line coordinate   = (p · d) / |d|
   //   dev(p) = signed perp deviation = (d.y·p.x − d.x·p.y) / |d|
-  //            (positive toward the unchosen option at (+1, 1.5))
-  const LEN = Math.hypot(1, 1.5);
-  const along = p => (-p.x + 1.5 * p.y) / LEN;
-  const dev   = p => (1.5 * p.x + p.y) / LEN;
+  //            (positive toward the unchosen option on the +x side)
+  const end = norm[norm.length - 1];
+  const LEN = Math.hypot(end.x, end.y);
+  if (LEN === 0){
+    return { auc: 0, md: 0, xFlips: 0,
+             normalized: timeNormalize(norm, N_TIME_BINS), mdIdx: 0 };
+  }
+  const along = p => (p.x * end.x + p.y * end.y) / LEN;
+  const dev   = p => (end.y * p.x - end.x * p.y) / LEN;
 
   // AUC = ∫ dev ds along the ideal line (trapezoidal rule). Segments where
   // the trajectory moves backward along the line contribute with reversed
@@ -513,9 +522,13 @@ function drawReview(trial){
   const leftL   = toLocal(trial.leftPos);
   const chosenL = toLocal(trial.chosenPos);
 
-  // 1) AUC area: ONE closed shape — the trajectory out to the chosen
-  // option, then straight back to the start along the ideal line. A single
-  // fill keeps the opacity uniform even where the path self-intersects.
+  const endP = trial.samples[trial.samples.length - 1];
+  const endL = toLocal(endP);
+
+  // 1) AUC area: ONE closed shape — the trajectory out to its endpoint,
+  // then straight back to the start along the ideal line (closePath). A
+  // single fill keeps the opacity uniform even where the path
+  // self-intersects.
   if (trial.samples.length >= 2){
     ctx.fillStyle = 'rgba(168, 50, 74, 0.14)';
     ctx.beginPath();
@@ -524,18 +537,17 @@ function drawReview(trial){
       const p = toLocal(s);
       ctx.lineTo(p.x, p.y);
     }
-    ctx.lineTo(chosenL.x, chosenL.y);
     ctx.closePath();
     ctx.fill();
   }
 
-  // 2) ideal trajectory (dashed): straight line start → chosen option
+  // 2) ideal trajectory (dashed): straight line start → trajectory endpoint
   ctx.strokeStyle = 'rgba(31, 30, 44, 0.55)';
   ctx.setLineDash([5, 4]);
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(startL.x, startL.y);
-  ctx.lineTo(chosenL.x, chosenL.y);
+  ctx.lineTo(endL.x, endL.y);
   ctx.stroke();
   ctx.setLineDash([]);
 
@@ -574,8 +586,8 @@ function drawReview(trial){
   if (trial.mdIdx >= 0 && trial.mdIdx < trial.samples.length){
     const mdIdx = trial.mdIdx;
     const p  = trial.samples[mdIdx];
-    const vx = trial.chosenPos.x - trial.startPos.x;
-    const vy = trial.chosenPos.y - trial.startPos.y;
+    const vx = endP.x - trial.startPos.x;
+    const vy = endP.y - trial.startPos.y;
     const t  = ((p.x - trial.startPos.x) * vx + (p.y - trial.startPos.y) * vy)
              / (vx * vx + vy * vy);
     const foot = { x: trial.startPos.x + t * vx, y: trial.startPos.y + t * vy };

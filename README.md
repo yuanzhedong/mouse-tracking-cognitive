@@ -22,16 +22,16 @@ The live demo is served via **GitHub Pages** from `index.html`. No build step.
 
 | Component | Status | Notes |
 |---|---|---|
-| Binary-choice self-control task (vice vs. virtue food pairs) | done | 10 default stimulus pairs, randomized side assignment |
+| Binary-choice goal–temptation task (icon stimuli) | done | 5 pairs (study goal vs. temptation), session of 5 trials, shuffled order, balanced side assignment |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
 | Continuous cursor sampling via `mousemove` | done | Native event rate (typically 60–120 Hz) |
-| **AUC** (signed perpendicular area, idealized straight line) | done | Mirrored so chosen target is always on the right; positive AUC = deviation toward unchosen option |
-| **MD** (maximum perpendicular deviation) | done | Same sign convention as AUC |
+| **AUC** (signed area vs. idealized straight line) | done | Ideal line = trajectory start → endpoint (Freeman & Ambady, 2010); positive = deviation toward unchosen option |
+| **MD** (signed maximum perpendicular deviation) | done | Same sign convention as AUC |
 | **X-flips** (number of direction reversals on x-axis) | done | Threshold 0.01 normalized units |
 | **RT** and **initiation time** | done | Soft warning if initiation > 500 ms |
 | Time-normalization to **101 bins** | done | Standard MouseTracker convention (Freeman & Ambady, 2010) |
-| Coordinate normalization to (0,0) → (1, 1.5) | done | MouseTracker frame; mirrored across x so chosen target is on the right |
-| Live trajectory visualization | done | Past trials drawn faintly; most-recent in accent color |
+| Coordinate normalization to (0,0) → (−1, 1.5) | done | MouseTracker frame; mirrored across x so the chosen target is top-left, unchosen toward +x |
+| Per-trial researcher view | done | Trajectory, ideal line, uniform AUC shading, MD marker, metrics overlay |
 | CSV export (sample-level, with trial-level metrics) | done | One row per (trial × time bin), 101 rows/trial |
 | Aggregate panel (mean AUC, MD, RT across trials) | done | |
 
@@ -43,8 +43,8 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
       stimulus as Female/Male, Black/White, etc. The current code is structured
       around food choice; adding a stimulus image + category labels is mostly a
       config change.
-- [ ] **Stimulus images** for the food task (currently text-only). The paper's
-      Figure 2 uses brownie/broccoli photos.
+- [x] **Stimulus images** — goal–temptation icon pairs in
+      `goal_temptation_stimuli/`.
 - [ ] **Movement deadline** — paper mentions enforcing movement initiation
       within ~400 ms and discarding offending trials. Currently we only warn.
 - [ ] **Integration-times analysis** ([Sullivan et al. 2015],
@@ -56,8 +56,8 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
 - [ ] **Velocity & acceleration profiles** per time bin (Figure 2, right panel).
 - [ ] **Sample-entropy** of trajectories (Hehman et al. 2015).
 - [ ] **Practice trials** and instructions screen (currently a single greeting).
-- [ ] **Counterbalancing** beyond random side assignment (e.g., block-level
-      balancing of which side the virtue appears on).
+- [x] **Counterbalancing** — per-session balanced (shuffled) assignment of
+      which side the goal appears on.
 - [ ] **Server-side data collection** — currently CSV export is client-side
       only. A small endpoint (e.g., a Cloudflare Worker or Google Form) would
       let this be used for real online data collection.
@@ -68,22 +68,30 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
 
 Following Freeman & Ambady's MouseTracker convention:
 
-- Translate raw screen coordinates so the **start button** is at `(0, 0)`.
+- Translate raw screen coordinates so the **start click** is at `(0, 0)`.
 - Scale x so the **chosen option** lands at `x = ±1`, then **mirror** so
-  the chosen option is always at `x = +1`. This makes AUC sign meaningful:
-  positive = deviation *toward the unchosen option*.
+  the chosen option is always at `x = −1` (unchosen toward `+x`). This makes
+  AUC sign meaningful: positive = deviation *toward the unchosen option*.
+  (Freeman & Ambady's software remaps to the right instead; the two are
+  mirror-equivalent and produce identical AUC/MD values.)
 - Scale y so the chosen option lands at `y = 1.5`.
 - Re-interpolate the (x, y, t) samples to **101 equally-spaced** time bins.
 
 ### AUC and MD
 
-The ideal trajectory is the straight line from `(0, 0)` to `(1, 1.5)`. Let
-`d(t)` be the signed perpendicular distance from the actual point at time bin
-`t` to this line, with the normal oriented so that positive values point toward
-the unchosen option `(-1, 1.5)`.
+Per Freeman & Ambady (2010, p. 230), the idealized response trajectory is
+"a straight line between each trajectory's start and endpoints" — i.e. from
+`(0, 0)` to the recorded click position, not to the button center. Let `d(t)`
+be the signed perpendicular distance from the actual point at time bin `t` to
+this line, with the normal oriented so that positive values point toward the
+unchosen option.
 
-- **AUC** = trapezoidal integral of `d` w.r.t. distance along the ideal line.
-- **MD**  = max of `d`.
+- **AUC** = trapezoidal integral of `d` w.r.t. distance along the ideal line
+  (area on the far side of the line counts negative).
+- **MD**  = the `d` with the largest magnitude (signed).
+
+Verified against the known-value simulation in the paper's Table 2
+(90° trajectory: MD = 0.8321, AUC = 0.7500).
 
 These are the conventional MouseTracker definitions and are typically correlated
 at *r* = 0.8–0.9 (Stillman et al. 2018).
