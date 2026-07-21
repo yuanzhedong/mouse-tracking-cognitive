@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mouse-tracking</title>
+<title>Goal–Temptation Mouse-tracking</title>
 <style>
   :root {
     --bg:     #f4efe4;
@@ -44,14 +44,20 @@
 
   .option {
     position: absolute; top: 22px;
-    padding: 10px 18px;
+    display: block; padding: 6px;
     background: var(--bg); border: 1px solid var(--ink);
-    font-size: 16px; cursor: pointer;
-    font-family: inherit;
+    cursor: pointer; font-family: inherit;
+    transition: box-shadow 0.12s ease;
   }
+  .option img {
+    display: block;
+    width: 150px; height: 150px;
+    pointer-events: none;
+  }
+  .option:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
   .option.opt-left  { left: 22px; }
   .option.opt-right { right: 22px; }
-  .option:hover { background: var(--panel); }
+  .option.review { pointer-events: none; cursor: default; }
 
   .stimulus {
     position: absolute; top: 40%; left: 50%;
@@ -75,8 +81,24 @@
     position: absolute; inset: 0; width: 100%; height: 100%;
     pointer-events: none; z-index: 2;
   }
+  .review-badge {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: var(--bg);
+    padding: 5px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    z-index: 3;
+  }
+  .done-panel {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 3;
+  }
+  .done-panel h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .done-panel p  { font-size: 13px; color: var(--soft); }
   .review-meta {
-    position: absolute; top: 10px; left: 10px;
+    position: absolute; top: 210px; left: 10px;
     background: rgba(244, 239, 228, 0.92);
     border: 1px solid var(--ink);
     padding: 8px 12px;
@@ -125,18 +147,27 @@
 <div class="container">
 
   <header>
-    <h1>Mouse-tracking</h1>
-    <span class="trial">trial <b id="trialNum">—</b></span>
+    <h1>Goal–Temptation mouse-tracking</h1>
+    <span class="trial">trial <b id="trialNum">—</b> / <b id="trialTotal">5</b></span>
   </header>
 
   <main>
     <div class="stage" id="stage">
-      <button class="option opt-left hidden"  id="optLeft"></button>
-      <button class="option opt-right hidden" id="optRight"></button>
+      <button class="option opt-left hidden" id="optLeft">
+        <img id="optLeftImg" alt="" draggable="false">
+      </button>
+      <button class="option opt-right hidden" id="optRight">
+        <img id="optRightImg" alt="" draggable="false">
+      </button>
       <div    class="stimulus hidden"         id="stimulus">choose</div>
       <button class="stage-btn start-btn"     id="startBtn">Start</button>
       <canvas class="review-canvas hidden"    id="reviewCanvas"></canvas>
+      <div    class="review-badge hidden"     id="reviewBadge">Researcher view</div>
       <div    class="review-meta hidden"      id="reviewMeta"></div>
+      <div    class="done-panel hidden"       id="donePanel">
+        <h2>Session complete</h2>
+        <p>All 5 trials recorded. Export the CSV or reset to run again.</p>
+      </div>
       <button class="stage-btn next-btn hidden" id="nextBtn">Next →</button>
     </div>
 
@@ -172,22 +203,29 @@
 
 <script>
 /* =============================================================
-   MOUSE-TRACKING APPARATUS — debug variant with per-trial review
-   AUC & MD after Freeman & Ambady (2010) MouseTracker convention
+   GOAL–TEMPTATION MOUSE-TRACKING — 5-trial session with per-trial
+   researcher review. AUC & MD after Freeman & Ambady (2010).
    ============================================================= */
 
-const STIMULI = [
-  { vice: "Brownie",      virtue: "Broccoli" },
-  { vice: "Pizza",        virtue: "Salad" },
-  { vice: "Donut",        virtue: "Apple" },
-  { vice: "Cheeseburger", virtue: "Carrots" },
-  { vice: "Ice cream",    virtue: "Yogurt" },
-  { vice: "French fries", virtue: "Berries" },
-  { vice: "Chocolate",    virtue: "Almonds" },
-  { vice: "Cookie",       virtue: "Banana" },
-  { vice: "Bacon",        virtue: "Spinach" },
-  { vice: "Milkshake",    virtue: "Water" },
+const STIM_DIR = 'goal_temptation_stimuli';
+const PAIRS = [
+  { goal: { label: "Complete practice problems",   img: `${STIM_DIR}/01_complete_practice_problems.png` },
+    temptation: { label: "Watch YouTube Shorts",   img: `${STIM_DIR}/02_watch_youtube_shorts.png` } },
+  { goal: { label: "Review your class notes",      img: `${STIM_DIR}/03_review_your_class_notes.png` },
+    temptation: { label: "Play a phone game",      img: `${STIM_DIR}/04_play_a_phone_game.png` } },
+  { goal: { label: "Study with digital flashcards", img: `${STIM_DIR}/05_study_with_digital_flashcards.png` },
+    temptation: { label: "Watch soccer highlights", img: `${STIM_DIR}/06_watch_soccer_highlights.png` } },
+  { goal: { label: "Prepare for tomorrow's quiz",  img: `${STIM_DIR}/07_prepare_for_tomorrows_quiz.png` },
+    temptation: { label: "Group chat with friends", img: `${STIM_DIR}/08_group_chat_with_friends.png` } },
+  { goal: { label: "Work on your science worksheet", img: `${STIM_DIR}/09_work_on_homework_correction.png` },
+    temptation: { label: "Scroll funny memes",     img: `${STIM_DIR}/10_scroll_funny_memes.png` } },
 ];
+const N_TRIALS = PAIRS.length;
+
+// Preload icons so options appear instantly at trial start
+PAIRS.forEach(p => [p.goal.img, p.temptation.img].forEach(src => {
+  const im = new Image(); im.src = src;
+}));
 
 const INIT_WARN_MS = 500;
 const MOVE_THRESHOLD_PX = 10;
@@ -196,10 +234,11 @@ const N_TIME_BINS = 101;
 const $ = id => document.getElementById(id);
 
 const state = {
-  pool: [],
+  order: [],       // shuffled pair indices for this session
+  sides: [],       // per-trial goal placement (true = goal on left), balanced
   trials: [],
   current: null,
-  stage: 'idle',   // idle | awaiting_start | in_trial | review
+  stage: 'idle',   // idle | awaiting_start | in_trial | review | done
 };
 
 /* ---------- setup ---------- */
@@ -213,33 +252,51 @@ function shuffle(arr){
   return a;
 }
 
-function nextStimulus(){
-  if (state.pool.length === 0) state.pool = shuffle(STIMULI);
-  return state.pool.pop();
-}
-
 function setupTrial(){
-  const pair = nextStimulus();
-  const leftIsVirtue = Math.random() < 0.5;
+  if (state.trials.length >= N_TRIALS){
+    showDone();
+    return;
+  }
+  const pairIdx = state.order[state.trials.length];
+  const pair = PAIRS[pairIdx];
+  const leftIsGoal = state.sides[state.trials.length];
+  const leftStim  = leftIsGoal ? pair.goal : pair.temptation;
+  const rightStim = leftIsGoal ? pair.temptation : pair.goal;
   state.current = {
-    left:      leftIsVirtue ? pair.virtue : pair.vice,
-    right:     leftIsVirtue ? pair.vice  : pair.virtue,
-    leftType:  leftIsVirtue ? 'virtue'   : 'vice',
-    rightType: leftIsVirtue ? 'vice'     : 'virtue',
+    pairIdx,
+    left:      leftStim.label,
+    right:     rightStim.label,
+    leftType:  leftIsGoal ? 'goal'       : 'temptation',
+    rightType: leftIsGoal ? 'temptation' : 'goal',
     pair,
     samples: [],
   };
-  $('optLeft').textContent  = state.current.left;
-  $('optRight').textContent = state.current.right;
+  $('optLeftImg').src  = leftStim.img;
+  $('optLeftImg').alt  = leftStim.label;
+  $('optRightImg').src = rightStim.img;
+  $('optRightImg').alt = rightStim.label;
   $('optLeft').classList.add('hidden');
   $('optRight').classList.add('hidden');
+  $('optLeft').classList.remove('review');
+  $('optRight').classList.remove('review');
   $('stimulus').classList.add('hidden');
   $('startBtn').classList.remove('hidden');
   $('reviewCanvas').classList.add('hidden');
+  $('reviewBadge').classList.add('hidden');
   $('reviewMeta').classList.add('hidden');
+  $('donePanel').classList.add('hidden');
   $('nextBtn').classList.add('hidden');
   $('trialNum').textContent = state.trials.length + 1;
   state.stage = 'awaiting_start';
+}
+
+function showDone(){
+  state.current = null;
+  ['optLeft','optRight','stimulus','startBtn','reviewCanvas',
+   'reviewBadge','reviewMeta','nextBtn'].forEach(id => $(id).classList.add('hidden'));
+  $('donePanel').classList.remove('hidden');
+  $('trialNum').textContent = N_TRIALS;
+  state.stage = 'done';
 }
 
 /* ---------- trial flow ---------- */
@@ -288,12 +345,10 @@ function pickOption(side){
     }
   }
 
-  // AUC / MD are measured against a FIXED L-shaped baseline:
-  //   start → right option → left option
-  // (the diagonal up to the right corner, then horizontal across the top).
-  // Every trial uses this same baseline regardless of the chosen side.
-  const m = computeMetrics(trial.samples, trial.startPos,
-                           trial.leftPos, trial.rightPos);
+  // AUC / MD follow Freeman & Ambady (2010): the ideal trajectory is the
+  // straight line from the start position to the CHOSEN option, and
+  // deviation toward the unchosen option counts positive.
+  const m = computeMetrics(trial.samples, trial.startPos, trial.chosenPos);
   trial.auc        = m.auc;
   trial.md         = m.md;
   trial.xFlips     = m.xFlips;
@@ -319,83 +374,56 @@ function centerOf(el){
 }
 
 /* ---------- metrics ----------
-   AUC and MD are unsigned and measured against a fixed L-shaped baseline
-   that runs   start → right option → left option   (a diagonal up to the
-   right option, then a horizontal across the top to the left option).
-   AUC = sum of polygon areas between consecutive samples and their
-   perpendicular projections onto this two-segment path. MD = max
-   perpendicular distance from any sample to the path. */
+   Freeman & Ambady (2010) MouseTracker convention.
+   Trajectories are remapped into a normalized space with the start at
+   (0,0) and the CHOSEN option at (-1, 1.5) — i.e. every trajectory is
+   mirrored so the chosen option is top-left, so the unchosen option
+   lies toward +x. The ideal trajectory is the straight line from
+   (0,0) to (-1, 1.5).
+   MD  = signed maximum perpendicular deviation from the ideal line
+         (positive = toward the unchosen option).
+   AUC = signed geometric area between actual and ideal trajectory;
+         area on the unchosen side counts positive, area on the far
+         side counts negative. */
 
-function projectOntoSegment(p, seg){
-  const vx   = seg.b.x - seg.a.x;
-  const vy   = seg.b.y - seg.a.y;
-  const len2 = vx * vx + vy * vy;
-  let t = ((p.x - seg.a.x) * vx + (p.y - seg.a.y) * vy) / len2;
-  t = Math.max(0, Math.min(1, t));
-  return { x: seg.a.x + t * vx, y: seg.a.y + t * vy };
-}
-
-function projectOntoPath(p, segments){
-  let best = null, bestD = Infinity, bestSeg = -1;
-  for (let i = 0; i < segments.length; i++){
-    const f = projectOntoSegment(p, segments[i]);
-    const d = Math.hypot(p.x - f.x, p.y - f.y);
-    if (d < bestD){ bestD = d; best = f; bestSeg = i; }
-  }
-  return { proj: best, dist: bestD, seg: bestSeg };
-}
-
-function polygonArea(pts){
-  let s = 0;
-  for (let i = 0; i < pts.length; i++){
-    const j = (i + 1) % pts.length;
-    s += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
-  }
-  return Math.abs(s / 2);
-}
-
-function computeMetrics(samples, startPos, leftPos, rightPos){
-  const dx = rightPos.x - startPos.x;
-  const dy = startPos.y - rightPos.y;           // browser y-axis is inverted
+function computeMetrics(samples, startPos, chosenPos){
+  const dx = chosenPos.x - startPos.x;
+  const dy = startPos.y - chosenPos.y;          // browser y-axis is inverted
   if (dx === 0 || dy === 0 || samples.length < 2){
     return { auc: 0, md: 0, xFlips: 0, normalized: [], mdIdx: 0 };
   }
 
-  // Translate to start; scale so the right option lands at (1, 1.5).
-  // Left option ends up at roughly (-1, 1.5) for a centered start.
+  // Normalized space: start (0,0), chosen option (-1, 1.5).
+  // The x mirror puts the unchosen option on the +x side for every trial.
   const normalizeXY = p => ({
-    x: (p.x - startPos.x) / dx,
+    x: -(p.x - startPos.x) / dx,
     y: ((startPos.y - p.y) / dy) * 1.5,
   });
   const norm = samples.map(p => ({ ...normalizeXY(p), t: p.t }));
 
-  // L-baseline in normalized coords
-  const corner = { x: 1, y: 1.5 };
-  const leftN  = normalizeXY(leftPos);
-  const segments = [
-    { a: { x: 0, y: 0 }, b: corner },   // start → right option
-    { a: corner,         b: leftN  },   // right option → left option
-  ];
+  // Ideal line: (0,0) → (-1, 1.5), direction d = (-1, 1.5), |d| = √3.25.
+  // For point p:
+  //   s(p) = along-line coordinate   = (p · d) / |d|
+  //   dev(p) = signed perp deviation = (d.y·p.x − d.x·p.y) / |d|
+  //            (positive toward the unchosen option at (+1, 1.5))
+  const LEN = Math.hypot(1, 1.5);
+  const along = p => (-p.x + 1.5 * p.y) / LEN;
+  const dev   = p => (1.5 * p.x + p.y) / LEN;
 
-  const proj = norm.map(p => projectOntoPath(p, segments));
-
-  // AUC = Σ polygon area for [s_i, s_{i+1}, f_{i+1}, (corner?), f_i]
-  // If consecutive projections fall on different segments, insert the
-  // corner so the polygon follows the L-path instead of cutting across it.
+  // AUC = ∫ dev ds along the ideal line (trapezoidal rule). Segments where
+  // the trajectory moves backward along the line contribute with reversed
+  // sign, which is exactly the signed-area convention.
   let auc = 0;
   for (let i = 0; i < norm.length - 1; i++){
-    const a  = norm[i],   b  = norm[i + 1];
-    const ra = proj[i],   rb = proj[i + 1];
-    const pts = (ra.seg === rb.seg)
-      ? [a, b, rb.proj, ra.proj]
-      : [a, b, rb.proj, corner, ra.proj];
-    auc += polygonArea(pts);
+    auc += 0.5 * (dev(norm[i]) + dev(norm[i + 1]))
+               * (along(norm[i + 1]) - along(norm[i]));
   }
 
-  // MD = max distance to L-path
+  // MD = signed deviation with the largest magnitude
   let md = 0, mdIdx = 0;
-  for (let i = 0; i < proj.length; i++){
-    if (proj[i].dist > md){ md = proj[i].dist; mdIdx = i; }
+  for (let i = 0; i < norm.length; i++){
+    const d = dev(norm[i]);
+    if (Math.abs(d) > Math.abs(md)){ md = d; mdIdx = i; }
   }
 
   let xFlips = 0;
@@ -441,12 +469,14 @@ function timeNormalize(traj, n){
 
 function showReview(trial){
   state.stage = 'review';
-  $('optLeft').classList.add('hidden');
-  $('optRight').classList.add('hidden');
+  $('optLeft').classList.add('review');
+  $('optRight').classList.add('review');
   $('stimulus').classList.add('hidden');
   $('reviewCanvas').classList.remove('hidden');
+  $('reviewBadge').classList.remove('hidden');
   $('reviewMeta').classList.remove('hidden');
   $('nextBtn').classList.remove('hidden');
+  $('nextBtn').textContent = state.trials.length >= N_TRIALS ? 'Finish' : 'Next →';
 
   const meta = $('reviewMeta');
   meta.innerHTML =
@@ -478,54 +508,34 @@ function drawReview(trial){
   const r0 = trial.stageRect || rect;
   const toLocal = p => ({ x: p.x - r0.left, y: p.y - r0.top });
 
-  // L-shaped baseline (in viewport coords):
-  //   start → right option → left option
-  const corner   = trial.rightPos;
-  const segments = [
-    { a: trial.startPos, b: trial.rightPos },
-    { a: trial.rightPos, b: trial.leftPos  },
-  ];
-
   const startL  = toLocal(trial.startPos);
   const rightL  = toLocal(trial.rightPos);
   const leftL   = toLocal(trial.leftPos);
   const chosenL = toLocal(trial.chosenPos);
 
-  // Project every raw sample onto the L-path (in viewport coords).
-  const proj = trial.samples.map(p => projectOntoPath(p, segments));
-
-  // 1) AUC area: per-segment quadrilateral between the trajectory and the
-  // L-path. When consecutive samples project onto different segments,
-  // insert the corner so the polygon follows the L instead of cutting
-  // across it.
+  // 1) AUC area: ONE closed shape — the trajectory out to the chosen
+  // option, then straight back to the start along the ideal line. A single
+  // fill keeps the opacity uniform even where the path self-intersects.
   if (trial.samples.length >= 2){
     ctx.fillStyle = 'rgba(168, 50, 74, 0.14)';
-    const cL = toLocal(corner);
-    for (let i = 0; i < trial.samples.length - 1; i++){
-      const a  = toLocal(trial.samples[i]);
-      const b  = toLocal(trial.samples[i + 1]);
-      const ra = proj[i], rb = proj[i + 1];
-      const fa = toLocal(ra.proj);
-      const fb = toLocal(rb.proj);
-      ctx.beginPath();
-      ctx.moveTo(a.x,  a.y);
-      ctx.lineTo(b.x,  b.y);
-      ctx.lineTo(fb.x, fb.y);
-      if (ra.seg !== rb.seg) ctx.lineTo(cL.x, cL.y);
-      ctx.lineTo(fa.x, fa.y);
-      ctx.closePath();
-      ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(startL.x, startL.y);
+    for (const s of trial.samples){
+      const p = toLocal(s);
+      ctx.lineTo(p.x, p.y);
     }
+    ctx.lineTo(chosenL.x, chosenL.y);
+    ctx.closePath();
+    ctx.fill();
   }
 
-  // 2) L-baseline (dashed): start → right → left
+  // 2) ideal trajectory (dashed): straight line start → chosen option
   ctx.strokeStyle = 'rgba(31, 30, 44, 0.55)';
   ctx.setLineDash([5, 4]);
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(startL.x, startL.y);
-  ctx.lineTo(rightL.x, rightL.y);
-  ctx.lineTo(leftL.x,  leftL.y);
+  ctx.lineTo(chosenL.x, chosenL.y);
   ctx.stroke();
   ctx.setLineDash([]);
 
@@ -559,14 +569,18 @@ function drawReview(trial){
   dot(leftL,  '#1f1e2c', 4);
   ring(chosenL, '#a8324a', 8);
 
-  // 5) MD marker — raw sample with max distance from the L-path
-  let mdMax = 0, mdIdx = -1;
-  for (let i = 0; i < proj.length; i++){
-    if (proj[i].dist > mdMax){ mdMax = proj[i].dist; mdIdx = i; }
-  }
-  if (mdIdx >= 0){
-    const mdL   = toLocal(trial.samples[mdIdx]);
-    const footL = toLocal(proj[mdIdx].proj);
+  // 5) MD marker — the sample computeMetrics flagged as max deviation,
+  // dropped perpendicularly onto the (unclamped) ideal line
+  if (trial.mdIdx >= 0 && trial.mdIdx < trial.samples.length){
+    const mdIdx = trial.mdIdx;
+    const p  = trial.samples[mdIdx];
+    const vx = trial.chosenPos.x - trial.startPos.x;
+    const vy = trial.chosenPos.y - trial.startPos.y;
+    const t  = ((p.x - trial.startPos.x) * vx + (p.y - trial.startPos.y) * vy)
+             / (vx * vx + vy * vy);
+    const foot = { x: trial.startPos.x + t * vx, y: trial.startPos.y + t * vy };
+    const mdL   = toLocal(p);
+    const footL = toLocal(foot);
     ctx.strokeStyle = 'rgba(31, 30, 44, 0.7)';
     ctx.setLineDash([2, 3]);
     ctx.lineWidth = 1;
@@ -604,7 +618,8 @@ function updatePanels(){
 $('exportBtn').addEventListener('click', () => {
   if (state.trials.length === 0) return;
   const header = [
-    'trial','left_option','right_option','left_type','right_type',
+    'trial','pair','goal','temptation',
+    'left_option','right_option','left_type','right_type',
     'chosen','chosen_type','chosen_side',
     'rt_ms','init_time_ms','auc','md','x_flips',
     'sample_idx','t_norm','x_norm','y_norm'
@@ -613,7 +628,8 @@ $('exportBtn').addEventListener('click', () => {
   state.trials.forEach((t, ti) => {
     t.normalized.forEach((p, si) => {
       rows.push([
-        ti + 1, q(t.left), q(t.right), t.leftType, t.rightType,
+        ti + 1, t.pairIdx + 1, q(t.pair.goal.label), q(t.pair.temptation.label),
+        q(t.left), q(t.right), t.leftType, t.rightType,
         q(t.chosen), t.chosenType, t.chosenSide,
         Math.round(t.rt), t.initTime !== null ? Math.round(t.initTime) : '',
         t.auc.toFixed(6), t.md.toFixed(6), t.xFlips,
@@ -626,7 +642,7 @@ $('exportBtn').addEventListener('click', () => {
   const url  = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `mouse-tracking-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  a.download = `goal-temptation-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -639,17 +655,24 @@ function q(s){ return /[,"\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }
 
 $('resetBtn').addEventListener('click', () => {
   if (state.trials.length > 0 && !confirm('Clear all recorded trials?')) return;
-  state.trials = [];
-  state.pool = [];
-  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit',
-   'meanAUC','meanMD','meanRT'].forEach(id => $(id).textContent = '—');
-  $('nTrials').textContent = '0';
-  setupTrial();
+  startSession();
 });
 
 /* ---------- init ---------- */
 
-setupTrial();
+function startSession(){
+  state.trials = [];
+  state.order = shuffle(PAIRS.map((_, i) => i));
+  // Balanced goal placement: alternating pattern shuffled, so the goal is
+  // never on the same side for all trials.
+  state.sides = shuffle(PAIRS.map((_, i) => i % 2 === 0));
+  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit',
+   'meanAUC','meanMD','meanRT'].forEach(id => $(id).textContent = '—');
+  $('nTrials').textContent = '0';
+  setupTrial();
+}
+
+startSession();
 </script>
 </body>
 </html>
