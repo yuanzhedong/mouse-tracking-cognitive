@@ -1,24 +1,58 @@
-# Mouse-Tracking for Cognitive Science
+# Self-Control Task Battery for Cognitive Science
 
-A browser-based re-implementation of the binary-choice **mouse-tracking** paradigm
-described in:
+A small, hackable, dependency-free battery of browser tasks for studying
+self-control and attention allocation in the face of temptation. Served via
+**GitHub Pages**; no build step.
+
+## Repo structure
+
+```
+index.html            – task launcher (landing page)
+task1/
+  index.html          – Task 1: goal–temptation mouse-tracking
+  goal_temptation_stimuli/  – icon stimuli (goal/temptation pairs)
+task2/
+  index.html          – Task 2: split-screen ADT (study vs. YouTube videos)
+shared/
+  questions.js        – fixed 30-item math bank (easy/medium/challenge)
+README.md
+```
+
+## Task 1 — Goal–Temptation Mouse-Tracking
+
+A binary-choice **mouse-tracking** paradigm after:
 
 > Stillman, P. E., Shen, X., & Ferguson, M. J. (2018).
 > **How mouse-tracking can advance social cognitive theory.**
 > *Trends in Cognitive Sciences*, **22**(6), 531–543.
 > https://doi.org/10.1016/j.tics.2018.03.012
 
-The goal of this repo is to provide a small, hackable, dependency-free apparatus
-for running mouse-tracking experiments (Figure 1 of the paper) and computing the
-standard trajectory metrics (Figure 2): **AUC**, **MD**, **x-flips**, **RT**,
-**initiation time**, plus time-normalized trajectory exports for downstream
-analysis.
+Five trials (study goal vs. temptation icons). Cursor trajectories are
+recorded and scored with the standard metrics — **AUC**, **MD**, **x-flips**,
+**RT**, **initiation time** — plus time-normalized trajectory exports.
 
-The live demo is served via **GitHub Pages** from `index.html`. No build step.
+## Task 2 — Split-Screen ADT (study vs. videos)
+
+A free-choice attention-allocation task: ~12 minutes before a quiz, split
+screen with **math questions on the left** (1 point per correct answer, fixed
+bank in `shared/questions.js`) and **YouTube videos on the right** (playlist
+via the YouTube IFrame API). **Whichever side the mouse is over becomes
+active**: hovering the study side pauses the video and enables answering;
+hovering the video side plays the video and disables (dims) the math panel.
+Videos auto-advance when finished and can be skipped with a "next" button.
+Persistent header: time remaining, points, "Quiz at the end" reminder.
+
+Logged events (exportable CSV): side switches, per-side dwell time, every
+answer (question id, level, response, correctness, running points), and video
+load/play/pause/complete/skip with video id + category. A researcher-view
+summary appears when time runs out. `?dur=SECONDS` overrides the 12-minute
+session length for piloting.
+
+Planned but not yet specified: the lock-screen choice (锁屏选择) component.
 
 ---
 
-## What's implemented
+## Task 1 — what's implemented
 
 | Component | Status | Notes |
 |---|---|---|

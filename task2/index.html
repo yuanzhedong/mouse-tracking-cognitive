@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 2 — Split-Screen Study vs. Videos</title>
+<style>
+  :root {
+    --bg:     #f4efe4;
+    --panel:  #ece5d3;
+    --ink:    #1f1e2c;
+    --soft:   #7a7587;
+    --accent: #a8324a;
+    --rule:   #d8cfb6;
+    --good:   #2e7d4f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 10px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--ink);
+    gap: 12px;
+  }
+  header .hud {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px;
+  }
+  header .hud b { font-weight: 600; }
+  .quiz-pill {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    border: 1px solid var(--ink); padding: 4px 12px;
+    color: var(--soft);
+  }
+
+  /* ---------- intro ---------- */
+  .intro {
+    max-width: 640px; margin: 40px auto;
+    background: var(--panel); border: 1px solid var(--ink);
+    padding: 32px 36px;
+  }
+  .intro h2 { font-size: 20px; margin-bottom: 16px; }
+  .intro p  { font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+  .intro .big-btn {
+    display: block; margin: 24px auto 0;
+    padding: 12px 40px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--bg);
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    cursor: pointer; font-family: inherit;
+  }
+  .intro .big-btn:hover { opacity: 0.9; }
+
+  /* ---------- split screen ---------- */
+  main.split {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    align-items: stretch; min-height: 540px;
+  }
+  .pane {
+    border: 1px solid var(--ink);
+    transition: opacity 0.25s ease, filter 0.25s ease;
+    display: flex; flex-direction: column;
+  }
+  .pane.inactive { opacity: 0.45; filter: grayscale(0.4); }
+  .pane.inactive .study-card button { pointer-events: none; }
+
+  /* study side */
+  .pane.study { background: var(--bg); padding: 22px; }
+  .study-label {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--soft); margin-bottom: 20px;
+  }
+  .study-card { flex: 1; display: flex; flex-direction: column; }
+  .study-card .qnum { font-size: 15px; color: var(--soft); margin-bottom: 8px; }
+  .study-card .expr { font-size: 34px; font-weight: 700; margin-bottom: 28px; }
+  .answers {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    max-width: 420px;
+  }
+  .answers button {
+    padding: 18px 10px; font-size: 22px;
+    background: var(--bg); border: 1px solid var(--ink);
+    cursor: pointer; font-family: inherit;
+  }
+  .answers button:hover { background: var(--panel); }
+  .answers button.flash-good { background: var(--good); color: var(--bg); border-color: var(--good); }
+  .answers button.flash-bad  { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .study-note {
+    margin-top: auto; padding-top: 20px; text-align: center;
+    font-size: 13px; color: var(--soft);
+  }
+
+  /* video side */
+  .pane.video { background: #14141c; color: #f2f2f2; padding: 16px; }
+  .shorts-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .shorts-label .tag {
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: #9a97ac;
+  }
+  .shorts-label .cat {
+    font-size: 11px; color: #6f6c80;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .player {
+    flex: 1; position: relative; border-radius: 10px; overflow: hidden;
+    background: #000; min-height: 380px;
+  }
+  .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .next-video {
+    margin-top: 12px; width: 100%;
+    padding: 10px; border: 1px solid #3a3a4c; border-radius: 8px;
+    background: #23232f; color: #d8d6e4; cursor: pointer;
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    font-family: inherit;
+  }
+  .next-video:hover { background: #2d2d3c; }
+
+  /* ---------- done / researcher ---------- */
+  .done {
+    max-width: 640px; margin: 40px auto;
+    background: var(--bg); border: 1px solid var(--ink);
+    padding: 28px 32px; position: relative;
+  }
+  .done .badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: var(--bg);
+    padding: 5px 12px; font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .done h2 { font-size: 19px; margin-bottom: 18px; text-align: center; }
+  dl.metrics {
+    display: grid; grid-template-columns: auto 1fr;
+    gap: 6px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+  }
+  dl.metrics dt { color: var(--soft); }
+  dl.metrics dd { text-align: right; font-weight: 500; }
+  .done .controls { display: flex; gap: 10px; margin-top: 22px; }
+  .done .controls button {
+    flex: 1; padding: 11px 8px; border: 1px solid var(--ink);
+    background: var(--bg); cursor: pointer; font-family: inherit;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .done .controls button.primary { background: var(--ink); color: var(--bg); }
+  .done .controls button:hover { opacity: 0.85; }
+
+  .hidden { display: none !important; }
+  @media (max-width: 880px) { main.split { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="hud">⏱ <b id="timeLeft">12:00</b> left</span>
+    <span class="quiz-pill">Quiz at the end</span>
+    <span class="hud">Points: <b id="points">0</b></span>
+  </header>
+
+  <!-- intro -->
+  <section class="intro" id="intro">
+    <h2>Game 2</h2>
+    <p>Now you have about <b>12 minutes</b> before the quiz.</p>
+    <p>You're going to see a split screen: the <b>left side is study content</b>,
+       and the <b>right side is YouTube videos</b>.</p>
+    <p>Whichever side your mouse is on becomes active — move your mouse to a
+       side to use it.</p>
+    <p>You are <b>not obligated</b> to do the math if you don't want to, and you
+       will <b>not be punished</b> for choosing to watch videos.</p>
+    <p>This time is yours — it's up to you how you want to use it.</p>
+    <button class="big-btn" id="startBtn">Start</button>
+  </section>
+
+  <!-- split screen -->
+  <main class="split hidden" id="split">
+    <section class="pane study inactive" id="studyPane">
+      <div class="study-label">Study</div>
+      <div class="study-card">
+        <div class="qnum">Question <span id="qNum">1</span></div>
+        <div class="expr" id="qText"></div>
+        <div class="answers" id="answers">
+          <button></button><button></button><button></button><button></button>
+        </div>
+        <div class="study-note">Each correct answer = 1 point</div>
+      </div>
+    </section>
+
+    <section class="pane video inactive" id="videoPane">
+      <div class="shorts-label">
+        <span class="tag">Shorts</span>
+        <span class="cat" id="vidCat"></span>
+      </div>
+      <div class="player"><div id="ytPlayer"></div></div>
+      <button class="next-video" id="nextVideoBtn">⌃ next video</button>
+    </section>
+  </main>
+
+  <!-- done -->
+  <section class="done hidden" id="done">
+    <div class="badge">Researcher view</div>
+    <h2>Time's up — quiz time!</h2>
+    <dl class="metrics">
+      <dt>points</dt>            <dd id="rPoints">—</dd>
+      <dt>questions attempted</dt><dd id="rAttempted">—</dd>
+      <dt>accuracy</dt>          <dd id="rAccuracy">—</dd>
+      <dt>time on study</dt>     <dd id="rStudy">—</dd>
+      <dt>time on videos</dt>    <dd id="rVideo">—</dd>
+      <dt>study share</dt>       <dd id="rShare">—</dd>
+      <dt>side switches</dt>     <dd id="rSwitches">—</dd>
+      <dt>videos completed</dt>  <dd id="rVideos">—</dd>
+    </dl>
+    <div class="controls">
+      <button class="primary" id="exportBtn">Export CSV</button>
+      <button id="restartBtn">Restart</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="../shared/questions.js"></script>
+<script>
+/* =============================================================
+   TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
+   Whichever pane the mouse is over becomes active. Left pane
+   serves the fixed math bank (shared/questions.js); right pane
+   plays a real YouTube playlist via the IFrame API — playing
+   only while the video pane is active. Time allocation,
+   switches, answers, and video events are logged and
+   exportable as CSV.
+   ============================================================= */
+
+const SESSION_SEC = (() => {
+  const v = parseInt(new URLSearchParams(location.search).get('dur'), 10);
+  return Number.isFinite(v) && v > 0 ? v : 12 * 60;
+})();
+const TICK_MS = 200;
+
+const VIDEOS = [
+  { cat: 'Sports',     id: 'uWdb4qbsQFw' },
+  { cat: 'Sports',     id: 'inRT_1UW3MA' },
+  { cat: 'Sports',     id: 'C2pyOAe-iGo' },
+  { cat: 'Sports',     id: '5X4v-T6sxv0' },
+  { cat: 'Sports',     id: 'UtVyBIOWvwQ' },
+  { cat: 'Sports',     id: 'aaA3qhC79sg' },
+  { cat: 'Sports',     id: '5f8slUpj8Tc' },
+  { cat: 'Sports',     id: 'rsJ4lwOk81M' },
+  { cat: 'Sports',     id: 'kdPgAM002jQ' },
+  { cat: 'Sports',     id: 'RQIy6_1N3N4' },
+  { cat: 'Sports',     id: 'ptuDLn_lutA' },
+  { cat: 'Sports',     id: '3dr7PQAV4_s' },
+  { cat: 'Sports',     id: 'qtC4yf6GPqA' },
+  { cat: 'Animals',    id: '3Q5R0ePFTqI' },
+  { cat: 'Animals',    id: '84_RaEfzmec' },
+  { cat: 'Animals',    id: 'DEyhNXVCmDo' },
+  { cat: 'Animals',    id: 'S0aa-9mysSw' },
+  { cat: 'Animals',    id: 'a__yNRAxKpw' },
+  { cat: 'Animals',    id: 'ipieZmxqRtE' },
+  { cat: 'Animals',    id: 'pRD6GskW5XA' },
+  { cat: 'Satisfying', id: '6KOyj9_dA8Y' },
+  { cat: 'Satisfying', id: 'SRNUksuwQHc' },
+  { cat: 'Satisfying', id: '4PpNDrEQUwo' },
+];
+
+const $ = id => document.getElementById(id);
+
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const state = {
+  phase: 'intro',        // intro | running | done
+  startTime: null,
+  elapsedMs: 0,
+  points: 0,
+  qNum: 1,
+  currentQ: null,
+  answerLock: false,
+  activeSide: null,      // 'study' | 'video' | null
+  dwell: { study: 0, video: 0, none: 0 },
+  switches: 0,
+  playlist: shuffle(VIDEOS),
+  vidIdx: 0,
+  videosCompleted: 0,
+  events: [],
+  timer: null,
+};
+
+const now = () => state.startTime === null ? 0 : Math.round(performance.now() - state.startTime);
+
+function logEvent(type, detail = {}){
+  state.events.push({ t_ms: now(), type, ...detail });
+}
+
+/* ---------- YouTube player ---------- */
+
+let player = null, playerReady = false;
+
+const yt = document.createElement('script');
+yt.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(yt);
+
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player('ytPlayer', {
+    videoId: state.playlist[0].id,
+    playerVars: { playsinline: 1, rel: 0, controls: 1, mute: 1 },
+    events: {
+      onReady: () => { playerReady = true; updateVidCat(); },
+      onStateChange: e => {
+        if (state.phase !== 'running') return;
+        const v = state.playlist[state.vidIdx];
+        if (e.data === YT.PlayerState.ENDED){
+          state.videosCompleted++;
+          logEvent('video_complete', { video_id: v.id, video_category: v.cat });
+          loadVideo(state.vidIdx + 1, 'autoplay');
+        } else if (e.data === YT.PlayerState.PLAYING){
+          logEvent('video_play',  { video_id: v.id, video_category: v.cat });
+        } else if (e.data === YT.PlayerState.PAUSED){
+          logEvent('video_pause', { video_id: v.id, video_category: v.cat });
+        }
+      },
+    },
+  });
+};
+
+function updateVidCat(){
+  $('vidCat').textContent =
+    `${state.playlist[state.vidIdx].cat} · ${state.vidIdx + 1}/${state.playlist.length}`;
+}
+
+function loadVideo(idx, reason){
+  state.vidIdx = ((idx % state.playlist.length) + state.playlist.length) % state.playlist.length;
+  const v = state.playlist[state.vidIdx];
+  updateVidCat();
+  if (playerReady){
+    if (state.activeSide === 'video') player.loadVideoById(v.id);
+    else                              player.cueVideoById(v.id);
+  }
+  logEvent('video_load', { video_id: v.id, video_category: v.cat, reason });
+}
+
+$('nextVideoBtn').addEventListener('click', () => {
+  if (state.phase !== 'running' || state.activeSide !== 'video') return;
+  const v = state.playlist[state.vidIdx];
+  logEvent('video_skip', { video_id: v.id, video_category: v.cat });
+  loadVideo(state.vidIdx + 1, 'user_skip');
+});
+
+/* ---------- study side ---------- */
+
+function serveQuestion(){
+  state.currentQ = QuestionBank.next();
+  state.answerLock = false;
+  $('qNum').textContent = state.qNum;
+  $('qText').textContent = state.currentQ.text;
+  const btns = $('answers').querySelectorAll('button');
+  state.currentQ.options.forEach((opt, i) => {
+    btns[i].textContent = opt;
+    btns[i].className = '';
+  });
+}
+
+$('answers').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn || state.phase !== 'running' || state.activeSide !== 'study' || state.answerLock) return;
+  state.answerLock = true;
+  const given = parseInt(btn.textContent, 10);
+  const correct = given === state.currentQ.answer;
+  if (correct) state.points++;
+  $('points').textContent = state.points;
+  logEvent('answer', {
+    question_id: state.currentQ.id,
+    level: state.currentQ.level,
+    question: state.currentQ.text,
+    given,
+    correct_answer: state.currentQ.answer,
+    is_correct: correct,
+    points_total: state.points,
+  });
+  btn.classList.add(correct ? 'flash-good' : 'flash-bad');
+  setTimeout(() => {
+    if (state.phase !== 'running') return;
+    state.qNum++;
+    serveQuestion();
+  }, 450);
+});
+
+/* ---------- side activation ---------- */
+
+function setActive(side){
+  if (state.phase !== 'running' || state.activeSide === side) return;
+  state.activeSide = side;
+  state.switches++;
+  logEvent('switch', { side });
+  $('studyPane').classList.toggle('inactive', side !== 'study');
+  $('videoPane').classList.toggle('inactive', side !== 'video');
+  if (playerReady){
+    if (side === 'video') player.playVideo();
+    else                  player.pauseVideo();
+  }
+}
+
+$('studyPane').addEventListener('mouseenter', () => setActive('study'));
+$('videoPane').addEventListener('mouseenter', () => setActive('video'));
+
+/* ---------- session loop ---------- */
+
+function tick(){
+  state.elapsedMs += TICK_MS;
+  state.dwell[state.activeSide || 'none'] += TICK_MS;
+
+  const remain = Math.max(0, SESSION_SEC - state.elapsedMs / 1000);
+  const mm = Math.floor(remain / 60);
+  const ss = Math.floor(remain % 60);
+  $('timeLeft').textContent = `${mm}:${String(ss).padStart(2, '0')}`;
+  if (remain <= 0) endSession();
+}
+
+function startSession(){
+  state.phase = 'running';
+  state.startTime = performance.now();
+  logEvent('session_start', { duration_sec: SESSION_SEC });
+  $('intro').classList.add('hidden');
+  $('done').classList.add('hidden');
+  $('split').classList.remove('hidden');
+  serveQuestion();
+  updateVidCat();
+  state.timer = setInterval(tick, TICK_MS);
+}
+
+function endSession(){
+  clearInterval(state.timer);
+  state.phase = 'done';
+  if (playerReady) player.pauseVideo();
+  logEvent('session_end', { points_total: state.points });
+
+  const attempted = state.events.filter(e => e.type === 'answer').length;
+  const correct   = state.events.filter(e => e.type === 'answer' && e.is_correct).length;
+  const fmt = ms => {
+    const s = Math.round(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const activeMs = state.dwell.study + state.dwell.video;
+
+  $('rPoints').textContent    = state.points;
+  $('rAttempted').textContent = attempted;
+  $('rAccuracy').textContent  = attempted ? `${Math.round(100 * correct / attempted)}%` : '—';
+  $('rStudy').textContent     = fmt(state.dwell.study);
+  $('rVideo').textContent     = fmt(state.dwell.video);
+  $('rShare').textContent     = activeMs ? `${Math.round(100 * state.dwell.study / activeMs)}% study` : '—';
+  $('rSwitches').textContent  = Math.max(0, state.switches - 1);   // first activation isn't a switch
+  $('rVideos').textContent    = state.videosCompleted;
+
+  $('split').classList.add('hidden');
+  $('done').classList.remove('hidden');
+}
+
+$('startBtn').addEventListener('click', startSession);
+$('restartBtn').addEventListener('click', () => {
+  Object.assign(state, {
+    phase: 'intro', startTime: null, elapsedMs: 0, points: 0, qNum: 1,
+    currentQ: null, answerLock: false, activeSide: null,
+    dwell: { study: 0, video: 0, none: 0 }, switches: 0,
+    playlist: shuffle(VIDEOS), vidIdx: 0, videosCompleted: 0, events: [],
+  });
+  QuestionBank.reset();
+  $('points').textContent = '0';
+  $('studyPane').classList.add('inactive');
+  $('videoPane').classList.add('inactive');
+  if (playerReady) player.cueVideoById(state.playlist[0].id);
+  startSession();
+});
+
+/* ---------- export ---------- */
+
+$('exportBtn').addEventListener('click', () => {
+  const header = ['t_ms','event','side','question_id','level','question','given',
+                  'correct_answer','is_correct','points_total',
+                  'video_id','video_category','reason'];
+  const q = s => {
+    s = String(s ?? '');
+    return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const rows = [header.join(',')];
+  state.events.forEach(e => {
+    rows.push([
+      e.t_ms, e.type, e.side ?? '', e.question_id ?? '', e.level ?? '',
+      q(e.question), e.given ?? '', e.correct_answer ?? '', e.is_correct ?? '',
+      e.points_total ?? '', e.video_id ?? '', e.video_category ?? '',
+      e.reason ?? '',
+    ].join(','));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `task2-split-screen-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ---------- init ---------- */
+
+$('timeLeft').textContent =
+  `${Math.floor(SESSION_SEC / 60)}:${String(SESSION_SEC % 60).padStart(2, '0')}`;
+</script>
+</body>
+</html>
