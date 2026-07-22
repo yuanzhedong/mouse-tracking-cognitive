@@ -57,6 +57,27 @@
   }
   .intro .big-btn:hover { opacity: 0.9; }
 
+  /* ---------- lock-screen choice ---------- */
+  .lock-options { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
+  .choice-btn {
+    text-align: left; padding: 16px 20px;
+    border: 1px solid var(--ink); background: var(--bg);
+    cursor: pointer; font-family: inherit;
+    transition: box-shadow 0.12s ease;
+  }
+  .choice-btn:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
+  .choice-btn .t { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .choice-btn .d { font-size: 13px; color: var(--soft); line-height: 1.5; }
+  .lock-note { margin-top: 18px; text-align: center; color: var(--soft); }
+
+  .video-off {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px;
+    text-align: center; color: #9a97ac; font-size: 15px; line-height: 1.6;
+    padding: 20px; min-height: 380px;
+  }
+  .video-off .lock-icon { font-size: 42px; }
+
   /* ---------- split screen ---------- */
   main.split {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -182,6 +203,28 @@
     <button class="big-btn" id="startBtn">Start</button>
   </section>
 
+  <!-- lock-screen choice (shown after the practice phase) -->
+  <section class="intro hidden" id="lockScreen">
+    <h2>One last choice before you start.</h2>
+    <p>You now have <b><span class="main-min">10</span> minutes</b> before the
+       quiz. During these <span class="main-min">10</span> minutes, the videos
+       can stay on your screen or you can put them away. It's up to you:</p>
+    <div class="lock-options">
+      <button class="choice-btn" id="lockAway">
+        <div class="t">[ Put the videos away ]</div>
+        <div class="d">The YouTube shorts side turns off for the whole
+          <span class="main-min">10</span> minutes. You won't see or hear any
+          videos until the quiz. This cannot be undone.</div>
+      </button>
+      <button class="choice-btn" id="lockKeep">
+        <div class="t">[ Keep the videos on my screen ]</div>
+        <div class="d">Everything stays as it is. You can do math or watch
+          videos anytime, just like in practice.</div>
+      </button>
+    </div>
+    <p class="lock-note">There is no right or wrong choice — pick whichever you prefer.</p>
+  </section>
+
   <!-- split screen -->
   <main class="split hidden" id="split">
     <section class="pane study inactive" id="studyPane">
@@ -201,7 +244,11 @@
         <span class="tag">Shorts</span>
         <span class="cat" id="vidCat"></span>
       </div>
-      <div class="player"><div id="ytPlayer"></div></div>
+      <div class="player" id="playerBox"><div id="ytPlayer"></div></div>
+      <div class="video-off hidden" id="videoOff">
+        <div class="lock-icon">🔒</div>
+        <div>Videos are put away until the quiz.</div>
+      </div>
       <button class="next-video" id="nextVideoBtn">⌃ next video</button>
     </section>
   </main>
@@ -211,11 +258,12 @@
     <div class="badge">Researcher view</div>
     <h2>Time's up — quiz time!</h2>
     <dl class="metrics">
+      <dt>lock choice</dt>       <dd id="rLock">—</dd>
       <dt>points</dt>            <dd id="rPoints">—</dd>
       <dt>questions attempted</dt><dd id="rAttempted">—</dd>
       <dt>accuracy</dt>          <dd id="rAccuracy">—</dd>
-      <dt>time on study</dt>     <dd id="rStudy">—</dd>
-      <dt>time on videos</dt>    <dd id="rVideo">—</dd>
+      <dt>practice study / video</dt><dd id="rPractice">—</dd>
+      <dt>main study / video</dt>    <dd id="rMain">—</dd>
       <dt>study share</dt>       <dd id="rShare">—</dd>
       <dt>side switches</dt>     <dd id="rSwitches">—</dd>
       <dt>videos completed</dt>  <dd id="rVideos">—</dd>
@@ -236,16 +284,28 @@
    Whichever pane the mouse is over becomes active. Left pane
    serves the fixed math bank (shared/questions.js); right pane
    plays a real YouTube playlist via the IFrame API — playing
-   only while the video pane is active. Time allocation,
-   switches, answers, and video events are logged and
+   only while the video pane is active.
+
+   Flow:  intro → PRACTICE (split screen) → LOCK-SCREEN CHOICE
+          → MAIN (split screen; video side off if "put away")
+          → researcher summary.
+   The lock choice is the design's core measure. Time allocation,
+   switches, answers, and video events are logged per phase and
    exportable as CSV.
    ============================================================= */
 
-const SESSION_SEC = (() => {
-  const v = parseInt(new URLSearchParams(location.search).get('dur'), 10);
-  return Number.isFinite(v) && v > 0 ? v : 12 * 60;
-})();
+const qs = new URLSearchParams(location.search);
+const secParam = (name, dflt) => {
+  const v = parseInt(qs.get(name), 10);
+  return Number.isFinite(v) && v > 0 ? v : dflt;
+};
+const PRACTICE_SEC = secParam('practice', 2 * 60);   // practice phase
+const MAIN_SEC     = secParam('dur', 10 * 60);       // main phase after choice
 const TICK_MS = 200;
+
+document.querySelectorAll('.main-min').forEach(el => {
+  el.textContent = Math.round(MAIN_SEC / 60);
+});
 
 // VIDEOS comes from ../shared/videos.js; QuestionBank from ../shared/questions.js
 
@@ -261,27 +321,34 @@ function shuffle(arr){
 }
 
 const state = {
-  phase: 'intro',        // intro | running | done
+  phase: 'intro',        // intro | practice | lock | main | done
   startTime: null,
-  elapsedMs: 0,
+  phaseElapsedMs: 0,
+  phaseSec: PRACTICE_SEC,
   points: 0,
   qNum: 1,
   currentQ: null,
   answerLock: false,
   activeSide: null,      // 'study' | 'video' | null
-  dwell: { study: 0, video: 0, none: 0 },
+  dwell: {
+    practice: { study: 0, video: 0, none: 0 },
+    main:     { study: 0, video: 0, none: 0 },
+  },
   switches: 0,
   playlist: shuffle(VIDEOS),
   vidIdx: 0,
   videosCompleted: 0,
+  lockChoice: null,      // 'put_away' | 'keep'
+  videoLocked: false,
   events: [],
   timer: null,
 };
 
+const running = () => state.phase === 'practice' || state.phase === 'main';
 const now = () => state.startTime === null ? 0 : Math.round(performance.now() - state.startTime);
 
 function logEvent(type, detail = {}){
-  state.events.push({ t_ms: now(), type, ...detail });
+  state.events.push({ t_ms: now(), phase: state.phase, type, ...detail });
 }
 
 /* ---------- YouTube player ---------- */
@@ -299,7 +366,7 @@ window.onYouTubeIframeAPIReady = () => {
     events: {
       onReady: () => { playerReady = true; updateVidCat(); },
       onStateChange: e => {
-        if (state.phase !== 'running') return;
+        if (!running()) return;
         const v = state.playlist[state.vidIdx];
         if (e.data === YT.PlayerState.ENDED){
           state.videosCompleted++;
@@ -332,7 +399,7 @@ function loadVideo(idx, reason){
 }
 
 $('nextVideoBtn').addEventListener('click', () => {
-  if (state.phase !== 'running' || state.activeSide !== 'video') return;
+  if (!running() || state.activeSide !== 'video') return;
   const v = state.playlist[state.vidIdx];
   logEvent('video_skip', { video_id: v.id, video_category: v.cat });
   loadVideo(state.vidIdx + 1, 'user_skip');
@@ -354,7 +421,7 @@ function serveQuestion(){
 
 $('answers').addEventListener('click', e => {
   const btn = e.target.closest('button');
-  if (!btn || state.phase !== 'running' || state.activeSide !== 'study' || state.answerLock) return;
+  if (!btn || !running() || state.activeSide !== 'study' || state.answerLock) return;
   state.answerLock = true;
   const given = parseInt(btn.textContent, 10);
   const correct = given === state.currentQ.answer;
@@ -371,7 +438,7 @@ $('answers').addEventListener('click', e => {
   });
   btn.classList.add(correct ? 'flash-good' : 'flash-bad');
   setTimeout(() => {
-    if (state.phase !== 'running') return;
+    if (!running()) return;
     state.qNum++;
     serveQuestion();
   }, 450);
@@ -380,9 +447,10 @@ $('answers').addEventListener('click', e => {
 /* ---------- side activation ---------- */
 
 function setActive(side){
-  if (state.phase !== 'running' || state.activeSide === side) return;
+  if (!running() || state.activeSide === side) return;
+  if (side === 'video' && state.videoLocked) return;   // locked side is dead
+  if (state.activeSide !== null) state.switches++;     // first hover of a phase isn't a switch
   state.activeSide = side;
-  state.switches++;
   logEvent('switch', { side });
   $('studyPane').classList.toggle('inactive', side !== 'study');
   $('videoPane').classList.toggle('inactive', side !== 'video');
@@ -398,32 +466,74 @@ $('videoPane').addEventListener('mouseenter', () => setActive('video'));
 /* ---------- session loop ---------- */
 
 function tick(){
-  state.elapsedMs += TICK_MS;
-  state.dwell[state.activeSide || 'none'] += TICK_MS;
+  state.phaseElapsedMs += TICK_MS;
+  state.dwell[state.phase][state.activeSide || 'none'] += TICK_MS;
 
-  const remain = Math.max(0, SESSION_SEC - state.elapsedMs / 1000);
+  const remain = Math.max(0, state.phaseSec - state.phaseElapsedMs / 1000);
   const mm = Math.floor(remain / 60);
   const ss = Math.floor(remain % 60);
   $('timeLeft').textContent = `${mm}:${String(ss).padStart(2, '0')}`;
-  if (remain <= 0) endSession();
+  if (remain <= 0){
+    if (state.phase === 'practice') enterLockScreen();
+    else                            endSession();
+  }
 }
 
-function startSession(){
-  state.phase = 'running';
-  state.startTime = performance.now();
-  logEvent('session_start', { duration_sec: SESSION_SEC });
+function beginPhase(phase, sec){
+  state.phase = phase;
+  state.phaseSec = sec;
+  state.phaseElapsedMs = 0;
+  state.activeSide = null;
+  $('studyPane').classList.add('inactive');
+  $('videoPane').classList.toggle('inactive', true);
+  $('lockScreen').classList.add('hidden');
   $('intro').classList.add('hidden');
   $('done').classList.add('hidden');
   $('split').classList.remove('hidden');
-  serveQuestion();
-  updateVidCat();
+  logEvent('phase_start', { duration_sec: sec });
   state.timer = setInterval(tick, TICK_MS);
 }
+
+function startSession(){
+  state.startTime = performance.now();
+  logEvent('session_start', { practice_sec: PRACTICE_SEC, main_sec: MAIN_SEC });
+  serveQuestion();
+  updateVidCat();
+  beginPhase('practice', PRACTICE_SEC);
+}
+
+function enterLockScreen(){
+  clearInterval(state.timer);
+  state.phase = 'lock';
+  state.activeSide = null;
+  if (playerReady) player.pauseVideo();
+  $('split').classList.add('hidden');
+  $('lockScreen').classList.remove('hidden');
+  logEvent('lock_screen_shown');
+}
+
+function chooseLock(choice){
+  if (state.phase !== 'lock') return;
+  state.lockChoice = choice;
+  logEvent('lock_choice', { choice });
+  if (choice === 'put_away'){
+    state.videoLocked = true;
+    if (playerReady) player.stopVideo();
+    $('playerBox').classList.add('hidden');
+    $('nextVideoBtn').classList.add('hidden');
+    $('videoOff').classList.remove('hidden');
+    $('vidCat').textContent = '';
+  }
+  beginPhase('main', MAIN_SEC);
+}
+
+$('lockAway').addEventListener('click', () => chooseLock('put_away'));
+$('lockKeep').addEventListener('click', () => chooseLock('keep'));
 
 function endSession(){
   clearInterval(state.timer);
   state.phase = 'done';
-  if (playerReady) player.pauseVideo();
+  if (playerReady && !state.videoLocked) player.pauseVideo();
   logEvent('session_end', { points_total: state.points });
 
   const attempted = state.events.filter(e => e.type === 'answer').length;
@@ -432,15 +542,19 @@ function endSession(){
     const s = Math.round(ms / 1000);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   };
-  const activeMs = state.dwell.study + state.dwell.video;
+  const d = state.dwell;
+  const studyMs  = d.practice.study + d.main.study;
+  const activeMs = studyMs + d.practice.video + d.main.video;
 
+  $('rLock').textContent      = state.lockChoice === 'put_away' ? 'put videos away'
+                              : state.lockChoice === 'keep'     ? 'kept videos' : '—';
   $('rPoints').textContent    = state.points;
   $('rAttempted').textContent = attempted;
   $('rAccuracy').textContent  = attempted ? `${Math.round(100 * correct / attempted)}%` : '—';
-  $('rStudy').textContent     = fmt(state.dwell.study);
-  $('rVideo').textContent     = fmt(state.dwell.video);
-  $('rShare').textContent     = activeMs ? `${Math.round(100 * state.dwell.study / activeMs)}% study` : '—';
-  $('rSwitches').textContent  = Math.max(0, state.switches - 1);   // first activation isn't a switch
+  $('rPractice').textContent  = `${fmt(d.practice.study)} / ${fmt(d.practice.video)}`;
+  $('rMain').textContent      = `${fmt(d.main.study)} / ${fmt(d.main.video)}`;
+  $('rShare').textContent     = activeMs ? `${Math.round(100 * studyMs / activeMs)}% study` : '—';
+  $('rSwitches').textContent  = state.switches;
   $('rVideos').textContent    = state.videosCompleted;
 
   $('split').classList.add('hidden');
@@ -450,15 +564,20 @@ function endSession(){
 $('startBtn').addEventListener('click', startSession);
 $('restartBtn').addEventListener('click', () => {
   Object.assign(state, {
-    phase: 'intro', startTime: null, elapsedMs: 0, points: 0, qNum: 1,
-    currentQ: null, answerLock: false, activeSide: null,
-    dwell: { study: 0, video: 0, none: 0 }, switches: 0,
-    playlist: shuffle(VIDEOS), vidIdx: 0, videosCompleted: 0, events: [],
+    phase: 'intro', startTime: null, phaseElapsedMs: 0, phaseSec: PRACTICE_SEC,
+    points: 0, qNum: 1, currentQ: null, answerLock: false, activeSide: null,
+    dwell: {
+      practice: { study: 0, video: 0, none: 0 },
+      main:     { study: 0, video: 0, none: 0 },
+    },
+    switches: 0, playlist: shuffle(VIDEOS), vidIdx: 0, videosCompleted: 0,
+    lockChoice: null, videoLocked: false, events: [],
   });
   QuestionBank.reset();
   $('points').textContent = '0';
-  $('studyPane').classList.add('inactive');
-  $('videoPane').classList.add('inactive');
+  $('playerBox').classList.remove('hidden');
+  $('nextVideoBtn').classList.remove('hidden');
+  $('videoOff').classList.add('hidden');
   if (playerReady) player.cueVideoById(state.playlist[0].id);
   startSession();
 });
@@ -466,9 +585,9 @@ $('restartBtn').addEventListener('click', () => {
 /* ---------- export ---------- */
 
 $('exportBtn').addEventListener('click', () => {
-  const header = ['t_ms','event','side','question_id','level','question','given',
+  const header = ['t_ms','phase','event','side','question_id','level','question','given',
                   'correct_answer','is_correct','points_total',
-                  'video_id','video_category','reason'];
+                  'video_id','video_category','choice','reason'];
   const q = s => {
     s = String(s ?? '');
     return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -476,10 +595,10 @@ $('exportBtn').addEventListener('click', () => {
   const rows = [header.join(',')];
   state.events.forEach(e => {
     rows.push([
-      e.t_ms, e.type, e.side ?? '', e.question_id ?? '', e.level ?? '',
+      e.t_ms, e.phase ?? '', e.type, e.side ?? '', e.question_id ?? '', e.level ?? '',
       q(e.question), e.given ?? '', e.correct_answer ?? '', e.is_correct ?? '',
       e.points_total ?? '', e.video_id ?? '', e.video_category ?? '',
-      e.reason ?? '',
+      e.choice ?? '', e.reason ?? '',
     ].join(','));
   });
   const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
@@ -496,7 +615,7 @@ $('exportBtn').addEventListener('click', () => {
 /* ---------- init ---------- */
 
 $('timeLeft').textContent =
-  `${Math.floor(SESSION_SEC / 60)}:${String(SESSION_SEC % 60).padStart(2, '0')}`;
+  `${Math.floor(PRACTICE_SEC / 60)}:${String(PRACTICE_SEC % 60).padStart(2, '0')}`;
 </script>
 </body>
 </html>

@@ -43,13 +43,18 @@ hovering the video side plays the video and disables (dims) the math panel.
 Videos auto-advance when finished and can be skipped with a "next" button.
 Persistent header: time remaining, points, "Quiz at the end" reminder.
 
-Logged events (exportable CSV): side switches, per-side dwell time, every
-answer (question id, level, response, correctness, running points), and video
-load/play/pause/complete/skip with video id + category. A researcher-view
-summary appears when time runs out. `?dur=SECONDS` overrides the 12-minute
-session length for piloting.
+Flow: intro → **practice phase** (default 2 min) → **lock-screen choice**
+(锁屏选择, the design's core measure) → **main phase** (default 10 min) →
+researcher summary. On the lock screen the child chooses between
+"[ Put the videos away ]" (the video side turns off for the whole main
+phase — irreversible) and "[ Keep the videos on my screen ]" (everything
+stays as in practice). There is no right or wrong choice.
 
-Planned but not yet specified: the lock-screen choice (锁屏选择) component.
+Logged events (exportable CSV, tagged by phase): the lock choice, side
+switches, per-side dwell time, every answer (question id, level, response,
+correctness, running points), and video load/play/pause/complete/skip with
+video id + category. `?practice=SECONDS` and `?dur=SECONDS` override the
+phase lengths for piloting.
 
 ---
 
