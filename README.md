@@ -15,6 +15,7 @@ task2/
   index.html          – Task 2: split-screen ADT (study vs. YouTube videos)
 shared/
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
+  videos.js           – Task 2 YouTube playlist (video ids + categories)
 README.md
 ```
 
