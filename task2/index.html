@@ -57,18 +57,49 @@
   }
   .intro .big-btn:hover { opacity: 0.9; }
 
-  /* ---------- lock-screen choice ---------- */
+  /* ---------- lock-screen instructions ---------- */
   .lock-options { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
-  .choice-btn {
+  .choice-info {
     text-align: left; padding: 16px 20px;
     border: 1px solid var(--ink); background: var(--bg);
+  }
+  .choice-info .t { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .choice-info .d { font-size: 13px; color: var(--soft); line-height: 1.5; }
+  .lock-note { margin-top: 18px; text-align: center; color: var(--soft); }
+
+  /* ---------- lock-screen choice stage (mouse-tracking) ---------- */
+  .lock-stage {
+    position: relative; aspect-ratio: 4/3;
+    max-width: 860px; margin: 20px auto;
+    background: var(--panel); border: 1px solid var(--ink);
+    overflow: hidden; user-select: none;
+  }
+  .lock-option {
+    position: absolute; top: 22px;
+    width: 260px; padding: 18px 16px;
+    background: var(--bg); border: 1px solid var(--ink);
+    font-size: 15px; font-weight: 600; text-align: center;
     cursor: pointer; font-family: inherit;
     transition: box-shadow 0.12s ease;
   }
-  .choice-btn:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
-  .choice-btn .t { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-  .choice-btn .d { font-size: 13px; color: var(--soft); line-height: 1.5; }
-  .lock-note { margin-top: 18px; text-align: center; color: var(--soft); }
+  .lock-option:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
+  .lock-option.opt-left  { left: 22px; }
+  .lock-option.opt-right { right: 22px; }
+  .lock-prompt {
+    position: absolute; top: 42%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .stage-btn {
+    position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+    padding: 10px 26px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--bg);
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    cursor: pointer; font-family: inherit;
+  }
+  .stage-btn:hover { opacity: 0.9; }
 
   .video-off {
     flex: 1; display: flex; flex-direction: column;
@@ -203,26 +234,37 @@
     <button class="big-btn" id="startBtn">Start</button>
   </section>
 
-  <!-- lock-screen choice (shown after the practice phase) -->
+  <!-- lock-screen instructions (shown after the practice phase) -->
   <section class="intro hidden" id="lockScreen">
     <h2>One last choice before you start.</h2>
     <p>You now have <b><span class="main-min">10</span> minutes</b> before the
        quiz. During these <span class="main-min">10</span> minutes, the videos
        can stay on your screen or you can put them away. It's up to you:</p>
     <div class="lock-options">
-      <button class="choice-btn" id="lockAway">
+      <div class="choice-info">
         <div class="t">[ Put the videos away ]</div>
         <div class="d">The YouTube shorts side turns off for the whole
           <span class="main-min">10</span> minutes. You won't see or hear any
           videos until the quiz. This cannot be undone.</div>
-      </button>
-      <button class="choice-btn" id="lockKeep">
+      </div>
+      <div class="choice-info">
         <div class="t">[ Keep the videos on my screen ]</div>
         <div class="d">Everything stays as it is. You can do math or watch
           videos anytime, just like in practice.</div>
-      </button>
+      </div>
     </div>
     <p class="lock-note">There is no right or wrong choice — pick whichever you prefer.</p>
+    <button class="big-btn" id="lockContinue">Continue</button>
+  </section>
+
+  <!-- lock-screen choice stage (Task-1-style mouse-tracking trial) -->
+  <section class="hidden" id="lockStageWrap">
+    <div class="lock-stage" id="lockStage">
+      <button class="lock-option opt-left hidden"  id="lockOptLeft"></button>
+      <button class="lock-option opt-right hidden" id="lockOptRight"></button>
+      <div    class="lock-prompt hidden"           id="lockPrompt">make your choice</div>
+      <button class="stage-btn hidden"             id="lockStartBtn">Start</button>
+    </div>
   </section>
 
   <!-- split screen -->
@@ -259,6 +301,7 @@
     <h2>Time's up — quiz time!</h2>
     <dl class="metrics">
       <dt>lock choice</dt>       <dd id="rLock">—</dd>
+      <dt>lock AUC / MD</dt>     <dd id="rLockAUC">—</dd>
       <dt>points</dt>            <dd id="rPoints">—</dd>
       <dt>questions attempted</dt><dd id="rAttempted">—</dd>
       <dt>accuracy</dt>          <dd id="rAccuracy">—</dd>
@@ -278,6 +321,7 @@
 
 <script src="../shared/questions.js"></script>
 <script src="../shared/videos.js"></script>
+<script src="../shared/mousetracking.js"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -339,6 +383,7 @@ const state = {
   vidIdx: 0,
   videosCompleted: 0,
   lockChoice: null,      // 'put_away' | 'keep'
+  lockMetrics: null,     // AUC/MD etc. of the lock-choice trajectory
   videoLocked: false,
   events: [],
   timer: null,
@@ -487,6 +532,7 @@ function beginPhase(phase, sec){
   $('studyPane').classList.add('inactive');
   $('videoPane').classList.toggle('inactive', true);
   $('lockScreen').classList.add('hidden');
+  $('lockStageWrap').classList.add('hidden');
   $('intro').classList.add('hidden');
   $('done').classList.add('hidden');
   $('split').classList.remove('hidden');
@@ -509,13 +555,102 @@ function enterLockScreen(){
   if (playerReady) player.pauseVideo();
   $('split').classList.add('hidden');
   $('lockScreen').classList.remove('hidden');
-  logEvent('lock_screen_shown');
+  logEvent('lock_instructions_shown');
 }
 
-function chooseLock(choice){
+/* The choice itself is a Task-1-style mouse-tracking trial: Start button
+   at the bottom center, the two options at the top corners (sides
+   randomized), cursor sampled from the Start click to the choice click,
+   scored with the shared AUC/MD metrics. */
+
+const lockTrial = {
+  started: false,
+  samples: [],
+  startPos: null,
+  startTime: null,
+  leftChoice: null,   // 'put_away' | 'keep'
+};
+
+const LOCK_LABELS = {
+  put_away: '[ Put the videos away ]',
+  keep:     '[ Keep the videos on my screen ]',
+};
+
+$('lockContinue').addEventListener('click', () => {
   if (state.phase !== 'lock') return;
+  $('lockScreen').classList.add('hidden');
+  $('lockStageWrap').classList.remove('hidden');
+  $('lockStartBtn').classList.remove('hidden');
+  logEvent('lock_stage_shown');
+});
+
+$('lockStartBtn').addEventListener('click', e => {
+  if (state.phase !== 'lock' || lockTrial.started) return;
+  lockTrial.started = true;
+  lockTrial.startPos = { x: e.clientX, y: e.clientY };
+  lockTrial.startTime = performance.now();
+  lockTrial.samples = [{ x: e.clientX, y: e.clientY, t: 0 }];
+  lockTrial.leftChoice = Math.random() < 0.5 ? 'put_away' : 'keep';
+  const rightChoice = lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away';
+  $('lockOptLeft').textContent  = LOCK_LABELS[lockTrial.leftChoice];
+  $('lockOptRight').textContent = LOCK_LABELS[rightChoice];
+  $('lockStartBtn').classList.add('hidden');
+  $('lockOptLeft').classList.remove('hidden');
+  $('lockOptRight').classList.remove('hidden');
+  $('lockPrompt').classList.remove('hidden');
+});
+
+document.addEventListener('mousemove', e => {
+  if (state.phase !== 'lock' || !lockTrial.started) return;
+  lockTrial.samples.push({
+    x: e.clientX, y: e.clientY,
+    t: performance.now() - lockTrial.startTime,
+  });
+});
+
+function centerOf(el){
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+function pickLock(side, e){
+  if (state.phase !== 'lock' || !lockTrial.started) return;
+  const choice = side === 'left'
+    ? lockTrial.leftChoice
+    : (lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away');
+  const rt = performance.now() - lockTrial.startTime;
+  lockTrial.samples.push({ x: e.clientX, y: e.clientY, t: rt });
+
+  let initTime = null;
+  for (let i = 1; i < lockTrial.samples.length; i++){
+    const dx = lockTrial.samples[i].x - lockTrial.startPos.x;
+    const dy = lockTrial.samples[i].y - lockTrial.startPos.y;
+    if (Math.hypot(dx, dy) > 10){ initTime = lockTrial.samples[i].t; break; }
+  }
+
+  const btn = side === 'left' ? $('lockOptLeft') : $('lockOptRight');
+  const m = computeMetrics(lockTrial.samples, lockTrial.startPos, centerOf(btn));
   state.lockChoice = choice;
-  logEvent('lock_choice', { choice });
+  state.lockMetrics = m;
+  logEvent('lock_choice', {
+    choice,
+    side,
+    left_option: lockTrial.leftChoice,
+    auc: m.auc.toFixed(6),
+    md: m.md.toFixed(6),
+    x_flips: m.xFlips,
+    rt_ms: Math.round(rt),
+    init_ms: initTime !== null ? Math.round(initTime) : '',
+  });
+  // time-normalized trajectory (101 bins) for downstream analysis
+  m.normalized.forEach((p, i) => {
+    state.events.push({
+      t_ms: now(), phase: 'lock', type: 'lock_trajectory',
+      t_norm: (i / (m.normalized.length - 1)).toFixed(4),
+      x_norm: p.x.toFixed(6), y_norm: p.y.toFixed(6),
+    });
+  });
+
   if (choice === 'put_away'){
     state.videoLocked = true;
     if (playerReady) player.stopVideo();
@@ -524,11 +659,12 @@ function chooseLock(choice){
     $('videoOff').classList.remove('hidden');
     $('vidCat').textContent = '';
   }
+  $('lockStageWrap').classList.add('hidden');
   beginPhase('main', MAIN_SEC);
 }
 
-$('lockAway').addEventListener('click', () => chooseLock('put_away'));
-$('lockKeep').addEventListener('click', () => chooseLock('keep'));
+$('lockOptLeft').addEventListener('click',  e => pickLock('left', e));
+$('lockOptRight').addEventListener('click', e => pickLock('right', e));
 
 function endSession(){
   clearInterval(state.timer);
@@ -548,6 +684,9 @@ function endSession(){
 
   $('rLock').textContent      = state.lockChoice === 'put_away' ? 'put videos away'
                               : state.lockChoice === 'keep'     ? 'kept videos' : '—';
+  $('rLockAUC').textContent   = state.lockMetrics
+    ? `${state.lockMetrics.auc.toFixed(3)} / ${state.lockMetrics.md.toFixed(3)}`
+    : '—';
   $('rPoints').textContent    = state.points;
   $('rAttempted').textContent = attempted;
   $('rAccuracy').textContent  = attempted ? `${Math.round(100 * correct / attempted)}%` : '—';
@@ -571,13 +710,19 @@ $('restartBtn').addEventListener('click', () => {
       main:     { study: 0, video: 0, none: 0 },
     },
     switches: 0, playlist: shuffle(VIDEOS), vidIdx: 0, videosCompleted: 0,
-    lockChoice: null, videoLocked: false, events: [],
+    lockChoice: null, lockMetrics: null, videoLocked: false, events: [],
+  });
+  Object.assign(lockTrial, {
+    started: false, samples: [], startPos: null, startTime: null, leftChoice: null,
   });
   QuestionBank.reset();
   $('points').textContent = '0';
   $('playerBox').classList.remove('hidden');
   $('nextVideoBtn').classList.remove('hidden');
   $('videoOff').classList.add('hidden');
+  $('lockOptLeft').classList.add('hidden');
+  $('lockOptRight').classList.add('hidden');
+  $('lockPrompt').classList.add('hidden');
   if (playerReady) player.cueVideoById(state.playlist[0].id);
   startSession();
 });
@@ -587,7 +732,9 @@ $('restartBtn').addEventListener('click', () => {
 $('exportBtn').addEventListener('click', () => {
   const header = ['t_ms','phase','event','side','question_id','level','question','given',
                   'correct_answer','is_correct','points_total',
-                  'video_id','video_category','choice','reason'];
+                  'video_id','video_category','choice','left_option',
+                  'auc','md','x_flips','rt_ms','init_ms',
+                  't_norm','x_norm','y_norm','reason'];
   const q = s => {
     s = String(s ?? '');
     return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -598,7 +745,9 @@ $('exportBtn').addEventListener('click', () => {
       e.t_ms, e.phase ?? '', e.type, e.side ?? '', e.question_id ?? '', e.level ?? '',
       q(e.question), e.given ?? '', e.correct_answer ?? '', e.is_correct ?? '',
       e.points_total ?? '', e.video_id ?? '', e.video_category ?? '',
-      e.choice ?? '', e.reason ?? '',
+      e.choice ?? '', e.left_option ?? '',
+      e.auc ?? '', e.md ?? '', e.x_flips ?? '', e.rt_ms ?? '', e.init_ms ?? '',
+      e.t_norm ?? '', e.x_norm ?? '', e.y_norm ?? '', e.reason ?? '',
     ].join(','));
   });
   const blob = new Blob([rows.join('\n')], { type: 'text/csv' });

@@ -16,6 +16,8 @@ task2/
 shared/
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
+  mousetracking.js    – AUC/MD/x-flips metrics (Freeman & Ambady 2010),
+                        used by Task 1 trials and the Task 2 lock choice
 README.md
 ```
 
@@ -43,12 +45,17 @@ hovering the video side plays the video and disables (dims) the math panel.
 Videos auto-advance when finished and can be skipped with a "next" button.
 Persistent header: time remaining, points, "Quiz at the end" reminder.
 
-Flow: intro → **practice phase** (default 2 min) → **lock-screen choice**
-(锁屏选择, the design's core measure) → **main phase** (default 10 min) →
-researcher summary. On the lock screen the child chooses between
+Flow: intro → **practice phase** (default 2 min) → **lock-screen
+instructions** → **lock-screen choice** (锁屏选择, the design's core
+measure) → **main phase** (default 10 min) → researcher summary. The
+instructions page explains the two options; the choice itself is a
+Task-1-style **mouse-tracking trial** (Start button at the bottom, the two
+options at the top corners, sides randomized) between
 "[ Put the videos away ]" (the video side turns off for the whole main
 phase — irreversible) and "[ Keep the videos on my screen ]" (everything
-stays as in practice). There is no right or wrong choice.
+stays as in practice). The choice trajectory is scored with the shared
+AUC/MD metrics (`shared/mousetracking.js`) and its 101-bin time-normalized
+trajectory is included in the CSV. There is no right or wrong choice.
 
 Logged events (exportable CSV, tagged by phase): the lock choice, side
 switches, per-side dwell time, every answer (question id, level, response,
