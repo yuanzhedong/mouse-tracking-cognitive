@@ -13,6 +13,7 @@ task1/
   goal_temptation_stimuli/  – icon stimuli (goal/temptation pairs)
 task2/
   index.html          – Task 2: split-screen ADT (study vs. YouTube videos)
+  lock_stimuli/       – icon cards for the lock-screen choice trial
 shared/
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)

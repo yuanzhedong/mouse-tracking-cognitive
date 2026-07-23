@@ -76,11 +76,15 @@
   }
   .lock-option {
     position: absolute; top: 22px;
-    width: 260px; padding: 18px 16px;
+    display: block; padding: 6px;
     background: var(--bg); border: 1px solid var(--ink);
-    font-size: 15px; font-weight: 600; text-align: center;
     cursor: pointer; font-family: inherit;
     transition: box-shadow 0.12s ease;
+  }
+  .lock-option img {
+    display: block;
+    width: 240px; height: auto;
+    pointer-events: none;
   }
   .lock-option:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
   .lock-option.opt-left  { left: 22px; }
@@ -260,8 +264,12 @@
   <!-- lock-screen choice stage (Task-1-style mouse-tracking trial) -->
   <section class="hidden" id="lockStageWrap">
     <div class="lock-stage" id="lockStage">
-      <button class="lock-option opt-left hidden"  id="lockOptLeft"></button>
-      <button class="lock-option opt-right hidden" id="lockOptRight"></button>
+      <button class="lock-option opt-left hidden"  id="lockOptLeft">
+        <img id="lockOptLeftImg" alt="" draggable="false">
+      </button>
+      <button class="lock-option opt-right hidden" id="lockOptRight">
+        <img id="lockOptRightImg" alt="" draggable="false">
+      </button>
       <div    class="lock-prompt hidden"           id="lockPrompt">make your choice</div>
       <button class="stage-btn hidden"             id="lockStartBtn">Start</button>
     </div>
@@ -571,10 +579,12 @@ const lockTrial = {
   leftChoice: null,   // 'put_away' | 'keep'
 };
 
-const LOCK_LABELS = {
-  put_away: '[ Put the videos away ]',
-  keep:     '[ Keep the videos on my screen ]',
+const LOCK_STIMULI = {
+  put_away: { img: 'lock_stimuli/lock_fun_screen.png',   label: '[ Put the videos away ]' },
+  keep:     { img: 'lock_stimuli/keep_both_screens.png', label: '[ Keep the videos on my screen ]' },
 };
+// Preload so both cards appear instantly when the trial starts
+Object.values(LOCK_STIMULI).forEach(s => { const im = new Image(); im.src = s.img; });
 
 $('lockContinue').addEventListener('click', () => {
   if (state.phase !== 'lock') return;
@@ -592,8 +602,10 @@ $('lockStartBtn').addEventListener('click', e => {
   lockTrial.samples = [{ x: e.clientX, y: e.clientY, t: 0 }];
   lockTrial.leftChoice = Math.random() < 0.5 ? 'put_away' : 'keep';
   const rightChoice = lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away';
-  $('lockOptLeft').textContent  = LOCK_LABELS[lockTrial.leftChoice];
-  $('lockOptRight').textContent = LOCK_LABELS[rightChoice];
+  $('lockOptLeftImg').src  = LOCK_STIMULI[lockTrial.leftChoice].img;
+  $('lockOptLeftImg').alt  = LOCK_STIMULI[lockTrial.leftChoice].label;
+  $('lockOptRightImg').src = LOCK_STIMULI[rightChoice].img;
+  $('lockOptRightImg').alt = LOCK_STIMULI[rightChoice].label;
   $('lockStartBtn').classList.add('hidden');
   $('lockOptLeft').classList.remove('hidden');
   $('lockOptRight').classList.remove('hidden');
