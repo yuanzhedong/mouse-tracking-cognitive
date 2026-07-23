@@ -104,6 +104,31 @@
     cursor: pointer; font-family: inherit;
   }
   .stage-btn:hover { opacity: 0.9; }
+  .stage-btn.next-btn { background: var(--accent); border-color: var(--accent); z-index: 3; }
+
+  .lock-option.review { pointer-events: none; cursor: default; }
+  .review-canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 2;
+  }
+  .review-badge {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: var(--bg);
+    padding: 5px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    z-index: 3;
+  }
+  .review-meta {
+    position: absolute; top: 230px; left: 10px;
+    background: rgba(244, 239, 228, 0.92);
+    border: 1px solid var(--ink);
+    padding: 8px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px; line-height: 1.55;
+    z-index: 3;
+  }
+  .review-meta b { color: var(--accent); }
 
   .video-off {
     flex: 1; display: flex; flex-direction: column;
@@ -272,6 +297,10 @@
       </button>
       <div    class="lock-prompt hidden"           id="lockPrompt">make your choice</div>
       <button class="stage-btn hidden"             id="lockStartBtn">Start</button>
+      <canvas class="review-canvas hidden"         id="lockReviewCanvas"></canvas>
+      <div    class="review-badge hidden"          id="lockReviewBadge">Researcher view</div>
+      <div    class="review-meta hidden"           id="lockReviewMeta"></div>
+      <button class="stage-btn next-btn hidden"    id="lockNextBtn">Continue →</button>
     </div>
   </section>
 
@@ -573,9 +602,11 @@ function enterLockScreen(){
 
 const lockTrial = {
   started: false,
+  done: false,
   samples: [],
   startPos: null,
   startTime: null,
+  stageRect: null,
   leftChoice: null,   // 'put_away' | 'keep'
 };
 
@@ -597,6 +628,7 @@ $('lockContinue').addEventListener('click', () => {
 $('lockStartBtn').addEventListener('click', e => {
   if (state.phase !== 'lock' || lockTrial.started) return;
   lockTrial.started = true;
+  lockTrial.stageRect = $('lockStage').getBoundingClientRect();
   lockTrial.startPos = { x: e.clientX, y: e.clientY };
   lockTrial.startTime = performance.now();
   lockTrial.samples = [{ x: e.clientX, y: e.clientY, t: 0 }];
@@ -613,7 +645,7 @@ $('lockStartBtn').addEventListener('click', e => {
 });
 
 document.addEventListener('mousemove', e => {
-  if (state.phase !== 'lock' || !lockTrial.started) return;
+  if (state.phase !== 'lock' || !lockTrial.started || lockTrial.done) return;
   lockTrial.samples.push({
     x: e.clientX, y: e.clientY,
     t: performance.now() - lockTrial.startTime,
@@ -626,7 +658,8 @@ function centerOf(el){
 }
 
 function pickLock(side, e){
-  if (state.phase !== 'lock' || !lockTrial.started) return;
+  if (state.phase !== 'lock' || !lockTrial.started || lockTrial.done) return;
+  lockTrial.done = true;
   const choice = side === 'left'
     ? lockTrial.leftChoice
     : (lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away');
@@ -671,9 +704,46 @@ function pickLock(side, e){
     $('videoOff').classList.remove('hidden');
     $('vidCat').textContent = '';
   }
+
+  // Researcher view of the choice trajectory (Task-1 style) before the
+  // main phase starts.
+  const chosenBtn = side === 'left' ? $('lockOptLeft') : $('lockOptRight');
+  showLockReview({
+    samples:   lockTrial.samples,
+    startPos:  lockTrial.startPos,
+    leftPos:   centerOf($('lockOptLeft')),
+    rightPos:  centerOf($('lockOptRight')),
+    chosenPos: centerOf(chosenBtn),
+    stageRect: lockTrial.stageRect,
+    mdIdx:     m.mdIdx,
+  }, choice, m, rt, initTime);
+}
+
+function showLockReview(trial, choice, m, rt, initTime){
+  $('lockPrompt').classList.add('hidden');
+  $('lockOptLeft').classList.add('review');
+  $('lockOptRight').classList.add('review');
+  $('lockReviewCanvas').classList.remove('hidden');
+  $('lockReviewBadge').classList.remove('hidden');
+  $('lockReviewMeta').classList.remove('hidden');
+  $('lockNextBtn').classList.remove('hidden');
+  $('lockReviewMeta').innerHTML =
+    `chose <b>${LOCK_STIMULI[choice].label}</b><br>` +
+    `AUC <b>${m.auc.toFixed(3)}</b> · MD <b>${m.md.toFixed(3)}</b><br>` +
+    `x-flips ${m.xFlips} · RT ${Math.round(rt)} ms<br>` +
+    `init ${initTime !== null ? Math.round(initTime) + ' ms' : '—'}`;
+  drawTrajectoryReview($('lockReviewCanvas'), $('lockStage'), trial);
+}
+
+$('lockNextBtn').addEventListener('click', () => {
+  if (state.phase !== 'lock' || !lockTrial.done) return;
+  ['lockReviewCanvas','lockReviewBadge','lockReviewMeta','lockNextBtn',
+   'lockOptLeft','lockOptRight'].forEach(id => $(id).classList.add('hidden'));
+  $('lockOptLeft').classList.remove('review');
+  $('lockOptRight').classList.remove('review');
   $('lockStageWrap').classList.add('hidden');
   beginPhase('main', MAIN_SEC);
-}
+});
 
 $('lockOptLeft').addEventListener('click',  e => pickLock('left', e));
 $('lockOptRight').addEventListener('click', e => pickLock('right', e));
@@ -725,8 +795,13 @@ $('restartBtn').addEventListener('click', () => {
     lockChoice: null, lockMetrics: null, videoLocked: false, events: [],
   });
   Object.assign(lockTrial, {
-    started: false, samples: [], startPos: null, startTime: null, leftChoice: null,
+    started: false, done: false, samples: [], startPos: null, startTime: null,
+    stageRect: null, leftChoice: null,
   });
+  ['lockReviewCanvas','lockReviewBadge','lockReviewMeta','lockNextBtn']
+    .forEach(id => $(id).classList.add('hidden'));
+  $('lockOptLeft').classList.remove('review');
+  $('lockOptRight').classList.remove('review');
   QuestionBank.reset();
   $('points').textContent = '0';
   $('playerBox').classList.remove('hidden');
