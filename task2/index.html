@@ -697,13 +697,11 @@ function pickLock(side, e){
     rt_ms: Math.round(rt),
     init_ms: initTime !== null ? Math.round(initTime) : '',
   });
-  // time-normalized trajectory (101 bins) for downstream analysis
-  m.normalized.forEach((p, i) => {
-    state.events.push({
-      t_ms: now(), phase: 'lock', type: 'lock_trajectory',
-      t_norm: (i / (m.normalized.length - 1)).toFixed(4),
-      x_norm: p.x.toFixed(6), y_norm: p.y.toFixed(6),
-    });
+  // time-normalized trajectory (101 bins) as JSON arrays in one event
+  state.events.push({
+    t_ms: now(), phase: 'lock', type: 'lock_trajectory', n_bins: m.normalized.length,
+    x_norm: JSON.stringify(m.normalized.map(p => +p.x.toFixed(5))),
+    y_norm: JSON.stringify(m.normalized.map(p => +p.y.toFixed(5))),
   });
 
   if (choice === 'put_away'){

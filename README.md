@@ -51,7 +51,9 @@ Google Apps Script endpoint that appends rows to a Google Sheet, one tab per
 table — free, no server. Setup in **`backend/SETUP.md`** (5 minutes), then
 paste the URL into `shared/config.js`. With no endpoint configured the
 battery still runs and the final page's *Researcher* panel downloads each
-table as CSV.
+table as CSV. Uploads retry with backoff and queue offline, so a classroom
+of 200 finishing a task in the same minute degrades to "arrives a few
+minutes later", not data loss (details in `backend/SETUP.md`).
 
 ## Repo structure
 

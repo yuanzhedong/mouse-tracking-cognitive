@@ -9,7 +9,7 @@ const SPREADSHEET_ID = '';   // leave empty when the script is bound to the shee
 
 function doPost(e){
   const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
+  lock.waitLock(15000);   // burst → fail fast → client retries with backoff
   try {
     const body = JSON.parse(e.postData.contents);
     const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID)

@@ -85,53 +85,77 @@ const Session = (() => {
     };
   }
 
-  async function upload(payload){
+  /* Upload with retry. A text/plain body avoids a CORS preflight; Apps
+     Script answers (after a redirect) with Access-Control-Allow-Origin: *,
+     so the JSON reply is readable and failures (quota bursts, network)
+     are detected and retried with backoff. Anything still failing is
+     queued in localStorage and retried on later page loads. */
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function postOnce(payload){
+    const res = await fetch(CONFIG.ENDPOINT, {
+      method: 'POST', mode: 'cors', keepalive: true, redirect: 'follow',
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json().catch(() => ({ ok: true }));
+    if (j && j.ok === false) throw new Error(j.error || 'server error');
+    return true;
+  }
+  async function upload(payload, attempts = 4){
     if (!CONFIG.ENDPOINT) return false;
-    try {
-      // text/plain body avoids a CORS preflight; Apps Script returns an
-      // opaque response under no-cors, so "no exception" = delivered.
-      await fetch(CONFIG.ENDPOINT, {
-        method: 'POST', mode: 'no-cors', keepalive: true,
-        body: JSON.stringify(payload),
-      });
-      return true;
-    } catch (e) {
-      console.warn('upload failed, queued', e);
-      return false;
+    for (let i = 0; i < attempts; i++){
+      try { return await postOnce(payload); }
+      catch (e) {
+        console.warn(`upload attempt ${i + 1} failed`, e.message);
+        if (i < attempts - 1) await sleep(800 * 2 ** i + Math.random() * 600);   // 0.8–1.4 s, 1.6–2.2 s, 3.2–3.8 s
+      }
     }
+    return false;
   }
 
   function readPending(){ try { return JSON.parse(lsGet('pending') || '[]'); } catch (e) { return []; } }
+  function enqueue(payload){ const q = readPending(); q.push(payload); lsSet('pending', JSON.stringify(q)); }
+  let flushing = false;
   async function flushPending(){
+    if (flushing) return;
     const pend = readPending();
     if (!pend.length || !CONFIG.ENDPOINT) return;
+    flushing = true;
     lsSet('pending', '[]');
-    for (const p of pend){
-      if (!(await upload(p))){ const q = readPending(); q.push(p); lsSet('pending', JSON.stringify(q)); }
-    }
+    for (const p of pend){ if (!(await upload(p, 2))) enqueue(p); }
+    flushing = false;
+  }
+
+  /* Milestone logs are buffered and ride along with the next save(), so a
+     session makes ~8 requests instead of ~20. Pass flush=true to send now. */
+  const logKey = 'logbuf_' + (standalone ? 'demo' : pid);
+  const readLogBuf = () => { try { return JSON.parse(lsGet(logKey) || '[]'); } catch (e) { return []; } };
+  function log(event, detail = {}, flush = false){
+    const buf = readLogBuf();
+    buf.push({ event, ...detail, log_ts: new Date().toISOString() });
+    lsSet(logKey, JSON.stringify(buf));          // survives the page navigation
+    return flush ? save({}) : Promise.resolve();
   }
 
   /* save({ sheet: [rows] }, step) — returns a promise; callers may await it
      before navigating, but never block the participant on failure. */
   async function save(tables, step){
     step = step || currentStep();
+    const buf = readLogBuf();
+    if (buf.length){ tables = { ...tables, session_log: [...(tables.session_log || []), ...buf] }; lsDel(logKey); }
+    const saveId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
     const stamped = {};
     for (const [sheet, rows] of Object.entries(tables)){
-      stamped[sheet] = rows.map(r => stamp(r, step));
+      if (rows.length) stamped[sheet] = rows.map(r => ({ ...stamp(r, step), save_id: saveId }));
     }
+    if (!Object.keys(stamped).length) return;
     const store = readStore();
     for (const [sheet, rows] of Object.entries(stamped)){
       (store[sheet] ||= []).push(...rows);
     }
     writeStore(store);
-    const payload = { pid: standalone ? 'demo' : pid, session_id: sessionId, step, tables: stamped };
-    if (CONFIG.ENDPOINT && !(await upload(payload))){
-      const q = readPending(); q.push(payload); lsSet('pending', JSON.stringify(q));
-    }
-  }
-
-  function log(event, detail = {}){
-    return save({ session_log: [{ event, ...detail }] });
+    const payload = { pid: standalone ? 'demo' : pid, session_id: sessionId, step, save_id: saveId, tables: stamped };
+    if (CONFIG.ENDPOINT && !(await upload(payload))) enqueue(payload);
   }
 
   /* ---------- navigation ---------- */
@@ -185,6 +209,8 @@ const Session = (() => {
   function clearStore(){ lsDel(storeKey); if (pid) lsDel('done_' + pid); }
 
   flushPending();
+  setInterval(flushPending, 45000);
+  window.addEventListener('online', flushPending);
 
   return { ROOT, pid, standalone, review, lang, cond, sessionId,
            t, pick, applyI18n, save, log, next, go, urlFor, currentStep,

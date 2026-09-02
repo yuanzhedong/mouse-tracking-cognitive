@@ -516,6 +516,16 @@ function trialRow(t){
     stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
   };
 }
+/* One row per trial; the 101 time-normalized (x, y) samples are stored as
+   JSON arrays (keeps the Google Sheet ~100× smaller than one row per bin). */
+function trajectoryRow(t){
+  return {
+    is_practice: t.isPractice, trial: t.trialIdx, n_bins: N_TIME_BINS,
+    x_norm: JSON.stringify(t.normalized.map(p => +p.x.toFixed(5))),
+    y_norm: JSON.stringify(t.normalized.map(p => +p.y.toFixed(5))),
+  };
+}
+/* Long format (one row per bin) for the standalone CSV export. */
 function trajectoryRows(t){
   return t.normalized.map((p, si) => ({
     is_practice: t.isPractice, trial: t.trialIdx, sample_idx: si,
@@ -533,7 +543,7 @@ async function finishTask(){
   const all = [...state.practice, ...state.trials];
   await Session.save({
     task1_trials: all.map(trialRow),
-    task1_trajectories: all.flatMap(trajectoryRows),
+    task1_trajectories: all.map(trajectoryRow),
   }, 'task1');
   await Session.log('task1_complete', { condition: COND, n_main: state.trials.length });
   if (Session.standalone){

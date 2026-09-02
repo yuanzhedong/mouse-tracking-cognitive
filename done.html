@@ -40,7 +40,7 @@
 <script>
 Session.applyI18n();
 document.title = Session.t('done_title');
-Session.log('session_complete');
+Session.log('session_complete', {}, true);
 try { if (Session.pid) localStorage.setItem('sc_done_' + Session.pid, 'done'); } catch (e) {}
 if (!CONFIG.ENDPOINT) document.getElementById('localNote').style.display = 'block';
 const box = document.getElementById('sheets');
