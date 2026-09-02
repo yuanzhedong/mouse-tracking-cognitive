@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Done</title>
+<style>
+  :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .container { max-width: 560px; margin: 0 auto; padding: 60px 20px; }
+  .card { background: var(--panel); border: 1px solid var(--ink); padding: 36px; text-align: center; }
+  .card h1 { font-size: 24px; margin-bottom: 14px; }
+  .card p  { font-size: 16px; line-height: 1.6; color: var(--soft); }
+  details { margin-top: 30px; font-size: 13px; color: var(--soft); }
+  details summary { cursor: pointer; letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; }
+  .box { margin-top: 12px; border-top: 1px solid var(--rule); padding-top: 12px; line-height: 1.8; }
+  .box button { margin: 3px 4px 3px 0; padding: 6px 10px; border: 1px solid var(--ink); background: var(--bg); font-family: inherit; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+  .note { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1 data-i18n="done_title"></h1>
+    <p data-i18n="done_body"></p>
+  </div>
+  <details>
+    <summary>Researcher</summary>
+    <div class="box">
+      <div id="localNote" class="note" style="display:none" data-i18n="done_local_note"></div>
+      <div id="sheets"></div>
+      <div style="margin-top:8px"><a href="index.html">← entry page</a></div>
+    </div>
+  </details>
+</div>
+<script src="shared/config.js"></script>
+<script src="shared/i18n.js"></script>
+<script src="shared/session.js"></script>
+<script>
+Session.applyI18n();
+document.title = Session.t('done_title');
+Session.log('session_complete');
+try { if (Session.pid) localStorage.setItem('sc_done_' + Session.pid, 'done'); } catch (e) {}
+if (!CONFIG.ENDPOINT) document.getElementById('localNote').style.display = 'block';
+const box = document.getElementById('sheets');
+Session.sheets().forEach(s => {
+  const b = document.createElement('button');
+  b.textContent = `${Session.t('download_data')} · ${s}`;
+  b.onclick = () => Session.exportSheet(s);
+  box.appendChild(b);
+});
+</script>
+</body>
+</html>

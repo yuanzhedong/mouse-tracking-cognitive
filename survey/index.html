@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Questionnaires</title>
+<style>
+  :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .container { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--ink); }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header .step { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--soft); }
+  .bar { height: 3px; background: var(--rule); margin-bottom: 24px; }
+  .bar div { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+  section.block { background: var(--panel); border: 1px solid var(--ink); padding: 26px 30px; margin-bottom: 18px; }
+  section.block h2 { font-size: 19px; margin-bottom: 10px; }
+  section.block p.instr { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
+
+  /* likert grid */
+  .likert { width: 100%; border-collapse: collapse; }
+  .likert th { font-size: 11px; font-weight: 500; color: var(--soft); line-height: 1.3; padding: 6px 4px 10px; text-align: center; vertical-align: bottom; width: 11%; }
+  .likert th.stmt { text-align: left; width: auto; }
+  .likert td { padding: 10px 4px; border-top: 1px solid var(--rule); text-align: center; vertical-align: middle; }
+  .likert td.stmt { text-align: left; font-size: 15px; line-height: 1.45; padding-right: 12px; }
+  .likert td label { display: block; padding: 6px 0; cursor: pointer; }
+  .likert input[type=radio] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+  .likert tr.missing td.stmt { color: var(--accent); }
+  .likert td .num { display: block; font-size: 10px; color: var(--soft); margin-top: 2px; }
+
+  /* top-3 checklist */
+  .checks { display: grid; gap: 8px; }
+  .checks label { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--ink); background: var(--bg); cursor: pointer; font-size: 15px; }
+  .checks label.on { background: var(--ink); color: var(--bg); }
+  .checks label.disabled { opacity: 0.45; cursor: not-allowed; }
+  .checks input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+  .checks input[type=text] { flex: 1; padding: 6px 8px; font-family: inherit; font-size: 14px; border: 1px solid var(--ink); background: var(--bg); color: var(--ink); }
+  .count { margin-top: 12px; font-size: 13px; color: var(--soft); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .piped h3 { font-size: 15px; margin: 22px 0 8px; padding: 8px 12px; background: var(--bg); border-left: 3px solid var(--accent); }
+
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; }
+  .nav .err { color: var(--accent); font-size: 14px; flex: 1; }
+  .nav button { padding: 12px 34px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-family: inherit; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .nav button:hover { opacity: 0.9; }
+  .nav button:disabled { opacity: 0.5; cursor: default; }
+
+  @media (max-width: 640px) {
+    .likert th { font-size: 9px; }
+    .likert td.stmt { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 data-i18n="survey_title"></h1>
+    <span class="step" id="stepLabel"></span>
+  </header>
+  <div class="bar"><div id="bar" style="width:0%"></div></div>
+  <div id="host"></div>
+  <div class="nav">
+    <div class="err" id="err"></div>
+    <button id="nextBtn" data-i18n="next"></button>
+  </div>
+</div>
+
+<script src="../shared/config.js"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/surveys.js"></script>
+<script src="../shared/session.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const L = Session.lang;
+const T = obj => Session.pick(obj);
+Session.applyI18n();
+document.title = Session.t('survey_title');
+
+const answers = {};          // sectionId → answers
+let idx = 0;
+let sectionStart = 0;
+const TOTAL = SURVEYS.length;
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function scaleHeader(scale){
+  return `<tr><th class="stmt"></th>` +
+    scale[L].map((lab, i) => `<th>${esc(lab)}<span class="num" style="display:block;color:var(--soft);font-size:10px;margin-top:3px">${i + 1}</span></th>`).join('') +
+    `</tr>`;
+}
+function likertRow(name, text){
+  return `<tr data-name="${esc(name)}"><td class="stmt">${esc(text)}</td>` +
+    [1,2,3,4,5].map(v => `<td><label><input type="radio" name="${esc(name)}" value="${v}"></label></td>`).join('') +
+    `</tr>`;
+}
+
+function render(){
+  const sec = SURVEYS[idx];
+  sectionStart = performance.now();
+  $('stepLabel').textContent = Session.t('step_of', { n: idx + 1, total: TOTAL });
+  $('bar').style.width = `${Math.round(100 * idx / TOTAL)}%`;
+  $('err').textContent = '';
+  $('nextBtn').textContent = Session.t(idx === TOTAL - 1 ? 'finish' : 'next');
+
+  let html = `<section class="block"><h2>${esc(T(sec.title))}</h2><p class="instr">${esc(T(sec.instructions))}</p>`;
+
+  if (sec.type === 'likert'){
+    html += `<table class="likert">${scaleHeader(sec.scale)}` +
+      sec.items.map(it => likertRow(`${sec.id}_${it.id}`, T(it))).join('') + `</table>`;
+  }
+  else if (sec.type === 'top3'){
+    html += `<div class="checks" id="checks">` +
+      sec.activities.map(a => `
+        <label data-id="${a.id}">
+          <input type="checkbox" value="${a.id}">
+          <span>${esc(T(a))}</span>
+          ${a.other ? `<input type="text" id="otherText" data-i18n-placeholder="other_placeholder" disabled>` : ''}
+        </label>`).join('') +
+      `</div><div class="count" id="count"></div>`;
+  }
+  else if (sec.type === 'piped_likert'){
+    const chosen = answers.tempting_top3?.chosen || [];
+    html += `<div class="piped">` + chosen.map(c => `
+      <h3>${esc(Session.t('rating_for', { activity: c.text }))}</h3>
+      <table class="likert">${scaleHeader(sec.scale)}` +
+        sec.items.map(it => likertRow(`${sec.id}_${c.id}_${it.id}`, T(it))).join('') +
+      `</table>`).join('') + `</div>`;
+  }
+  html += `</section>`;
+  $('host').innerHTML = html;
+  Session.applyI18n($('host'));
+
+  if (sec.type === 'top3') wireTop3();
+  window.scrollTo(0, 0);
+}
+
+function wireTop3(){
+  const boxes = [...document.querySelectorAll('#checks input[type=checkbox]')];
+  const other = $('otherText');
+  const update = () => {
+    const n = boxes.filter(b => b.checked).length;
+    boxes.forEach(b => {
+      const lab = b.closest('label');
+      lab.classList.toggle('on', b.checked);
+      const dis = !b.checked && n >= 3;
+      b.disabled = dis; lab.classList.toggle('disabled', dis);
+    });
+    const oBox = boxes.find(b => b.value === '11');
+    if (other){ other.disabled = !oBox.checked; if (oBox.checked) other.focus(); }
+    $('count').textContent = Session.t('chosen_count', { n });
+  };
+  boxes.forEach(b => b.addEventListener('change', update));
+  if (other) other.addEventListener('click', e => e.stopPropagation());
+  update();
+}
+
+/* ---------- validation + collection ---------- */
+
+function collect(){
+  const sec = SURVEYS[idx];
+  const rows = [];
+  const ms = Math.round(performance.now() - sectionStart);
+
+  if (sec.type === 'likert' || sec.type === 'piped_likert'){
+    let missing = false;
+    document.querySelectorAll('tr[data-name]').forEach(tr => {
+      const name = tr.dataset.name;
+      const v = tr.querySelector('input:checked');
+      tr.classList.toggle('missing', !v);
+      if (!v){ missing = true; return; }
+      const row = { section: sec.id, item: name.slice(sec.id.length + 1), value: +v.value, label: sec.scale[L][+v.value - 1], section_ms: ms };
+      if (sec.type === 'piped_likert'){
+        const [actId, itemId] = row.item.split('_');
+        const act = answers.tempting_top3.chosen.find(c => String(c.id) === actId);
+        Object.assign(row, { item: itemId, activity_id: +actId, activity: act?.text ?? '' });
+      } else {
+        const it = sec.items.find(i => String(i.id) === row.item);
+        row.item_text = it ? it.en : '';
+      }
+      rows.push(row);
+    });
+    if (missing) return null;
+    answers[sec.id] = rows;
+    return rows;
+  }
+
+  if (sec.type === 'top3'){
+    const checked = [...document.querySelectorAll('#checks input[type=checkbox]:checked')];
+    if (checked.length !== 3) return null;
+    const chosen = checked.map((b, rank) => {
+      const a = sec.activities.find(x => String(x.id) === b.value);
+      const other = a.other ? ($('otherText').value || '').trim() : '';
+      return { id: a.id, text: a.other ? (other || T(a)) : T(a), text_en: a.en, other, rank: rank + 1 };
+    });
+    if (chosen.some(c => c.id === 11 && !c.other)) return null;
+    answers[sec.id] = { chosen };
+    return chosen.map(c => ({ section: sec.id, item: 'activity', value: c.id, label: c.text_en, other_text: c.other, rank: c.rank, section_ms: ms }));
+  }
+}
+
+$('nextBtn').addEventListener('click', async () => {
+  const rows = collect();
+  if (!rows){
+    $('err').textContent = SURVEYS[idx].type === 'top3' ? Session.t('choose_three') : Session.t('please_answer_all');
+    const m = document.querySelector('tr.missing'); if (m) m.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    return;
+  }
+  $('nextBtn').disabled = true;
+  await Session.save({ survey: rows }, 'survey');
+  if (idx < TOTAL - 1){ idx++; render(); $('nextBtn').disabled = false; }
+  else {
+    $('bar').style.width = '100%';
+    await Session.log('survey_complete');
+    Session.next('survey');
+  }
+});
+
+Session.log('survey_start');
+render();
+</script>
+</body>
+</html>

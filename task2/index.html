@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Task 2 — Split-Screen Study vs. Videos</title>
+<title>Game 2</title>
 <style>
   :root {
     --bg:     #f4efe4;
@@ -81,10 +81,13 @@
     cursor: pointer; font-family: inherit;
     transition: box-shadow 0.12s ease;
   }
-  .lock-option img {
-    display: block;
-    width: 240px; height: auto;
-    pointer-events: none;
+  /* lock_stimuli PNGs (640×480) carry an English caption in the bottom
+     band; crop it and show a localized caption instead. */
+  .lock-option .pic { display: block; width: 240px; height: 124px; overflow: hidden; }
+  .lock-option .pic img { display: block; width: 240px; height: 180px; margin-top: -10px; pointer-events: none; }
+  .lock-option .cap {
+    display: block; width: 240px; margin-top: 6px; font-size: 13px; line-height: 1.3;
+    font-weight: 600; color: var(--ink); text-align: center; pointer-events: none;
   }
   .lock-option:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
   .lock-option.opt-left  { left: 22px; }
@@ -244,98 +247,90 @@
 <div class="container">
 
   <header>
-    <span class="hud">⏱ <b id="timeLeft">12:00</b> left</span>
-    <span class="quiz-pill">Quiz at the end</span>
-    <span class="hud">Points: <b id="points">0</b></span>
+    <span class="hud">⏱ <b id="timeLeft">12:00</b> <span data-i18n="t2_time_left"></span></span>
+    <span class="quiz-pill" data-i18n="t2_quiz_pill"></span>
+    <span class="hud"><span data-i18n="t2_points"></span>: <b id="points">0</b></span>
   </header>
 
   <!-- intro -->
   <section class="intro" id="intro">
-    <h2>Game 2</h2>
-    <p>Now you have about <b>12 minutes</b> before the quiz.</p>
-    <p>You're going to see a split screen: the <b>left side is study content</b>,
-       and the <b>right side is YouTube videos</b>.</p>
-    <p>Whichever side your mouse is on becomes active — move your mouse to a
-       side to use it.</p>
-    <p>You are <b>not obligated</b> to do the math if you don't want to, and you
-       will <b>not be punished</b> for choosing to watch videos.</p>
-    <p>This time is yours — it's up to you how you want to use it.</p>
-    <button class="big-btn" id="startBtn">Start</button>
+    <h2 data-i18n="t2_title"></h2>
+    <p id="intro1"></p>
+    <p id="intro2"></p>
+    <button class="big-btn" id="startBtn" data-i18n="start"></button>
   </section>
 
   <!-- lock-screen instructions (shown after the practice phase) -->
   <section class="intro hidden" id="lockScreen">
-    <h2>One last choice before you start.</h2>
-    <p>You now have <b><span class="main-min">10</span> minutes</b> before the
-       quiz. During these <span class="main-min">10</span> minutes, the videos
-       can stay on your screen or you can put them away. It's up to you:</p>
+    <h2 data-i18n="t2_lock_title"></h2>
+    <p id="lockIntro"></p>
     <div class="lock-options">
       <div class="choice-info">
-        <div class="t">[ Put the videos away ]</div>
-        <div class="d">The YouTube shorts side turns off for the whole
-          <span class="main-min">10</span> minutes. You won't see or hear any
-          videos until the quiz. This cannot be undone.</div>
+        <div class="t" data-i18n="t2_put_away"></div>
+        <div class="d" id="putAwayDesc"></div>
       </div>
       <div class="choice-info">
-        <div class="t">[ Keep the videos on my screen ]</div>
-        <div class="d">Everything stays as it is. You can do math or watch
-          videos anytime, just like in practice.</div>
+        <div class="t" data-i18n="t2_keep"></div>
+        <div class="d" data-i18n="t2_keep_desc"></div>
       </div>
     </div>
-    <p class="lock-note">There is no right or wrong choice — pick whichever you prefer.</p>
-    <button class="big-btn" id="lockContinue">Continue</button>
+    <p class="lock-note" data-i18n="t2_no_wrong"></p>
+    <button class="big-btn" id="lockContinue" data-i18n="continue_"></button>
   </section>
 
   <!-- lock-screen choice stage (Task-1-style mouse-tracking trial) -->
   <section class="hidden" id="lockStageWrap">
     <div class="lock-stage" id="lockStage">
       <button class="lock-option opt-left hidden"  id="lockOptLeft">
-        <img id="lockOptLeftImg" alt="" draggable="false">
+        <span class="pic"><img id="lockOptLeftImg" alt="" draggable="false"></span>
+        <span class="cap" id="lockOptLeftCap"></span>
       </button>
       <button class="lock-option opt-right hidden" id="lockOptRight">
-        <img id="lockOptRightImg" alt="" draggable="false">
+        <span class="pic"><img id="lockOptRightImg" alt="" draggable="false"></span>
+        <span class="cap" id="lockOptRightCap"></span>
       </button>
-      <div    class="lock-prompt hidden"           id="lockPrompt">make your choice</div>
-      <button class="stage-btn hidden"             id="lockStartBtn">Start</button>
+      <div    class="lock-prompt hidden"           id="lockPrompt" data-i18n="t2_make_choice"></div>
+      <button class="stage-btn hidden"             id="lockStartBtn" data-i18n="start"></button>
       <canvas class="review-canvas hidden"         id="lockReviewCanvas"></canvas>
       <div    class="review-badge hidden"          id="lockReviewBadge">Researcher view</div>
       <div    class="review-meta hidden"           id="lockReviewMeta"></div>
-      <button class="stage-btn next-btn hidden"    id="lockNextBtn">Continue →</button>
+      <button class="stage-btn next-btn hidden"    id="lockNextBtn" data-i18n="continue_"></button>
     </div>
   </section>
 
   <!-- split screen -->
   <main class="split hidden" id="split">
     <section class="pane study inactive" id="studyPane">
-      <div class="study-label">Study</div>
+      <div class="study-label" data-i18n="t2_study"></div>
       <div class="study-card">
-        <div class="qnum">Question <span id="qNum">1</span></div>
+        <div class="qnum"><span data-i18n="t2_question"></span> <span id="qNum">1</span></div>
         <div class="expr" id="qText"></div>
         <div class="answers" id="answers">
           <button></button><button></button><button></button><button></button>
         </div>
-        <div class="study-note">Each correct answer = 1 point</div>
+        <div class="study-note" data-i18n="t2_point_each"></div>
       </div>
     </section>
 
     <section class="pane video inactive" id="videoPane">
       <div class="shorts-label">
-        <span class="tag">Shorts</span>
+        <span class="tag" data-i18n="t2_shorts"></span>
         <span class="cat" id="vidCat"></span>
       </div>
       <div class="player" id="playerBox"><div id="ytPlayer"></div></div>
       <div class="video-off hidden" id="videoOff">
         <div class="lock-icon">🔒</div>
-        <div>Videos are put away until the quiz.</div>
+        <div data-i18n="t2_videos_off"></div>
       </div>
-      <button class="next-video" id="nextVideoBtn">⌃ next video</button>
+      <button class="next-video" id="nextVideoBtn">⌃ <span data-i18n="t2_next_video"></span></button>
     </section>
   </main>
 
   <!-- done -->
   <section class="done hidden" id="done">
-    <div class="badge">Researcher view</div>
-    <h2>Time's up — quiz time!</h2>
+    <div class="badge" id="doneBadge">Researcher view</div>
+    <h2 data-i18n="t2_times_up"></h2>
+    <p id="doneNote" style="text-align:center;color:var(--soft);margin-bottom:14px"></p>
     <dl class="metrics">
       <dt>lock choice</dt>       <dd id="rLock">—</dd>
       <dt>lock AUC / MD</dt>     <dd id="rLockAUC">—</dd>
@@ -348,14 +343,18 @@
       <dt>side switches</dt>     <dd id="rSwitches">—</dd>
       <dt>videos completed</dt>  <dd id="rVideos">—</dd>
     </dl>
-    <div class="controls">
+    <div class="controls" id="doneControls">
       <button class="primary" id="exportBtn">Export CSV</button>
       <button id="restartBtn">Restart</button>
+      <button class="primary" id="continueBtn" data-i18n="continue_"></button>
     </div>
   </section>
 
 </div>
 
+<script src="../shared/config.js"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/session.js"></script>
 <script src="../shared/questions.js"></script>
 <script src="../shared/videos.js"></script>
 <script src="../shared/mousetracking.js"></script>
@@ -380,13 +379,22 @@ const secParam = (name, dflt) => {
   const v = parseInt(qs.get(name), 10);
   return Number.isFinite(v) && v > 0 ? v : dflt;
 };
-const PRACTICE_SEC = secParam('practice', 2 * 60);   // practice phase
-const MAIN_SEC     = secParam('dur', 10 * 60);       // main phase after choice
+const PRACTICE_SEC = secParam('practice', CONFIG.TASK2_PRACTICE_SEC);   // practice phase
+const MAIN_SEC     = secParam('dur', CONFIG.TASK2_MAIN_SEC);            // main phase after choice
 const TICK_MS = 200;
+const REVIEW = Session.review;
 
-document.querySelectorAll('.main-min').forEach(el => {
-  el.textContent = Math.round(MAIN_SEC / 60);
-});
+/* ---------- participant-facing text ---------- */
+Session.applyI18n();
+document.title = Session.t('t2_title');
+{
+  const mainMin  = Math.round(MAIN_SEC / 60);
+  const totalMin = Math.round((PRACTICE_SEC + MAIN_SEC) / 60);
+  document.getElementById('intro1').innerHTML = Session.t('t2_intro_1', { min: totalMin });
+  document.getElementById('intro2').innerHTML = Session.t('t2_intro_2');
+  document.getElementById('lockIntro').innerHTML = Session.t('t2_lock_intro', { min: mainMin });
+  document.getElementById('putAwayDesc').textContent = Session.t('t2_put_away_desc', { min: mainMin });
+}
 
 // VIDEOS comes from ../shared/videos.js; QuestionBank from ../shared/questions.js
 
@@ -611,8 +619,8 @@ const lockTrial = {
 };
 
 const LOCK_STIMULI = {
-  put_away: { img: 'lock_stimuli/lock_fun_screen.png',   label: '[ Put the videos away ]' },
-  keep:     { img: 'lock_stimuli/keep_both_screens.png', label: '[ Keep the videos on my screen ]' },
+  put_away: { img: 'lock_stimuli/lock_fun_screen.png',   label: Session.t('t2_put_away') },
+  keep:     { img: 'lock_stimuli/keep_both_screens.png', label: Session.t('t2_keep') },
 };
 // Preload so both cards appear instantly when the trial starts
 Object.values(LOCK_STIMULI).forEach(s => { const im = new Image(); im.src = s.img; });
@@ -636,8 +644,10 @@ $('lockStartBtn').addEventListener('click', e => {
   const rightChoice = lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away';
   $('lockOptLeftImg').src  = LOCK_STIMULI[lockTrial.leftChoice].img;
   $('lockOptLeftImg').alt  = LOCK_STIMULI[lockTrial.leftChoice].label;
+  $('lockOptLeftCap').textContent = LOCK_STIMULI[lockTrial.leftChoice].label;
   $('lockOptRightImg').src = LOCK_STIMULI[rightChoice].img;
   $('lockOptRightImg').alt = LOCK_STIMULI[rightChoice].label;
+  $('lockOptRightCap').textContent = LOCK_STIMULI[rightChoice].label;
   $('lockStartBtn').classList.add('hidden');
   $('lockOptLeft').classList.remove('hidden');
   $('lockOptRight').classList.remove('hidden');
@@ -705,6 +715,12 @@ function pickLock(side, e){
     $('vidCat').textContent = '';
   }
 
+  if (!REVIEW){
+    ['lockOptLeft','lockOptRight','lockPrompt'].forEach(id => $(id).classList.add('hidden'));
+    $('lockStageWrap').classList.add('hidden');
+    setTimeout(() => beginPhase('main', MAIN_SEC), 300);
+    return;
+  }
   // Researcher view of the choice trajectory (Task-1 style) before the
   // main phase starts.
   const chosenBtn = side === 'left' ? $('lockOptLeft') : $('lockOptRight');
@@ -780,9 +796,44 @@ function endSession(){
 
   $('split').classList.add('hidden');
   $('done').classList.remove('hidden');
+
+  // researcher panel only in review mode
+  $('doneBadge').classList.toggle('hidden', !REVIEW);
+  document.querySelector('#done dl.metrics').classList.toggle('hidden', !REVIEW);
+  $('exportBtn').classList.toggle('hidden', !REVIEW);
+  $('restartBtn').classList.toggle('hidden', !Session.standalone);
+  $('continueBtn').classList.toggle('hidden', Session.standalone);
+  $('doneNote').textContent = Session.t('saving');
+  saveSession().then(() => {
+    $('doneNote').textContent = '';
+    if (!REVIEW && !Session.standalone) Session.next('task2');
+  });
 }
 
-$('startBtn').addEventListener('click', startSession);
+function summaryRow(){
+  const attempted = state.events.filter(e => e.type === 'answer').length;
+  const correct   = state.events.filter(e => e.type === 'answer' && e.is_correct).length;
+  const d = state.dwell, m = state.lockMetrics;
+  return {
+    practice_sec: PRACTICE_SEC, main_sec: MAIN_SEC,
+    lock_choice: state.lockChoice,
+    lock_auc: m ? +m.auc.toFixed(6) : '', lock_md: m ? +m.md.toFixed(6) : '', lock_x_flips: m ? m.xFlips : '',
+    points: state.points, attempted, correct,
+    accuracy: attempted ? +(correct / attempted).toFixed(3) : '',
+    practice_study_ms: d.practice.study, practice_video_ms: d.practice.video, practice_none_ms: d.practice.none,
+    main_study_ms: d.main.study, main_video_ms: d.main.video, main_none_ms: d.main.none,
+    switches: state.switches, videos_completed: state.videosCompleted,
+  };
+}
+let saved = false;
+async function saveSession(){
+  if (saved) return; saved = true;
+  await Session.save({ task2_summary: [summaryRow()], task2_events: state.events.map(e => ({ ...e })) }, 'task2');
+  await Session.log('task2_complete', { lock_choice: state.lockChoice });
+}
+$('continueBtn').addEventListener('click', () => Session.next('task2'));
+
+$('startBtn').addEventListener('click', () => { Session.log('task2_start', { practice_sec: PRACTICE_SEC, main_sec: MAIN_SEC }); startSession(); });
 $('restartBtn').addEventListener('click', () => {
   Object.assign(state, {
     phase: 'intro', startTime: null, phaseElapsedMs: 0, phaseSec: PRACTICE_SEC,
@@ -811,6 +862,7 @@ $('restartBtn').addEventListener('click', () => {
   $('lockOptRight').classList.add('hidden');
   $('lockPrompt').classList.add('hidden');
   if (playerReady) player.cueVideoById(state.playlist[0].id);
+  saved = false;
   startSession();
 });
 

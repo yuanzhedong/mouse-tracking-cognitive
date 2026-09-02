@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Goal–Temptation Mouse-tracking</title>
+<title>Game 1</title>
 <style>
   :root {
     --bg:     #f4efe4;
@@ -23,18 +23,42 @@
   .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
   header {
-    display: flex; justify-content: space-between; align-items: baseline;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
     padding-bottom: 10px; margin-bottom: 16px;
     border-bottom: 1px solid var(--ink);
   }
-  header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
-  header .trial { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--soft); }
+  header h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.01em; line-height: 1.4; }
+  header .trial { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--soft); white-space: nowrap; }
   header .trial b { color: var(--ink); font-weight: 600; }
+  header .badge {
+    display: inline-block; margin-right: 10px; padding: 3px 8px;
+    background: var(--accent); color: var(--bg);
+    font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  /* intro / interstitial cards */
+  .intro {
+    max-width: 640px; margin: 40px auto;
+    background: var(--panel); border: 1px solid var(--ink);
+    padding: 32px 36px;
+  }
+  .intro h2 { font-size: 20px; margin-bottom: 16px; }
+  .intro p  { font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+  .intro .big-btn {
+    display: block; margin: 24px auto 0;
+    padding: 12px 40px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--bg);
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    cursor: pointer; font-family: inherit;
+  }
+  .intro .big-btn:hover { opacity: 0.9; }
 
   main {
     display: grid; grid-template-columns: minmax(0,1fr) 260px;
     gap: 16px; align-items: start;
   }
+  main.no-aside { grid-template-columns: minmax(0,1fr); max-width: 900px; margin: 0 auto; }
 
   .stage {
     position: relative; aspect-ratio: 4/3;
@@ -44,14 +68,19 @@
 
   .option {
     position: absolute; top: 22px;
-    display: block; padding: 6px;
+    display: block; padding: 6px 6px 8px;
     background: var(--bg); border: 1px solid var(--ink);
     cursor: pointer; font-family: inherit;
     transition: box-shadow 0.12s ease;
+    width: 176px;
   }
-  .option img {
-    display: block;
-    width: 150px; height: 150px;
+  /* The stimulus PNGs carry an English title in the top ~16 %; crop it and
+     show a localized caption instead. */
+  .option .pic { display: block; width: 164px; height: 128px; overflow: hidden; }
+  .option .pic img { display: block; width: 200px; height: 200px; margin: -66px 0 0 -18px; pointer-events: none; }
+  .option .cap {
+    display: block; margin-top: 6px; font-size: 12px; line-height: 1.3;
+    font-weight: 600; color: var(--ink); text-align: center; min-height: 32px;
     pointer-events: none;
   }
   .option:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
@@ -69,13 +98,20 @@
 
   .stage-btn {
     position: absolute; left: 50%; transform: translateX(-50%);
-    padding: 10px 26px; border: 1px solid var(--ink);
-    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 12px 30px; border: 1px solid var(--ink);
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
     cursor: pointer; font-family: inherit;
   }
   .start-btn { bottom: 30px; background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .next-btn  { bottom: 20px; background: var(--accent); color: var(--bg); border-color: var(--accent); z-index: 3; }
   .stage-btn:hover { opacity: 0.9; }
+
+  .warn {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: var(--accent); color: var(--bg);
+    padding: 16px 24px; font-size: 16px; font-weight: 600; text-align: center;
+    max-width: 70%; z-index: 4;
+  }
 
   .review-canvas {
     position: absolute; inset: 0; width: 100%; height: 100%;
@@ -98,7 +134,7 @@
   .done-panel h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
   .done-panel p  { font-size: 13px; color: var(--soft); }
   .review-meta {
-    position: absolute; top: 210px; left: 10px;
+    position: absolute; top: 230px; left: 10px;
     background: rgba(244, 239, 228, 0.92);
     border: 1px solid var(--ink);
     padding: 8px 12px;
@@ -147,31 +183,50 @@
 <div class="container">
 
   <header>
-    <h1>Which option would help you do better on the upcoming quiz?</h1>
-    <span class="trial">trial <b id="trialNum">—</b> / <b id="trialTotal">5</b></span>
+    <h1><span class="badge hidden" id="practiceBadge"></span><span id="prompt"></span></h1>
+    <span class="trial" id="trialLabel"></span>
   </header>
 
-  <main>
+  <!-- instructions -->
+  <section class="intro" id="intro">
+    <h2 data-i18n="t1_title"></h2>
+    <p data-i18n="t1_instr_1"></p>
+    <p data-i18n="t1_instr_2"></p>
+    <p><b data-i18n="t1_practice_intro"></b></p>
+    <button class="big-btn" id="introBtn" data-i18n="start"></button>
+  </section>
+
+  <!-- practice → main interstitial -->
+  <section class="intro hidden" id="interstitial">
+    <p><b data-i18n="t1_practice_done"></b></p>
+    <p id="interPrompt"></p>
+    <button class="big-btn" id="interBtn" data-i18n="continue_"></button>
+  </section>
+
+  <main class="hidden" id="main">
     <div class="stage" id="stage">
       <button class="option opt-left hidden" id="optLeft">
-        <img id="optLeftImg" alt="" draggable="false">
+        <span class="pic"><img id="optLeftImg" alt="" draggable="false"></span>
+        <span class="cap" id="optLeftCap"></span>
       </button>
       <button class="option opt-right hidden" id="optRight">
-        <img id="optRightImg" alt="" draggable="false">
+        <span class="pic"><img id="optRightImg" alt="" draggable="false"></span>
+        <span class="cap" id="optRightCap"></span>
       </button>
-      <div    class="stimulus hidden"         id="stimulus">choose</div>
-      <button class="stage-btn start-btn"     id="startBtn">Start</button>
+      <div    class="stimulus hidden"         id="stimulus"></div>
+      <button class="stage-btn start-btn"     id="startBtn"></button>
+      <div    class="warn hidden"             id="warn"></div>
       <canvas class="review-canvas hidden"    id="reviewCanvas"></canvas>
       <div    class="review-badge hidden"     id="reviewBadge">Researcher view</div>
       <div    class="review-meta hidden"      id="reviewMeta"></div>
       <div    class="done-panel hidden"       id="donePanel">
-        <h2>Session complete</h2>
-        <p>All 5 trials recorded. Export the CSV or reset to run again.</p>
+        <h2 data-i18n="t1_done"></h2>
+        <p id="doneNote"></p>
       </div>
-      <button class="stage-btn next-btn hidden" id="nextBtn">Next →</button>
+      <button class="stage-btn next-btn hidden" id="nextBtn"></button>
     </div>
 
-    <aside>
+    <aside id="aside">
       <div class="card">
         <h3>Last trial</h3>
         <dl class="metrics">
@@ -187,6 +242,7 @@
       <div class="card">
         <h3>Aggregate · n=<span id="nTrials">0</span></h3>
         <dl class="metrics">
+          <dt>condition</dt> <dd id="condLabel">—</dd>
           <dt>mean AUC</dt> <dd id="meanAUC">—</dd>
           <dt>mean MD</dt>  <dd id="meanMD">—</dd>
           <dt>mean RT</dt>  <dd id="meanRT">—</dd>
@@ -201,104 +257,144 @@
   </main>
 </div>
 
+<script src="../shared/config.js"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/session.js"></script>
 <script src="../shared/mousetracking.js"></script>
 <script>
 /* =============================================================
-   GOAL–TEMPTATION MOUSE-TRACKING — 5-trial session with per-trial
-   researcher review. AUC & MD after Freeman & Ambady (2010).
+   TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
+   Flow: instructions → practice trials → interstitial → main trials
+         → (session: save + next page | standalone: done panel + CSV)
+   Prompt condition (Session.cond): 'immediate' | 'goal' — one prompt
+   per student across all trials. AUC & MD after Freeman & Ambady (2010).
    ============================================================= */
 
+const $ = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const intParam = (name, dflt) => { const v = parseInt(qs.get(name), 10); return Number.isFinite(v) && v >= 0 ? v : dflt; };
+
 const STIM_DIR = 'goal_temptation_stimuli';
+const stim = key => ({ key, img: `${STIM_DIR}/${key}.png`, label: STIM_LABELS[key].en, caption: Session.pick(STIM_LABELS[key]) });
 const PAIRS = [
-  { goal: { label: "Complete practice problems",   img: `${STIM_DIR}/01_complete_practice_problems.png` },
-    temptation: { label: "Watch YouTube Shorts",   img: `${STIM_DIR}/02_watch_youtube_shorts.png` } },
-  { goal: { label: "Review your class notes",      img: `${STIM_DIR}/03_review_your_class_notes.png` },
-    temptation: { label: "Play a phone game",      img: `${STIM_DIR}/04_play_a_phone_game.png` } },
-  { goal: { label: "Study with digital flashcards", img: `${STIM_DIR}/05_study_with_digital_flashcards.png` },
-    temptation: { label: "Watch soccer highlights", img: `${STIM_DIR}/06_watch_soccer_highlights.png` } },
-  { goal: { label: "Prepare for tomorrow's quiz",  img: `${STIM_DIR}/07_prepare_for_tomorrows_quiz.png` },
-    temptation: { label: "Group chat with friends", img: `${STIM_DIR}/08_group_chat_with_friends.png` } },
-  { goal: { label: "Work on your science worksheet", img: `${STIM_DIR}/09_work_on_homework_correction.png` },
-    temptation: { label: "Scroll funny memes",     img: `${STIM_DIR}/10_scroll_funny_memes.png` } },
+  { goal: stim('01_complete_practice_problems'),   temptation: stim('02_watch_youtube_shorts') },
+  { goal: stim('03_review_your_class_notes'),      temptation: stim('04_play_a_phone_game') },
+  { goal: stim('05_study_with_digital_flashcards'), temptation: stim('06_watch_soccer_highlights') },
+  { goal: stim('07_prepare_for_tomorrows_quiz'),   temptation: stim('08_group_chat_with_friends') },
+  { goal: stim('09_work_on_homework_correction'),  temptation: stim('10_scroll_funny_memes') },
 ];
-const N_TRIALS = PAIRS.length;
+PAIRS.forEach(p => [p.goal.img, p.temptation.img].forEach(src => { const im = new Image(); im.src = src; }));
 
-// Preload icons so options appear instantly at trial start
-PAIRS.forEach(p => [p.goal.img, p.temptation.img].forEach(src => {
-  const im = new Image(); im.src = src;
-}));
-
-const INIT_WARN_MS = 500;
+const N_PRACTICE = intParam('practice', CONFIG.TASK1_PRACTICE_TRIALS);
+const N_REPEATS  = intParam('repeats',  CONFIG.TASK1_REPEATS);
+const N_MAIN     = PAIRS.length * N_REPEATS;
+const INIT_WARN_MS = CONFIG.TASK1_INIT_WARN_MS;
 const MOVE_THRESHOLD_PX = 10;
 const N_TIME_BINS = 101;
+const REVIEW = Session.review;
+const COND = Session.cond;
+const PROMPT = Session.t(COND === 'immediate' ? 't1_prompt_immediate' : 't1_prompt_goal');
 
-const $ = id => document.getElementById(id);
+Session.applyI18n();
+document.title = Session.t('t1_title');
+$('prompt').textContent = PROMPT;
+$('interPrompt').textContent = PROMPT;
+$('practiceBadge').textContent = Session.t('t1_practice_badge');
+$('stimulus').textContent = Session.t('t1_choose');
+$('startBtn').textContent = Session.t('start');
+$('condLabel').textContent = COND;
+if (!REVIEW){ $('aside').classList.add('hidden'); $('main').classList.add('no-aside'); }
 
 const state = {
-  order: [],       // shuffled pair indices for this session
-  sides: [],       // per-trial goal placement (true = goal on left), balanced
-  trials: [],
+  block: 'practice',   // practice | main
+  order: [], sides: [],
+  trials: [],          // main trials
+  practice: [],        // practice trials
   current: null,
-  stage: 'idle',   // idle | awaiting_start | in_trial | review | done
+  stage: 'idle',       // idle | awaiting_start | in_trial | review | done
 };
-
-/* ---------- setup ---------- */
 
 function shuffle(arr){
   const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
+  for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
+}
+/* Trial list: each block is a shuffled pass over all pairs; goal side is
+   balanced within each pass (half left / half right, shuffled). */
+function buildOrder(nPasses, nTrials){
+  const order = [], sides = [];
+  while (order.length < nTrials){
+    order.push(...shuffle(PAIRS.map((_, i) => i)));
+    sides.push(...shuffle(PAIRS.map((_, i) => i % 2 === 0)));
+  }
+  return { order: order.slice(0, nTrials), sides: sides.slice(0, nTrials) };
+}
+
+const list = () => state.block === 'practice' ? state.practice : state.trials;
+const total = () => state.block === 'practice' ? N_PRACTICE : N_MAIN;
+
+function updateTrialLabel(){
+  $('trialLabel').textContent = Session.t('t1_trial', { n: Math.min(list().length + 1, total()), total: total() });
 }
 
 function setupTrial(){
-  if (state.trials.length >= N_TRIALS){
-    showDone();
-    return;
+  if (list().length >= total()){
+    if (state.block === 'practice') return showInterstitial();
+    return finishTask();
   }
-  const pairIdx = state.order[state.trials.length];
+  const i = list().length;
+  const pairIdx = state.order[i];
   const pair = PAIRS[pairIdx];
-  const leftIsGoal = state.sides[state.trials.length];
+  const leftIsGoal = state.sides[i];
   const leftStim  = leftIsGoal ? pair.goal : pair.temptation;
   const rightStim = leftIsGoal ? pair.temptation : pair.goal;
   state.current = {
-    pairIdx,
-    left:      leftStim.label,
-    right:     rightStim.label,
-    leftType:  leftIsGoal ? 'goal'       : 'temptation',
+    isPractice: state.block === 'practice',
+    trialIdx: i + 1, pairIdx,
+    left: leftStim.label, right: rightStim.label,
+    leftType:  leftIsGoal ? 'goal' : 'temptation',
     rightType: leftIsGoal ? 'temptation' : 'goal',
-    pair,
-    samples: [],
+    pair, samples: [],
   };
-  $('optLeftImg').src  = leftStim.img;
-  $('optLeftImg').alt  = leftStim.label;
-  $('optRightImg').src = rightStim.img;
-  $('optRightImg').alt = rightStim.label;
-  $('optLeft').classList.add('hidden');
-  $('optRight').classList.add('hidden');
+  $('optLeftImg').src  = leftStim.img;  $('optLeftImg').alt  = leftStim.label;  $('optLeftCap').textContent  = leftStim.caption;
+  $('optRightImg').src = rightStim.img; $('optRightImg').alt = rightStim.label; $('optRightCap').textContent = rightStim.caption;
+  ['optLeft','optRight','stimulus','reviewCanvas','reviewBadge','reviewMeta','donePanel','nextBtn','warn']
+    .forEach(id => $(id).classList.add('hidden'));
   $('optLeft').classList.remove('review');
   $('optRight').classList.remove('review');
-  $('stimulus').classList.add('hidden');
   $('startBtn').classList.remove('hidden');
-  $('reviewCanvas').classList.add('hidden');
-  $('reviewBadge').classList.add('hidden');
-  $('reviewMeta').classList.add('hidden');
-  $('donePanel').classList.add('hidden');
-  $('nextBtn').classList.add('hidden');
-  $('trialNum').textContent = state.trials.length + 1;
+  updateTrialLabel();
   state.stage = 'awaiting_start';
 }
 
-function showDone(){
-  state.current = null;
-  ['optLeft','optRight','stimulus','startBtn','reviewCanvas',
-   'reviewBadge','reviewMeta','nextBtn'].forEach(id => $(id).classList.add('hidden'));
-  $('donePanel').classList.remove('hidden');
-  $('trialNum').textContent = N_TRIALS;
-  state.stage = 'done';
+/* ---------- screens ---------- */
+
+$('introBtn').addEventListener('click', () => {
+  $('intro').classList.add('hidden');
+  $('main').classList.remove('hidden');
+  Session.log('task1_start', { condition: COND, n_practice: N_PRACTICE, n_main: N_MAIN });
+  startBlock('practice');
+});
+
+function startBlock(block){
+  state.block = block;
+  const n = total();
+  Object.assign(state, buildOrder(Math.ceil(n / PAIRS.length), n));
+  $('practiceBadge').classList.toggle('hidden', block !== 'practice');
+  if (n === 0) return setupTrial();
+  setupTrial();
 }
+
+function showInterstitial(){
+  state.stage = 'idle';
+  $('main').classList.add('hidden');
+  $('interstitial').classList.remove('hidden');
+}
+$('interBtn').addEventListener('click', () => {
+  $('interstitial').classList.add('hidden');
+  $('main').classList.remove('hidden');
+  startBlock('main');
+});
 
 /* ---------- trial flow ---------- */
 
@@ -309,7 +405,6 @@ $('startBtn').addEventListener('click', e => {
   c.startPos  = { x: e.clientX, y: e.clientY };
   c.startTime = performance.now();
   c.samples.push({ x: e.clientX, y: e.clientY, t: 0 });
-
   $('startBtn').classList.add('hidden');
   $('optLeft').classList.remove('hidden');
   $('optRight').classList.remove('hidden');
@@ -319,17 +414,16 @@ $('startBtn').addEventListener('click', e => {
 
 document.addEventListener('mousemove', e => {
   if (state.stage !== 'in_trial') return;
-  const t = performance.now() - state.current.startTime;
-  state.current.samples.push({ x: e.clientX, y: e.clientY, t });
+  state.current.samples.push({ x: e.clientX, y: e.clientY, t: performance.now() - state.current.startTime });
 });
+
+function centerOf(el){ const r = el.getBoundingClientRect(); return { x: r.left + r.width/2, y: r.top + r.height/2 }; }
 
 function pickOption(side, e){
   if (state.stage !== 'in_trial') return;
   const trial = state.current;
   trial.rt = performance.now() - trial.startTime;
-  // Record the click position as the trajectory's true endpoint — the
-  // idealized line (per Freeman & Ambady, 2010) runs start → endpoint.
-  trial.samples.push({ x: e.clientX, y: e.clientY, t: trial.rt });
+  trial.samples.push({ x: e.clientX, y: e.clientY, t: trial.rt });   // true endpoint
 
   trial.leftPos    = centerOf($('optLeft'));
   trial.rightPos   = centerOf($('optRight'));
@@ -341,77 +435,55 @@ function pickOption(side, e){
 
   trial.initTime = null;
   for (let i = 1; i < trial.samples.length; i++){
-    const dx = trial.samples[i].x - trial.startPos.x;
-    const dy = trial.samples[i].y - trial.startPos.y;
-    if (Math.hypot(dx, dy) > MOVE_THRESHOLD_PX){
-      trial.initTime = trial.samples[i].t;
-      break;
+    if (Math.hypot(trial.samples[i].x - trial.startPos.x, trial.samples[i].y - trial.startPos.y) > MOVE_THRESHOLD_PX){
+      trial.initTime = trial.samples[i].t; break;
     }
   }
+  trial.slowStart = trial.initTime === null || trial.initTime > INIT_WARN_MS;
 
-  // AUC / MD follow Freeman & Ambady (2010): the ideal trajectory is the
-  // straight line from the start position to the CHOSEN option, and
-  // deviation toward the unchosen option counts positive.
   const m = computeMetrics(trial.samples, trial.startPos, trial.chosenPos);
-  trial.auc        = m.auc;
-  trial.md         = m.md;
-  trial.xFlips     = m.xFlips;
-  trial.normalized = m.normalized;
-  trial.mdIdx      = m.mdIdx;
+  Object.assign(trial, { auc: m.auc, md: m.md, xFlips: m.xFlips, normalized: m.normalized, mdIdx: m.mdIdx });
 
-  state.trials.push(trial);
-  updatePanels();
-  showReview(trial);
-}
-
-$('optLeft').addEventListener('click',  e => pickOption('left', e));
-$('optRight').addEventListener('click', e => pickOption('right', e));
-
-$('nextBtn').addEventListener('click', () => {
-  if (state.stage !== 'review') return;
-  setupTrial();
-});
-
-function centerOf(el){
-  const r = el.getBoundingClientRect();
-  return { x: r.left + r.width/2, y: r.top + r.height/2 };
-}
-
-/* ---------- metrics ----------
-   computeMetrics / timeNormalize come from ../shared/mousetracking.js
-   (Freeman & Ambady 2010 convention; see that file for the details). */
-
-/* ---------- review render ---------- */
-
-function showReview(trial){
+  list().push(trial);
   state.stage = 'review';
   $('optLeft').classList.add('review');
   $('optRight').classList.add('review');
   $('stimulus').classList.add('hidden');
+  if (!trial.isPractice) updatePanels();
+
+  if (REVIEW) return showReview(trial);
+
+  // Participant mode: slow-start warning (doc §6) or straight on.
+  if (trial.slowStart){
+    $('warn').textContent = Session.t('t1_slow');
+    $('warn').classList.remove('hidden');
+    setTimeout(setupTrial, 1800);
+  } else {
+    setTimeout(setupTrial, 350);
+  }
+}
+$('optLeft').addEventListener('click',  e => pickOption('left', e));
+$('optRight').addEventListener('click', e => pickOption('right', e));
+$('nextBtn').addEventListener('click', () => { if (state.stage === 'review') setupTrial(); });
+
+/* ---------- researcher review ---------- */
+
+function showReview(trial){
   $('reviewCanvas').classList.remove('hidden');
   $('reviewBadge').classList.remove('hidden');
   $('reviewMeta').classList.remove('hidden');
   $('nextBtn').classList.remove('hidden');
-  $('nextBtn').textContent = state.trials.length >= N_TRIALS ? 'Finish' : 'Next →';
-
-  const meta = $('reviewMeta');
-  meta.innerHTML =
+  $('nextBtn').textContent = list().length >= total() ? Session.t('continue_') : Session.t('next') + ' →';
+  $('reviewMeta').innerHTML =
+    `${trial.isPractice ? '<b>practice</b><br>' : ''}` +
     `chose <b>${trial.chosen}</b> (${trial.chosenType})<br>` +
-    `AUC <b>${trial.auc.toFixed(3)}</b> · ` +
-    `MD <b>${trial.md.toFixed(3)}</b><br>` +
+    `AUC <b>${trial.auc.toFixed(3)}</b> · MD <b>${trial.md.toFixed(3)}</b><br>` +
     `x-flips ${trial.xFlips} · RT ${Math.round(trial.rt)} ms<br>` +
     `init ${trial.initTime !== null ? Math.round(trial.initTime) + ' ms' : '—'}` +
-    (trial.initTime !== null && trial.initTime > INIT_WARN_MS
-      ? ' <span style="color:var(--accent)">(slow)</span>' : '');
-
-  drawReview(trial);
-}
-
-function drawReview(trial){
+    (trial.slowStart ? ' <span style="color:var(--accent)">(slow)</span>' : '');
+  if (trial.slowStart){ $('warn').textContent = Session.t('t1_slow'); $('warn').classList.remove('hidden'); }
   drawTrajectoryReview($('reviewCanvas'), $('stage'), trial);
 }
-
-/* ---------- panels ---------- */
 
 function updatePanels(){
   const last = state.trials[state.trials.length - 1];
@@ -422,7 +494,6 @@ function updatePanels(){
   $('lastFlips').textContent  = last.xFlips;
   $('lastRT').textContent     = `${Math.round(last.rt)} ms`;
   $('lastInit').textContent   = last.initTime !== null ? `${Math.round(last.initTime)} ms` : '—';
-
   const n = state.trials.length;
   $('nTrials').textContent = n;
   const mean = arr => arr.reduce((s,v) => s+v, 0) / arr.length;
@@ -431,66 +502,64 @@ function updatePanels(){
   $('meanRT').textContent  = `${Math.round(mean(state.trials.map(t => t.rt)))} ms`;
 }
 
-/* ---------- export ---------- */
+/* ---------- data ---------- */
 
-$('exportBtn').addEventListener('click', () => {
-  if (state.trials.length === 0) return;
-  const header = [
-    'trial','pair','goal','temptation',
-    'left_option','right_option','left_type','right_type',
-    'chosen','chosen_type','chosen_side',
-    'rt_ms','init_time_ms','auc','md','x_flips',
-    'sample_idx','t_norm','x_norm','y_norm'
-  ];
-  const rows = [header.join(',')];
-  state.trials.forEach((t, ti) => {
-    t.normalized.forEach((p, si) => {
-      rows.push([
-        ti + 1, t.pairIdx + 1, q(t.pair.goal.label), q(t.pair.temptation.label),
-        q(t.left), q(t.right), t.leftType, t.rightType,
-        q(t.chosen), t.chosenType, t.chosenSide,
-        Math.round(t.rt), t.initTime !== null ? Math.round(t.initTime) : '',
-        t.auc.toFixed(6), t.md.toFixed(6), t.xFlips,
-        si, (si / (N_TIME_BINS - 1)).toFixed(4),
-        p.x.toFixed(6), p.y.toFixed(6),
-      ].join(','));
-    });
-  });
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `goal-temptation-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-function q(s){ return /[,"\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; }
-
-/* ---------- reset ---------- */
-
-$('resetBtn').addEventListener('click', () => {
-  if (state.trials.length > 0 && !confirm('Clear all recorded trials?')) return;
-  startSession();
-});
-
-/* ---------- init ---------- */
-
-function startSession(){
-  state.trials = [];
-  state.order = shuffle(PAIRS.map((_, i) => i));
-  // Balanced goal placement: alternating pattern shuffled, so the goal is
-  // never on the same side for all trials.
-  state.sides = shuffle(PAIRS.map((_, i) => i % 2 === 0));
-  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit',
-   'meanAUC','meanMD','meanRT'].forEach(id => $(id).textContent = '—');
-  $('nTrials').textContent = '0';
-  setupTrial();
+function trialRow(t){
+  return {
+    is_practice: t.isPractice, trial: t.trialIdx, pair: t.pairIdx + 1,
+    goal: t.pair.goal.label, temptation: t.pair.temptation.label,
+    left_option: t.left, right_option: t.right, left_type: t.leftType, right_type: t.rightType,
+    chosen: t.chosen, chosen_type: t.chosenType, chosen_side: t.chosenSide,
+    rt_ms: Math.round(t.rt), init_time_ms: t.initTime !== null ? Math.round(t.initTime) : '',
+    slow_start: t.slowStart, auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
+    n_samples: t.samples.length,
+    stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
+  };
+}
+function trajectoryRows(t){
+  return t.normalized.map((p, si) => ({
+    is_practice: t.isPractice, trial: t.trialIdx, sample_idx: si,
+    t_norm: +(si / (N_TIME_BINS - 1)).toFixed(4), x_norm: +p.x.toFixed(6), y_norm: +p.y.toFixed(6),
+  }));
 }
 
-startSession();
+async function finishTask(){
+  state.stage = 'done';
+  state.current = null;
+  ['optLeft','optRight','stimulus','startBtn','reviewCanvas','reviewBadge','reviewMeta','nextBtn','warn']
+    .forEach(id => $(id).classList.add('hidden'));
+  $('donePanel').classList.remove('hidden');
+  $('doneNote').textContent = Session.t('saving');
+  const all = [...state.practice, ...state.trials];
+  await Session.save({
+    task1_trials: all.map(trialRow),
+    task1_trajectories: all.flatMap(trajectoryRows),
+  }, 'task1');
+  await Session.log('task1_complete', { condition: COND, n_main: state.trials.length });
+  if (Session.standalone){
+    $('doneNote').textContent = 'Standalone run — export the CSV or reset.';
+  } else {
+    Session.next('task1');
+  }
+}
+
+/* ---------- standalone controls ---------- */
+
+$('exportBtn').addEventListener('click', () => {
+  const all = [...state.practice, ...state.trials];
+  if (!all.length) return;
+  const rows = all.flatMap(t => trajectoryRows(t).map(r => ({ ...trialRow(t), ...r })));
+  Session.download(`task1_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`, Session.csvOf(rows));
+});
+$('resetBtn').addEventListener('click', () => {
+  if (state.trials.length > 0 && !confirm('Clear all recorded trials?')) return;
+  state.trials = []; state.practice = [];
+  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit','meanAUC','meanMD','meanRT'].forEach(id => $(id).textContent = '—');
+  $('nTrials').textContent = '0';
+  startBlock('practice');
+});
+
+updateTrialLabel();
 </script>
 </body>
 </html>

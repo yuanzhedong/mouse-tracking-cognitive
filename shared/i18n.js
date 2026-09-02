@@ -1,0 +1,161 @@
+/* Participant-facing UI strings — English / Portuguese (Brazil).
+   Portuguese text is taken verbatim from the team's
+   "Pilot_Participant_Facing_Materials_EN_PT" doc. Survey items live in
+   shared/surveys.js. Use Session.t(key) to look a string up. */
+
+const STRINGS = {
+  en: {
+    /* entry page */
+    app_title: 'Self-Control Study',
+    app_subtitle: 'Student session',
+    pid_label: 'Participant code',
+    pid_placeholder: 'e.g. S001',
+    pid_required: 'Please enter your participant code.',
+    lang_label: 'Language',
+    start_session: 'Start',
+    entry_intro: 'You will answer a few questionnaires and then play two short games. The whole session takes about 25 minutes. Please use a mouse and do not close this window.',
+    resume_note: 'Continue where you left off',
+
+    /* shared */
+    next: 'Next',
+    back: 'Back',
+    continue_: 'Continue',
+    start: 'Start',
+    finish: 'Finish',
+    saving: 'Saving…',
+    please_answer_all: 'Please answer every question before continuing.',
+    step_of: 'Part {n} of {total}',
+
+    /* survey */
+    survey_title: 'Questionnaires',
+    other_placeholder: 'Write here',
+    choose_three: 'Choose exactly three activities.',
+    chosen_count: '{n} of 3 selected',
+    rating_for: 'Activity: {activity}',
+
+    /* task 1 */
+    t1_title: 'Game 1',
+    t1_instr_1: 'In this game, you will choose between two activities. Click the START button at the bottom. Two activities will appear. Move the mouse to the activity you choose and click it.',
+    t1_instr_2: "Start moving the mouse right away. It's OK to change direction on the way. Keep the mouse moving, and try to be quick and accurate.",
+    t1_practice_intro: "Let's practice a few rounds first.",
+    t1_practice_badge: 'Practice',
+    t1_practice_done: 'Practice complete. Now the real rounds begin.',
+    t1_prompt_immediate: 'You have a quiz coming up. Which activity do you choose to do now?',
+    t1_prompt_goal: 'You have a quiz coming up. Which activity would better help you do well on the upcoming quiz?',
+    t1_slow: 'Too slow to start! Please begin moving the mouse sooner.',
+    t1_trial: 'round {n} / {total}',
+    t1_done: 'Game 1 complete.',
+    t1_choose: 'choose',
+
+    /* task 2 */
+    t2_title: 'Game 2',
+    t2_intro_1: 'Now you have about <b>{min} minutes</b> before the quiz. You’re going to see a split screen: the <b>left side is study content</b>, and the <b>right side is YouTube videos</b>. Whichever side your mouse is on becomes active — move your mouse to a side to use it.',
+    t2_intro_2: 'You are <b>not obligated</b> to do the math if you don’t want to, and you will <b>not be punished</b> for choosing to watch videos. This time is yours — it’s up to you how you want to use it.',
+    t2_lock_title: 'One choice before you continue.',
+    t2_lock_intro: 'You now have <b>{min} minutes</b> before the quiz. During these {min} minutes, the videos can stay on your screen or you can put them away. It’s up to you:',
+    t2_put_away: '[ Put the videos away ]',
+    t2_put_away_desc: 'The YouTube Shorts side turns off for the whole {min} minutes. You won’t see or hear any videos until the quiz. This cannot be undone.',
+    t2_keep: '[ Keep the videos on my screen ]',
+    t2_keep_desc: 'Everything stays as it is. You can do math or watch videos anytime, just like in practice.',
+    t2_no_wrong: 'There is no right or wrong choice — pick whichever you prefer.',
+    t2_make_choice: 'make your choice',
+    t2_videos_off: 'Videos are put away until the quiz.',
+    t2_quiz_pill: 'Quiz at the end',
+    t2_time_left: 'left',
+    t2_points: 'Points',
+    t2_study: 'Study',
+    t2_question: 'Question',
+    t2_point_each: 'Each correct answer = 1 point',
+    t2_next_video: 'next video',
+    t2_times_up: 'Time’s up — quiz time!',
+    t2_shorts: 'Shorts',
+
+    /* done */
+    done_title: 'All done — thank you!',
+    done_body: 'Your answers have been saved. You can close this window now.',
+    done_local_note: 'Data was stored in this browser only (no upload endpoint configured).',
+    download_data: 'Download data (CSV)',
+  },
+
+  pt: {
+    app_title: 'Estudo sobre Autocontrole',
+    app_subtitle: 'Sessão do estudante',
+    pid_label: 'Código do participante',
+    pid_placeholder: 'ex.: S001',
+    pid_required: 'Por favor, digite o seu código de participante.',
+    lang_label: 'Idioma',
+    start_session: 'Começar',
+    entry_intro: 'Você vai responder a alguns questionários e depois jogar dois jogos curtos. A sessão inteira leva cerca de 25 minutos. Use um mouse e não feche esta janela.',
+    resume_note: 'Continuar de onde parou',
+
+    next: 'Próximo',
+    back: 'Voltar',
+    continue_: 'Continuar',
+    start: 'Começar',
+    finish: 'Concluir',
+    saving: 'Salvando…',
+    please_answer_all: 'Por favor, responda a todas as perguntas antes de continuar.',
+    step_of: 'Parte {n} de {total}',
+
+    survey_title: 'Questionários',
+    other_placeholder: 'Escreva aqui',
+    choose_three: 'Escolha exatamente três atividades.',
+    chosen_count: '{n} de 3 selecionadas',
+    rating_for: 'Atividade: {activity}',
+
+    t1_title: 'Jogo 1',
+    t1_instr_1: 'Neste jogo, você vai escolher entre duas atividades. Clique no botão COMEÇAR na parte de baixo. Duas atividades vão aparecer. Mova o mouse até a atividade que você escolher e clique nela.',
+    t1_instr_2: 'Comece a mover o mouse imediatamente. Tudo bem mudar de direção no caminho. Mantenha o mouse em movimento e tente ser rápido e preciso.',
+    t1_practice_intro: 'Vamos praticar algumas rodadas primeiro.',
+    t1_practice_badge: 'Prática',
+    t1_practice_done: 'Prática concluída. Agora começam as rodadas de verdade.',
+    t1_prompt_immediate: 'Você terá uma prova em breve. Qual atividade você escolhe fazer agora?',
+    t1_prompt_goal: 'Você terá uma prova em breve. Qual atividade ajudaria mais você a ir bem na prova?',
+    t1_slow: 'Demorou para começar! Comece a mover o mouse mais cedo.',
+    t1_trial: 'rodada {n} / {total}',
+    t1_done: 'Jogo 1 concluído.',
+    t1_choose: 'escolha',
+
+    t2_title: 'Jogo 2',
+    t2_intro_1: 'Agora você tem cerca de <b>{min} minutos</b> antes da prova. Você verá uma tela dividida: o <b>lado esquerdo mostra conteúdo para estudar</b>, e o <b>lado direito mostra vídeos do YouTube</b>. O lado em que o seu mouse estiver se torna ativo — mova o mouse para um lado para usá-lo.',
+    t2_intro_2: 'Você <b>não é obrigado(a)</b> a fazer as questões de matemática se não quiser, e <b>não será penalizado(a)</b> por escolher assistir aos vídeos. Este tempo é seu — você decide como quer usá-lo.',
+    t2_lock_title: 'Uma escolha antes de continuar.',
+    t2_lock_intro: 'Agora você tem <b>{min} minutos</b> antes da prova. Durante esses {min} minutos, os vídeos podem continuar na tela ou você pode removê-los. Você decide:',
+    t2_put_away: '[ Remover os vídeos ]',
+    t2_put_away_desc: 'O lado dos YouTube Shorts ficará desligado durante todos os {min} minutos. Você não verá, nem ouvirá nenhum vídeo até a prova. Essa escolha não poderá ser desfeita.',
+    t2_keep: '[ Manter os vídeos na tela ]',
+    t2_keep_desc: 'Tudo continuará como está. Você pode fazer questões de matemática ou assistir aos vídeos quando quiser, assim como na prática.',
+    t2_no_wrong: 'Não existe escolha certa ou errada — escolha a opção que você preferir.',
+    t2_make_choice: 'faça a sua escolha',
+    t2_videos_off: 'Os vídeos foram removidos até a prova.',
+    t2_quiz_pill: 'Prova no final',
+    t2_time_left: 'restantes',
+    t2_points: 'Pontos',
+    t2_study: 'Estudo',
+    t2_question: 'Questão',
+    t2_point_each: 'Cada resposta certa = 1 ponto',
+    t2_next_video: 'próximo vídeo',
+    t2_times_up: 'Acabou o tempo — hora da prova!',
+    t2_shorts: 'Shorts',
+
+    done_title: 'Tudo pronto — obrigado!',
+    done_body: 'Suas respostas foram salvas. Você já pode fechar esta janela.',
+    done_local_note: 'Os dados ficaram salvos apenas neste navegador (nenhum endpoint de envio configurado).',
+    download_data: 'Baixar dados (CSV)',
+  },
+};
+
+/* Task 1 icon labels (the PNGs carry English titles; the title band is
+   cropped off and this caption is shown instead). Keys = stimulus file. */
+const STIM_LABELS = {
+  '01_complete_practice_problems':  { en: 'Complete practice problems',   pt: 'Fazer exercícios de prática' },
+  '02_watch_youtube_shorts':        { en: 'Watch YouTube Shorts',         pt: 'Assistir a YouTube Shorts' },
+  '03_review_your_class_notes':     { en: 'Review your class notes',      pt: 'Revisar as anotações da aula' },
+  '04_play_a_phone_game':           { en: 'Play a phone game',            pt: 'Jogar um jogo no celular' },
+  '05_study_with_digital_flashcards': { en: 'Study with digital flashcards', pt: 'Estudar com flashcards digitais' },
+  '06_watch_soccer_highlights':     { en: 'Watch soccer highlights',      pt: 'Ver melhores momentos de futebol' },
+  '07_prepare_for_tomorrows_quiz':  { en: "Prepare for tomorrow's quiz",  pt: 'Preparar-se para a prova de amanhã' },
+  '08_group_chat_with_friends':     { en: 'Group chat with friends',      pt: 'Conversar no grupo com amigos' },
+  '09_work_on_homework_correction': { en: 'Work on your science worksheet', pt: 'Fazer a folha de exercícios de ciências' },
+  '10_scroll_funny_memes':          { en: 'Scroll funny memes',           pt: 'Rolar memes engraçados' },
+};

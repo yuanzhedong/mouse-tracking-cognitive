@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Self-Control Task Battery</title>
+<title>Self-Control Study</title>
 <style>
   :root {
     --bg:     #f4efe4;
@@ -11,6 +11,7 @@
     --ink:    #1f1e2c;
     --soft:   #7a7587;
     --accent: #a8324a;
+    --rule:   #d8cfb6;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
@@ -18,53 +19,147 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     min-height: 100vh;
   }
-  .container { max-width: 760px; margin: 0 auto; padding: 40px 20px; }
+  .container { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
   header {
+    display: flex; justify-content: space-between; align-items: baseline;
     padding-bottom: 12px; margin-bottom: 28px;
     border-bottom: 1px solid var(--ink);
   }
   header h1 { font-size: 20px; font-weight: 600; }
   header p  { font-size: 13px; color: var(--soft); margin-top: 6px; }
-  .tasks { display: flex; flex-direction: column; gap: 16px; }
-  a.task {
-    display: block; text-decoration: none; color: inherit;
+  .lang { display: flex; gap: 4px; }
+  .lang button {
+    padding: 5px 10px; border: 1px solid var(--ink); background: var(--bg);
+    font-family: inherit; font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; cursor: pointer;
+  }
+  .lang button.on { background: var(--ink); color: var(--bg); }
+
+  .card {
     background: var(--panel); border: 1px solid var(--ink);
-    padding: 22px 26px;
-    transition: box-shadow 0.12s ease;
+    padding: 28px 32px;
   }
-  a.task:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
-  a.task .num {
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 6px;
+  .card p { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
+  label { display: block; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
+  input[type=text] {
+    width: 100%; padding: 12px 14px; font-size: 18px; font-family: inherit;
+    border: 1px solid var(--ink); background: var(--bg); color: var(--ink);
+    letter-spacing: 0.06em;
   }
-  a.task h2 { font-size: 17px; margin-bottom: 6px; }
-  a.task p  { font-size: 14px; color: var(--soft); line-height: 1.5; }
+  .err { color: var(--accent); font-size: 13px; margin-top: 8px; min-height: 18px; }
+  .big-btn {
+    display: block; width: 100%; margin-top: 20px;
+    padding: 14px; border: 1px solid var(--ink);
+    background: var(--ink); color: var(--bg);
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    cursor: pointer; font-family: inherit;
+  }
+  .big-btn:hover { opacity: 0.9; }
+  .big-btn.secondary { background: var(--bg); color: var(--ink); margin-top: 10px; }
+
+  details.research { margin-top: 36px; font-size: 13px; color: var(--soft); }
+  details.research summary { cursor: pointer; letter-spacing: 0.12em; text-transform: uppercase; font-size: 11px; }
+  details.research .box { margin-top: 12px; border-top: 1px solid var(--rule); padding-top: 12px; line-height: 1.7; }
+  details.research a { color: var(--accent); }
+  details.research code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .status { display: inline-block; padding: 1px 8px; border: 1px solid var(--rule); font-size: 11px; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>Self-Control Task Battery</h1>
-    <p>Browser-based mouse-tracking and attention-allocation tasks for cognitive research.</p>
+    <div>
+      <h1 data-i18n="app_title">Self-Control Study</h1>
+      <p data-i18n="app_subtitle">Student session</p>
+    </div>
+    <div class="lang">
+      <button id="langPt">PT</button>
+      <button id="langEn">EN</button>
+    </div>
   </header>
-  <div class="tasks">
-    <a class="task" href="task1/">
-      <div class="num">Task 1</div>
-      <h2>Goal–Temptation Mouse-Tracking</h2>
-      <p>Five two-choice trials (study goal vs. temptation). Cursor trajectories
-         are recorded and scored with AUC / MD per Freeman &amp; Ambady (2010),
-         with a per-trial researcher view.</p>
-    </a>
-    <a class="task" href="task2/">
-      <div class="num">Task 2</div>
-      <h2>Split-Screen: Study vs. Videos</h2>
-      <p>12 minutes of free time before a quiz. Left side serves math questions
-         (1 point each); right side plays YouTube videos. Whichever side the
-         mouse is on becomes active. Time allocation, switches, and answers are
-         logged.</p>
-    </a>
+
+  <div class="card">
+    <p data-i18n="entry_intro"></p>
+    <label for="pid" data-i18n="pid_label">Participant code</label>
+    <input type="text" id="pid" autocomplete="off" autocapitalize="characters" data-i18n-placeholder="pid_placeholder">
+    <div class="err" id="err"></div>
+    <button class="big-btn" id="startBtn" data-i18n="start_session">Start</button>
+    <button class="big-btn secondary hidden" id="resumeBtn" style="display:none"></button>
   </div>
+
+  <details class="research">
+    <summary>Researcher</summary>
+    <div class="box">
+      Flow: <code id="flow"></code><br>
+      Upload endpoint: <span class="status" id="endpointStatus"></span><br>
+      Standalone task pages (demo mode, researcher view on):
+      <a href="survey/">survey</a> ·
+      <a href="task1/">task 1</a> ·
+      <a href="task2/?practice=20&dur=40">task 2 (short)</a><br>
+      Session URL options: <code>?pid=S001&amp;lang=pt&amp;cond=immediate|goal&amp;review=1</code><br>
+      Task 1 condition for the code entered above: <code id="condPreview">—</code>
+    </div>
+  </details>
 </div>
+
+<script src="shared/config.js"></script>
+<script src="shared/i18n.js"></script>
+<script src="shared/session.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+Session.applyI18n();
+document.title = Session.t('app_title');
+$('langPt').classList.toggle('on', Session.lang === 'pt');
+$('langEn').classList.toggle('on', Session.lang === 'en');
+$('flow').textContent = ['entry', ...CONFIG.FLOW].join(' → ');
+$('endpointStatus').textContent = CONFIG.ENDPOINT ? 'configured' : 'not configured (local-only)';
+
+const qs = new URLSearchParams(location.search);
+$('pid').value = qs.get('pid') || '';
+
+function setLang(l){
+  const p = new URLSearchParams(location.search);
+  p.set('lang', l);
+  const v = $('pid').value.trim();
+  if (v) p.set('pid', v); else p.delete('pid');
+  location.search = p.toString();
+}
+$('langPt').addEventListener('click', () => setLang('pt'));
+$('langEn').addEventListener('click', () => setLang('en'));
+
+function fnv1a(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function refresh(){
+  const v = $('pid').value.trim();
+  $('condPreview').textContent = v ? (qs.get('cond') || (fnv1a(v) % 2 === 0 ? 'immediate' : 'goal')) : '—';
+  // resume offer if this code already has progress in this browser
+  let last = null;
+  try { last = v ? localStorage.getItem('sc_done_' + v) : null; } catch (e) {}
+  const i = CONFIG.FLOW.indexOf(last);
+  const nxt = i >= 0 ? CONFIG.FLOW[i + 1] : null;
+  if (nxt && nxt !== 'done'){
+    $('resumeBtn').style.display = 'block';
+    $('resumeBtn').textContent = `${Session.t('resume_note')} (${nxt})`;
+    $('resumeBtn').onclick = () => start(nxt);
+  } else {
+    $('resumeBtn').style.display = 'none';
+  }
+}
+$('pid').addEventListener('input', refresh);
+refresh();
+
+function start(step){
+  const v = $('pid').value.trim();
+  if (!v){ $('err').textContent = Session.t('pid_required'); $('pid').focus(); return; }
+  const p = new URLSearchParams(location.search);
+  p.set('pid', v); p.set('lang', Session.lang);
+  location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
+}
+$('startBtn').addEventListener('click', () => {
+  const v = $('pid').value.trim();
+  if (v){ try { localStorage.removeItem('sc_done_' + v); } catch (e) {} }  // fresh start
+  start(CONFIG.FLOW[0]);
+});
+$('pid').addEventListener('keydown', e => { if (e.key === 'Enter') $('startBtn').click(); });
+</script>
 </body>
 </html>

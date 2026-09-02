@@ -1,26 +1,94 @@
 # Self-Control Task Battery for Cognitive Science
 
-A small, hackable, dependency-free battery of browser tasks for studying
-self-control and attention allocation in the face of temptation. Served via
-**GitHub Pages**; no build step.
+A small, hackable, dependency-free battery of browser questionnaires and
+tasks for studying adolescent self-control and attention allocation in the
+face of temptation. Served via **GitHub Pages**; no build step. Participant
+text is **Portuguese (Brazil)** by default with an English switch; content
+follows the team doc *Pilot_Participant_Facing_Materials_EN_PT*.
+
+## Student session flow
+
+```
+index.html  →  survey/  →  task1/  →  task2/  →  done.html
+ (code +        §1–5       Game 1      Game 2     thank-you
+  language)   questionnaires
+```
+
+Open `index.html?pid=S001` (or let the student type the code). Each page
+saves its data, then advances via `Session.next()`; progress is remembered
+per code so a closed window can resume from the entry page.
+
+| step | content | data tables |
+|---|---|---|
+| `survey/` | 1 Academic Goal Value · 2 Tempting Activities top-3 · 3 ratings piped from the top-3 · 4 Brief Self-Control Scale (validated PT-BR) · 5 Self-Control Strategy Use | `survey` |
+| `task1/` | instructions → 3 practice rounds → 10 mouse-tracked choice trials (5 icon pairs × 2), one prompt condition per student | `task1_trials`, `task1_trajectories` |
+| `task2/` | split-screen practice (2 min) → lock-screen choice (mouse-tracked) → main phase (10 min) | `task2_summary`, `task2_events` |
+| all | milestones | `session_log` |
+
+**Task 1 conditions** (doc §6): `immediate` — "Which activity do you choose
+to do now?" vs. `goal` — "Which activity would better help you do well on
+the upcoming quiz?". Assigned deterministically from the participant code
+(`hash(pid) % 2`), or forced with `?cond=immediate|goal`.
+
+### URL parameters
+
+| param | where | effect |
+|---|---|---|
+| `pid=S001` | any page | participant code (required for the session flow) |
+| `lang=pt\|en` | any page | participant language (default `pt`) |
+| `cond=immediate\|goal` | any page | force the Task 1 prompt condition |
+| `review=1` | task pages | researcher views: trajectory plots, metrics, CSV buttons |
+| `practice=N`, `repeats=N` | task1 | practice rounds / passes over the 5 pairs |
+| `practice=SEC`, `dur=SEC` | task2 | phase lengths |
+
+A task page opened **without** `pid` runs standalone (demo mode, researcher
+view on, nothing uploaded).
+
+### Data collection
+
+Every save goes to (a) `localStorage` in the student's browser and (b) a
+Google Apps Script endpoint that appends rows to a Google Sheet, one tab per
+table — free, no server. Setup in **`backend/SETUP.md`** (5 minutes), then
+paste the URL into `shared/config.js`. With no endpoint configured the
+battery still runs and the final page's *Researcher* panel downloads each
+table as CSV.
 
 ## Repo structure
 
 ```
-index.html            – task launcher (landing page)
-task1/
-  index.html          – Task 1: goal–temptation mouse-tracking
+index.html            – session entry (participant code, language)
+survey/index.html     – questionnaires §1–5
+task1/index.html      – Task 1: goal–temptation mouse-tracking
   goal_temptation_stimuli/  – icon stimuli (goal/temptation pairs)
-task2/
-  index.html          – Task 2: split-screen ADT (study vs. YouTube videos)
+task2/index.html      – Task 2: split-screen ADT (study vs. YouTube videos)
   lock_stimuli/       – icon cards for the lock-screen choice trial
+done.html             – thank-you page (+ researcher CSV download)
 shared/
+  config.js           – endpoint URL, language, trial counts, phase lengths
+  i18n.js             – EN/PT UI strings + icon captions
+  surveys.js          – questionnaire content (EN/PT) from the team doc
+  session.js          – participant id, condition, save/upload, navigation
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
-  mousetracking.js    – AUC/MD/x-flips metrics (Freeman & Ambady 2010),
-                        used by Task 1 trials and the Task 2 lock choice
+  mousetracking.js    – AUC/MD/x-flips metrics (Freeman & Ambady 2010)
+backend/
+  Code.gs             – Google Apps Script receiver (→ Google Sheet)
+  SETUP.md            – deployment steps
 README.md
 ```
+
+### Known gaps / for the team
+
+- Stimulus PNGs carry English titles; the title band is cropped by CSS and
+  a localized caption is shown instead. The lock cards still show "STUDY /
+  LOCKED / FUN" inside the artwork — replace the PNGs for a fully PT version.
+- Section 3 scale is coded 1–5 (team note asked to confirm vs. 0–5).
+- The Task 2 intro states the real total (practice + main = 12 min); the
+  doc's wording says "about 10 minutes".
+- A student who reloads a task page restarts that task (previous data is
+  kept, so duplicates are distinguishable by `client_ts`).
+- No movement deadline in Task 1 — slow starts are warned and flagged
+  (`slow_start`), not excluded.
 
 ## Task 1 — Goal–Temptation Mouse-Tracking
 
@@ -31,8 +99,9 @@ A binary-choice **mouse-tracking** paradigm after:
 > *Trends in Cognitive Sciences*, **22**(6), 531–543.
 > https://doi.org/10.1016/j.tics.2018.03.012
 
-Five trials (study goal vs. temptation icons). Cursor trajectories are
-recorded and scored with the standard metrics — **AUC**, **MD**, **x-flips**,
+Practice rounds, then 10 trials (5 study-goal vs. temptation icon pairs × 2
+passes, goal side balanced). Cursor trajectories are recorded and scored
+with the standard metrics — **AUC**, **MD**, **x-flips**,
 **RT**, **initiation time** — plus time-normalized trajectory exports.
 
 ## Task 2 — Split-Screen ADT (study vs. videos)
@@ -70,7 +139,8 @@ phase lengths for piloting.
 
 | Component | Status | Notes |
 |---|---|---|
-| Binary-choice goal–temptation task (icon stimuli) | done | 5 pairs (study goal vs. temptation), session of 5 trials, shuffled order, balanced side assignment |
+| Binary-choice goal–temptation task (icon stimuli) | done | 5 pairs (study goal vs. temptation), 3 practice + 10 main trials, shuffled order, balanced side assignment |
+| Two prompt conditions (immediate vs. goal-directed) | done | one per student, from the participant code or `?cond=` |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
 | Continuous cursor sampling via `mousemove` | done | Native event rate (typically 60–120 Hz) |
 | **AUC** (signed area vs. idealized straight line) | done | Ideal line = trajectory start → endpoint (Freeman & Ambady, 2010); positive = deviation toward unchosen option |
@@ -103,12 +173,11 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
       adjudicate dual-system vs. dynamical-systems accounts.
 - [ ] **Velocity & acceleration profiles** per time bin (Figure 2, right panel).
 - [ ] **Sample-entropy** of trajectories (Hehman et al. 2015).
-- [ ] **Practice trials** and instructions screen (currently a single greeting).
+- [x] **Practice trials** and instructions screen.
 - [x] **Counterbalancing** — per-session balanced (shuffled) assignment of
       which side the goal appears on.
-- [ ] **Server-side data collection** — currently CSV export is client-side
-      only. A small endpoint (e.g., a Cloudflare Worker or Google Form) would
-      let this be used for real online data collection.
+- [x] **Server-side data collection** — Google Apps Script → Google Sheet
+      (`backend/`), with localStorage mirror and CSV fallback.
 
 ## Methodological notes
 
