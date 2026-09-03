@@ -162,7 +162,7 @@ const Session = (() => {
   function currentStep(){
     const p = location.pathname;
     if (/\/done\.html$/.test(p)) return 'done';
-    const m = p.match(/\/(survey|task1|task2)\/?(index\.html)?$/);
+    const m = p.match(/\/(survey|ratings|task1|task2)\/?(index\.html)?$/);
     return m ? m[1] : 'entry';
   }
   function urlFor(step, extra = {}){

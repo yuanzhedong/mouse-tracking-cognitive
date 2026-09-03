@@ -9,9 +9,9 @@ follows the team doc *Pilot_Participant_Facing_Materials_EN_PT*.
 ## Student session flow
 
 ```
-index.html  →  survey/  →  task1/  →  task2/  →  done.html
- (code +        §1–5       Game 1      Game 2     thank-you
-  language)   questionnaires
+index.html  →  survey/  →  ratings/  →  task1/  →  task2/  →  done.html
+ (code +        §1–5      stimulus       Game 1      Game 2     thank-you
+  language)   questionnaires  norming
 ```
 
 Open `index.html?pid=S001` (or let the student type the code). Each page
@@ -21,6 +21,7 @@ per code so a closed window can resume from the entry page.
 | step | content | data tables |
 |---|---|---|
 | `survey/` | 1 Academic Goal Value · 2 Tempting Activities top-3 · 3 ratings piped from the top-3 · 4 Brief Self-Control Scale (validated PT-BR) · 5 Self-Control Strategy Use | `survey` |
+| `ratings/` | Part A: 90 candidate activities (30 study / 30 entertainment / 30 neutral) each on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: video previews (thumbnail) on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
 | `task1/` | instructions → 3 practice rounds → 10 mouse-tracked choice trials (5 icon pairs × 2), one prompt condition per student | `task1_trials`, `task1_trajectories` |
 | `task2/` | split-screen practice (2 min) → lock-screen choice (mouse-tracked) → main phase (10 min) | `task2_summary`, `task2_events` |
 | all | milestones | `session_log` |
@@ -38,6 +39,7 @@ the upcoming quiz?". Assigned deterministically from the participant code
 | `lang=pt\|en` | any page | participant language (default `pt`) |
 | `cond=immediate\|goal` | any page | force the Task 1 prompt condition |
 | `review=1` | task pages | researcher views: trajectory plots, metrics, CSV buttons |
+| `n=N`, `nv=N` | ratings | number of activities / videos to rate (default all) |
 | `practice=N`, `repeats=N` | task1 | practice rounds / passes over the 5 pairs |
 | `practice=SEC`, `dur=SEC` | task2 | phase lengths |
 
@@ -60,6 +62,7 @@ minutes later", not data loss (details in `backend/SETUP.md`).
 ```
 index.html            – session entry (participant code, language)
 survey/index.html     – questionnaires §1–5
+ratings/index.html    – stimulus norming: activity + video-preview ratings
 task1/index.html      – Task 1: goal–temptation mouse-tracking
   goal_temptation_stimuli/  – icon stimuli (goal/temptation pairs)
 task2/index.html      – Task 2: split-screen ADT (study vs. YouTube videos)
@@ -69,6 +72,7 @@ shared/
   config.js           – endpoint URL, language, trial counts, phase lengths
   i18n.js             – EN/PT UI strings + icon captions
   surveys.js          – questionnaire content (EN/PT) from the team doc
+  stimuli.js          – 90 candidate activities (EN/PT) + video preview list
   session.js          – participant id, condition, save/upload, navigation
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
@@ -84,6 +88,12 @@ README.md
 - Stimulus PNGs carry English titles; the title band is cropped by CSS and
   a localized caption is shown instead. The lock cards still show "STUDY /
   LOCKED / FUN" inside the artwork — replace the PNGs for a fully PT version.
+- `ratings/` is in the default flow after the surveys. 90 activities × 2
+  sliders takes adolescents roughly 10–15 min; if the ratings are meant as
+  a separate norming study, remove `'ratings'` from `CONFIG.FLOW` and run
+  it standalone (`ratings/?pid=NORM01`). The activity list is pending
+  Karine's review (asterisked items are flagged in the data). Video
+  previews currently use the Task 2 playlist thumbnails.
 - Section 3 scale is coded 1–5 (team note asked to confirm vs. 0–5).
 - The Task 2 intro states the real total (practice + main = 12 min); the
   doc's wording says "about 10 minutes".

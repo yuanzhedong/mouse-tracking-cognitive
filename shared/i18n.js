@@ -33,6 +33,21 @@ const STRINGS = {
     chosen_count: '{n} of 3 selected',
     rating_for: 'Activity: {activity}',
 
+    /* ratings (stimulus norming) */
+    r_title: 'Activity and Video Ratings',
+    r_part_a: 'Part A · Activities',
+    r_part_b: 'Part B · Videos',
+    r_act_instr: 'You have a quiz coming up tomorrow, and you have some free time right now. For each activity, please answer the two questions below.',
+    r_act_q1: 'How enjoyable would this be for you right now?',
+    r_act_q2: 'How useful would this be for helping you do well on the upcoming quiz?',
+    r_act_lo: 'Not at all', r_act_hi: 'Extremely',
+    r_vid_instr: 'You will now see previews of some videos. For each one, please answer the question below.',
+    r_vid_q: 'How interested are you in watching this?',
+    r_vid_lo: 'Not at all interested', r_vid_hi: 'Extremely interested',
+    r_progress: '{n} / {total}',
+    r_touch_all: 'Please move each slider before continuing.',
+    r_done: 'Ratings complete.',
+
     /* task 1 */
     t1_title: 'Game 1',
     t1_instr_1: 'In this game, you will choose between two activities. Click the START button at the bottom. Two activities will appear. Move the mouse to the activity you choose and click it.',
@@ -102,6 +117,20 @@ const STRINGS = {
     choose_three: 'Escolha exatamente três atividades.',
     chosen_count: '{n} de 3 selecionadas',
     rating_for: 'Atividade: {activity}',
+
+    r_title: 'Avaliação de Atividades e Vídeos',
+    r_part_a: 'Parte A · Atividades',
+    r_part_b: 'Parte B · Vídeos',
+    r_act_instr: 'Você tem uma prova amanhã e está com um tempo livre agora. Para cada atividade, responda às duas perguntas abaixo.',
+    r_act_q1: 'O quão agradável isso seria para você agora?',
+    r_act_q2: 'O quão útil isso seria para ajudar você a ir bem na próxima prova?',
+    r_act_lo: 'Nada', r_act_hi: 'Extremamente',
+    r_vid_instr: 'Agora você verá prévias de alguns vídeos. Para cada um, responda à pergunta abaixo.',
+    r_vid_q: 'O quanto você tem interesse em assistir a este vídeo?',
+    r_vid_lo: 'Nenhum interesse', r_vid_hi: 'Interesse total',
+    r_progress: '{n} / {total}',
+    r_touch_all: 'Por favor, mova cada barra antes de continuar.',
+    r_done: 'Avaliações concluídas.',
 
     t1_title: 'Jogo 1',
     t1_instr_1: 'Neste jogo, você vai escolher entre duas atividades. Clique no botão COMEÇAR na parte de baixo. Duas atividades vão aparecer. Mova o mouse até a atividade que você escolher e clique nela.',

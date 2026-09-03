@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ratings</title>
+<style>
+  :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .container { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--ink); }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header .step { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--soft); }
+  .bar { height: 3px; background: var(--rule); margin-bottom: 24px; }
+  .bar div { height: 100%; background: var(--accent); transition: width 0.2s; }
+
+  .intro, .card { background: var(--panel); border: 1px solid var(--ink); padding: 28px 32px; }
+  .intro h2 { font-size: 19px; margin-bottom: 12px; }
+  .intro p { font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+  .big-btn { display: block; margin: 22px auto 0; padding: 12px 40px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; font-family: inherit; }
+  .big-btn:hover { opacity: 0.9; }
+  .big-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .stim { text-align: center; padding: 18px 10px 26px; border-bottom: 1px solid var(--rule); margin-bottom: 20px; }
+  .stim .txt { font-size: 24px; font-weight: 600; line-height: 1.35; }
+  .stim img { display: block; width: 100%; max-width: 420px; aspect-ratio: 16/9; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--ink); background: #000; }
+  .stim .cat { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); margin-top: 8px; }
+
+  .q { margin-bottom: 26px; }
+  .q .label { font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
+  .slider { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+  .slider .end { font-size: 12px; color: var(--soft); max-width: 90px; line-height: 1.3; }
+  .slider .end.hi { text-align: right; }
+  input[type=range] { width: 100%; height: 34px; cursor: pointer; accent-color: var(--accent); }
+  input[type=range].untouched { accent-color: var(--rule); opacity: 0.55; }
+  .val { text-align: center; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--soft); min-height: 18px; margin-top: 4px; }
+
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
+  .nav .err { color: var(--accent); font-size: 14px; flex: 1; }
+  .nav button { padding: 12px 34px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-family: inherit; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .nav button:disabled { opacity: 0.5; cursor: default; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 id="partLabel"></h1>
+    <span class="step" id="progress"></span>
+  </header>
+  <div class="bar"><div id="bar" style="width:0%"></div></div>
+
+  <section class="intro" id="intro">
+    <h2 data-i18n="r_title"></h2>
+    <p id="introText"></p>
+    <button class="big-btn" id="introBtn" data-i18n="start"></button>
+  </section>
+
+  <section class="card hidden" id="card">
+    <div class="stim" id="stim"></div>
+    <div id="questions"></div>
+    <div class="nav">
+      <div class="err" id="err"></div>
+      <button id="nextBtn" data-i18n="next"></button>
+    </div>
+  </section>
+
+  <section class="intro hidden" id="done">
+    <p><b data-i18n="r_done"></b></p>
+    <p id="doneNote"></p>
+  </section>
+</div>
+
+<script src="../shared/config.js"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/videos.js"></script>
+<script src="../shared/stimuli.js"></script>
+<script src="../shared/session.js"></script>
+<script>
+/* =============================================================
+   RATINGS — stimulus norming (doc "Task 1 Candidate Activity Stimuli v2")
+   Part A: each activity on two 0–100 sliders (enjoyable now / useful for
+           the quiz). Order shuffled per student across the 3 categories.
+   Part B: each video preview (thumbnail) on one 0–100 interest slider.
+   Sliders start "untouched" (no anchoring value shown) and must be moved.
+   ============================================================= */
+
+const $ = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const intParam = (name, dflt) => { const v = parseInt(qs.get(name), 10); return Number.isFinite(v) && v >= 0 ? v : dflt; };
+const t = (k, v) => Session.t(k, v);
+Session.applyI18n();
+document.title = t('r_title');
+
+function shuffle(arr){ const a = arr.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+const PARTS = [
+  {
+    key: 'activities', label: t('r_part_a'), instr: t('r_act_instr'),
+    items: shuffle(ACTIVITIES).slice(0, Math.min(intParam('n', CONFIG.RATINGS_ACTIVITIES_N), ACTIVITIES.length)),
+    questions: [
+      { id: 'enjoy',  label: t('r_act_q1'), lo: t('r_act_lo'), hi: t('r_act_hi') },
+      { id: 'useful', label: t('r_act_q2'), lo: t('r_act_lo'), hi: t('r_act_hi') },
+    ],
+    sheet: 'activity_ratings',
+    row: (it, vals, extra) => ({ activity_id: it.id, category: it.cat, subcategory: it.sub ?? '', flagged: !!it.flagged,
+                                 text_en: it.en, text_shown: Session.pick(it), enjoy: vals.enjoy, useful: vals.useful, ...extra }),
+    render: it => `<div class="txt">${esc(Session.pick(it))}</div>`,
+  },
+  {
+    key: 'videos', label: t('r_part_b'), instr: t('r_vid_instr'),
+    items: shuffle(VIDEO_STIMULI).slice(0, Math.min(intParam('nv', CONFIG.RATINGS_VIDEOS_N), VIDEO_STIMULI.length)),
+    questions: [ { id: 'interest', label: t('r_vid_q'), lo: t('r_vid_lo'), hi: t('r_vid_hi') } ],
+    sheet: 'video_ratings',
+    row: (it, vals, extra) => ({ video_id: it.id, category: it.cat, interest: vals.interest, ...extra }),
+    render: it => `<img src="${it.thumb}" alt="" draggable="false"><div class="cat">${esc(it.cat)}</div>`,
+  },
+];
+// Preload thumbnails so Part B doesn't stall on the first item
+PARTS[1].items.forEach(v => { const im = new Image(); im.src = v.thumb; });
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+let part = 0, idx = 0, shownAt = 0;
+let pending = [];          // rows not yet uploaded (chunked saves)
+
+function showIntro(){
+  const P = PARTS[part];
+  $('partLabel').textContent = P.label;
+  $('progress').textContent = '';
+  $('introText').textContent = P.instr;
+  $('intro').classList.remove('hidden');
+  $('card').classList.add('hidden');
+}
+
+function showItem(){
+  const P = PARTS[part];
+  const it = P.items[idx];
+  $('intro').classList.add('hidden');
+  $('card').classList.remove('hidden');
+  $('progress').textContent = t('r_progress', { n: idx + 1, total: P.items.length });
+  $('bar').style.width = `${Math.round(100 * idx / P.items.length)}%`;
+  $('stim').innerHTML = P.render(it);
+  $('questions').innerHTML = P.questions.map(q => `
+    <div class="q">
+      <div class="label">${esc(q.label)}</div>
+      <div class="slider">
+        <span class="end lo">0<br>${esc(q.lo)}</span>
+        <input type="range" min="0" max="100" value="50" class="untouched" data-q="${q.id}">
+        <span class="end hi">100<br>${esc(q.hi)}</span>
+      </div>
+      <div class="val" data-val="${q.id}"></div>
+    </div>`).join('');
+  $('questions').querySelectorAll('input[type=range]').forEach(r => {
+    const touch = () => { r.classList.remove('untouched'); r.dataset.touched = '1';
+      $('questions').querySelector(`[data-val="${r.dataset.q}"]`).textContent = r.value; };
+    r.addEventListener('input', touch);
+    r.addEventListener('pointerdown', touch);
+  });
+  $('err').textContent = '';
+  $('nextBtn').textContent = t('next');
+  shownAt = performance.now();
+  window.scrollTo(0, 0);
+}
+
+async function flush(force){
+  const P = PARTS[part];
+  if (!pending.length) return;
+  if (!force && pending.length < CONFIG.RATINGS_SAVE_EVERY) return;
+  const rows = pending; pending = [];
+  await Session.save({ [P.sheet]: rows }, 'ratings');
+}
+
+$('introBtn').addEventListener('click', () => { idx = 0; Session.log(`ratings_${PARTS[part].key}_start`, { n_items: PARTS[part].items.length }); showItem(); });
+
+$('nextBtn').addEventListener('click', async () => {
+  const P = PARTS[part];
+  const ranges = [...$('questions').querySelectorAll('input[type=range]')];
+  if (ranges.some(r => !r.dataset.touched)){ $('err').textContent = t('r_touch_all'); return; }
+  const vals = {}; ranges.forEach(r => vals[r.dataset.q] = +r.value);
+  pending.push(P.row(P.items[idx], vals, { order_idx: idx + 1, rt_ms: Math.round(performance.now() - shownAt) }));
+  $('nextBtn').disabled = true;
+  idx++;
+  if (idx < P.items.length){
+    flush(false);                       // chunked upload in the background
+    showItem();
+    $('nextBtn').disabled = false;
+    return;
+  }
+  await flush(true);
+  Session.log(`ratings_${P.key}_complete`);
+  part++;
+  $('nextBtn').disabled = false;
+  if (part < PARTS.length){ showIntro(); return; }
+  finish();
+});
+
+async function finish(){
+  $('card').classList.add('hidden');
+  $('done').classList.remove('hidden');
+  $('bar').style.width = '100%';
+  $('progress').textContent = '';
+  $('doneNote').textContent = t('saving');
+  await Session.log('ratings_complete', {}, true);
+  if (Session.standalone){
+    $('doneNote').textContent = 'Standalone run — data is in localStorage (download on done.html).';
+  } else {
+    Session.next('ratings');
+  }
+}
+
+showIntro();
+</script>
+</body>
+</html>

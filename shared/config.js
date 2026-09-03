@@ -11,7 +11,12 @@ const CONFIG = {
   DEFAULT_LANG: 'pt',
 
   // Student session order. Each step is a page; Session.next() walks it.
-  FLOW: ['survey', 'task1', 'task2', 'done'],
+  FLOW: ['survey', 'ratings', 'task1', 'task2', 'done'],
+
+  // Ratings (stimulus norming, doc "Task 1 Candidate Activity Stimuli v2")
+  RATINGS_ACTIVITIES_N: 90,   // how many of the 90 activities each student rates (?n= overrides)
+  RATINGS_VIDEOS_N: 18,       // how many video previews (?nv= overrides)
+  RATINGS_SAVE_EVERY: 15,     // upload activity ratings in chunks of this size
 
   // Task 1 — goal–temptation mouse-tracking
   TASK1_PRACTICE_TRIALS: 3,   // practice rounds (not scored)

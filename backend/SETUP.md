@@ -42,6 +42,8 @@ sheet as data arrives:
 |---|---|---|
 | `session_log` | milestone event | `event`, `condition` |
 | `survey` | answered item | `section`, `item`, `value`, `label`, `activity` (piped block), `rank` (top-3) |
+| `activity_ratings` | rated activity | `activity_id`, `category`, `subcategory`, `flagged`, `enjoy`, `useful` (0–100), `order_idx`, `rt_ms` |
+| `video_ratings` | rated video preview | `video_id`, `category`, `interest` (0–100), `order_idx`, `rt_ms` |
 | `task1_trials` | Task 1 trial | `is_practice`, `chosen_type`, `rt_ms`, `init_time_ms`, `slow_start`, `auc`, `md`, `x_flips` |
 | `task1_trajectories` | Task 1 trial | `trial`, `n_bins`, `x_norm`, `y_norm` (JSON arrays of 101 time-normalized values) |
 | `task2_summary` | Task 2 session | `lock_choice`, `lock_auc`, `points`, `main_study_ms`, `main_video_ms`, `switches` |
