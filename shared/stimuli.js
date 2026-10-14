@@ -141,9 +141,4 @@ const activityPicKind = act => ACTIVITY_IMAGES[act.id] ? 'image' : 'emoji';
 /* Video preview stimuli for the Task 2 rating block: the current Task 2
    playlist (shared/videos.js), thumbnails from YouTube. Replace with the
    team's candidate list when available. */
-const VIDEO_CAT_LABELS = {
-  Sports:     { en: 'Sports',     pt: 'Esportes' },
-  Animals:    { en: 'Animals',    pt: 'Animais' },
-  Satisfying: { en: 'Satisfying', pt: 'Satisfatórios' },
-};
 const VIDEO_STIMULI = VIDEOS.map(v => ({ id: v.id, cat: v.cat, thumb: 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg' }));

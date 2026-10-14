@@ -200,6 +200,15 @@
     background: #000; min-height: 380px;
   }
   .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  /* Touch screens: a finger can't hover, and taps on the YouTube iframe
+     never reach this page — so while the video side is inactive a shield
+     over the player catches the tap that activates it. */
+  .tap-shield { position: absolute; inset: 0; z-index: 2; display: none; align-items: center; justify-content: center; cursor: pointer; }
+  .pane.video.inactive .tap-shield { display: flex; }
+  .tap-hint { display: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; pointer-events: none; }
+  .tap-shield .tap-hint { background: rgba(0, 0, 0, 0.65); color: #fff; }
+  .study-tap { align-self: center; margin-bottom: 14px; background: var(--ink); color: var(--bg); }
+  .touch-ui .pane.inactive .tap-hint { display: block; }
   .next-video {
     margin-top: 12px; width: 100%;
     padding: 10px; border: 1px solid #3a3a4c; border-radius: 8px;
@@ -241,7 +250,7 @@
   .done .controls button:hover { opacity: 0.85; }
 
   .hidden { display: none !important; }
-  @media (max-width: 880px) { main.split { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) { main.split { grid-template-columns: 1fr; } }   /* iPad portrait keeps the split */
 </style>
 </head>
 <body>
@@ -303,6 +312,7 @@
   <main class="split hidden" id="split">
     <section class="pane study inactive" id="studyPane">
       <div class="study-label" data-i18n="t2_study"></div>
+      <div class="tap-hint study-tap" data-i18n="t2_tap_study"></div>
       <div class="study-card">
         <div class="qnum"><span data-i18n="t2_question"></span> <span id="qNum">1</span></div>
         <div class="expr" id="qText"></div>
@@ -318,7 +328,9 @@
         <span class="tag" data-i18n="t2_shorts"></span>
         <span class="cat" id="vidCat"></span>
       </div>
-      <div class="player" id="playerBox"><div id="ytPlayer"></div></div>
+      <div class="player" id="playerBox"><div id="ytPlayer"></div>
+        <div class="tap-shield"><span class="tap-hint" data-i18n="t2_tap_watch"></span></div>
+      </div>
       <div class="video-off hidden" id="videoOff">
         <div class="lock-icon">🔒</div>
         <div data-i18n="t2_videos_off"></div>
@@ -385,6 +397,9 @@ const PRACTICE_SEC = secParam('practice', CONFIG.TASK2_PRACTICE_SEC);   // pract
 const MAIN_SEC     = secParam('dur', CONFIG.TASK2_MAIN_SEC);            // main phase after choice
 const TICK_MS = 200;
 const REVIEW = Session.review;
+// Primary input can't hover (iPad / phone without a mouse): tap-to-switch UI and instructions.
+const TOUCH_UI = matchMedia('(hover: none)').matches;
+if (TOUCH_UI) document.body.classList.add('touch-ui');
 
 /* ---------- participant-facing text ---------- */
 Session.applyI18n();
@@ -392,7 +407,7 @@ document.title = Session.t('t2_title');
 {
   const mainMin  = Math.round(MAIN_SEC / 60);
   const totalMin = Math.round((PRACTICE_SEC + MAIN_SEC) / 60);
-  document.getElementById('intro1').innerHTML = Session.t('t2_intro_1', { min: totalMin });
+  document.getElementById('intro1').innerHTML = Session.t(TOUCH_UI ? 't2_intro_1_touch' : 't2_intro_1', { min: totalMin });
   document.getElementById('intro2').innerHTML = Session.t('t2_intro_2');
   document.getElementById('lockIntro').innerHTML = Session.t('t2_lock_intro', { min: mainMin });
   document.getElementById('putAwayDesc').textContent = Session.t('t2_put_away_desc', { min: mainMin });
@@ -476,7 +491,7 @@ window.onYouTubeIframeAPIReady = () => {
 
 function updateVidCat(){
   $('vidCat').textContent =
-    `${state.playlist[state.vidIdx].cat} · ${state.vidIdx + 1}/${state.playlist.length}`;
+    `${Session.pick(VIDEO_CAT_LABELS[state.playlist[state.vidIdx].cat]) || state.playlist[state.vidIdx].cat} · ${state.vidIdx + 1}/${state.playlist.length}`;
 }
 
 function loadVideo(idx, reason){
@@ -512,6 +527,7 @@ function serveQuestion(){
 }
 
 $('answers').addEventListener('click', e => {
+  if (swallowClick){ swallowClick = false; return; }
   const btn = e.target.closest('button');
   if (!btn || !running() || state.activeSide !== 'study' || state.answerLock) return;
   state.answerLock = true;
@@ -538,12 +554,14 @@ $('answers').addEventListener('click', e => {
 
 /* ---------- side activation ---------- */
 
-function setActive(side){
+/* via: 'hover' (mouse enters the side) | 'tap' (finger/pen) | 'click' (mouse
+   press — rarely needed, the hover already switched). */
+function setActive(side, via){
   if (!running() || state.activeSide === side) return;
   if (side === 'video' && state.videoLocked) return;   // locked side is dead
   if (state.activeSide !== null) state.switches++;     // first hover of a phase isn't a switch
   state.activeSide = side;
-  logEvent('switch', { side });
+  logEvent('switch', { side, via });
   $('studyPane').classList.toggle('inactive', side !== 'study');
   $('videoPane').classList.toggle('inactive', side !== 'video');
   if (playerReady){
@@ -552,8 +570,18 @@ function setActive(side){
   }
 }
 
-$('studyPane').addEventListener('mouseenter', () => setActive('study'));
-$('videoPane').addEventListener('mouseenter', () => setActive('video'));
+$('studyPane').addEventListener('mouseenter', () => setActive('study', 'hover'));
+$('videoPane').addEventListener('mouseenter', () => setActive('video', 'hover'));
+// Touch screens have no hover: tapping a side makes it active (the first tap
+// on an inactive study side only activates it, it doesn't answer).
+const viaOf = e => e.pointerType === 'mouse' ? 'click' : 'tap';
+let swallowClick = false;   // the tap that activated the study side must not also answer
+$('studyPane').addEventListener('pointerdown', e => {
+  const was = state.activeSide;
+  setActive('study', viaOf(e));
+  swallowClick = was !== state.activeSide;
+});
+$('videoPane').addEventListener('pointerdown', e => setActive('video', viaOf(e)));
 
 /* ---------- session loop ---------- */
 
@@ -834,6 +862,8 @@ function summaryRow(){
     practice_study_ms: d.practice.study, practice_video_ms: d.practice.video, practice_none_ms: d.practice.none,
     main_study_ms: d.main.study, main_video_ms: d.main.video, main_none_ms: d.main.none,
     switches: state.switches, videos_completed: state.videosCompleted,
+    touch_ui: TOUCH_UI,
+    taps: state.events.filter(e => e.type === 'switch' && e.via === 'tap').length,
   };
 }
 let saved = false;

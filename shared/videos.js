@@ -27,3 +27,10 @@ const VIDEOS = [
   { cat: 'Satisfying', id: 'SRNUksuwQHc' },
   { cat: 'Satisfying', id: '4PpNDrEQUwo' },
 ];
+
+/* Category names shown to participants. */
+const VIDEO_CAT_LABELS = {
+  Sports:     { en: 'Sports',     pt: 'Esportes' },
+  Animals:    { en: 'Animals',    pt: 'Animais' },
+  Satisfying: { en: 'Satisfying', pt: 'Satisfatórios' },
+};

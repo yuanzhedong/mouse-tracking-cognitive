@@ -54,6 +54,13 @@ The drag path is scored exactly like a mouse path; rows record
 separately, as dragging is slower than mousing. `?drag=1` forces drag mode
 with a mouse for testing (`mouse_drag`).
 
+In the Task 2 split screen a finger can't hover, so on a touch screen
+(`(hover: none)`) the intro says "tap a side to use it" and each inactive
+side shows "Toque para estudar / assistir"; the last side tapped stays
+active. The first tap on the inactive study side only switches (it never
+answers). Switch events record `via` (`hover` / `tap` / `click`); the
+summary records `touch_ui` and `taps`.
+
 The "start moving sooner" reminder in Task 1 fires at **300 ms**; every
 trial records `init_time_ms` (and the threshold `init_warn_ms`) so the
 cut-off can be re-tuned from the pilot data.

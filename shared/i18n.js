@@ -66,6 +66,9 @@ const STRINGS = {
     /* task 2 */
     t2_title: 'Game 2',
     t2_intro_1: 'Now you have about <b>{min} minutes</b> before the quiz. You’re going to see a split screen: the <b>left side is study content</b>, and the <b>right side is YouTube videos</b>. Whichever side your mouse is on becomes active — move your mouse to a side to use it.',
+    t2_intro_1_touch: 'Now you have about <b>{min} minutes</b> before the quiz. You’re going to see a split screen: the <b>left side is study content</b>, and the <b>right side is YouTube videos</b>. Tap a side to use it — the side you tapped last stays active.',
+    t2_tap_study: 'Tap to study',
+    t2_tap_watch: 'Tap to watch',
     t2_intro_2: 'You are <b>not obligated</b> to do the math if you don’t want to, and you will <b>not be punished</b> for choosing to watch videos. This time is yours — it’s up to you how you want to use it.',
     t2_lock_title: 'One choice before you continue.',
     t2_lock_intro: 'You now have <b>{min} minutes</b> before the quiz. During these {min} minutes, the videos can stay on your screen or you can put them away. It’s up to you:',
@@ -172,6 +175,9 @@ const STRINGS = {
 
     t2_title: 'Jogo 2',
     t2_intro_1: 'Agora você tem cerca de <b>{min} minutos</b> antes da prova. Você verá uma tela dividida: o <b>lado esquerdo mostra conteúdo para estudar</b>, e o <b>lado direito mostra vídeos do YouTube</b>. O lado em que o seu mouse estiver se torna ativo — mova o mouse para um lado para usá-lo.',
+    t2_intro_1_touch: 'Agora você tem cerca de <b>{min} minutos</b> antes da prova. Você verá uma tela dividida: o <b>lado esquerdo mostra conteúdo para estudar</b>, e o <b>lado direito mostra vídeos do YouTube</b>. Toque em um lado para usá-lo — o último lado em que você tocou continua ativo.',
+    t2_tap_study: 'Toque para estudar',
+    t2_tap_watch: 'Toque para assistir',
     t2_intro_2: 'Você <b>não é obrigado(a)</b> a fazer as questões de matemática se não quiser, e <b>não será penalizado(a)</b> por escolher assistir aos vídeos. Este tempo é seu — você decide como quer usá-lo.',
     t2_lock_title: 'Uma escolha antes de continuar.',
     t2_lock_intro: 'Agora você tem <b>{min} minutos</b> antes da prova. Durante esses {min} minutos, os vídeos podem continuar na tela ou você pode removê-los. Você decide:',
