@@ -153,6 +153,13 @@
     display: flex; flex-direction: column;
   }
   .pane.inactive { opacity: 0.45; filter: grayscale(0.4); }
+  /* Inactive side is blurred so it can't be followed from the other side.
+     Blur the content, not the pane, so the "tap to …" hints stay sharp. */
+  .pane .study-label, .pane .study-card, .pane .shorts-label, .pane .player iframe, .pane .next-video {
+    transition: filter 0.25s ease;
+  }
+  .pane.inactive .study-label, .pane.inactive .study-card, .pane.inactive .shorts-label,
+  .pane.inactive .player iframe, .pane.inactive .next-video { filter: blur(10px); }
   .pane.inactive .study-card button { pointer-events: none; }
 
   /* study side */
