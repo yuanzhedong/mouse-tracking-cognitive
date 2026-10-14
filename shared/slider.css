@@ -1,0 +1,38 @@
+/* 0–100 / allocation sliders (shared/slider.js). Big thumb + thick track so
+   the slider is easy to grab with a mouse, trackpad or finger; looks the
+   same in Chrome, Safari and Firefox. Before the first touch the thumb is
+   hollow and the track unfilled (no anchoring value shown). */
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 44px; margin: 0; padding: 0;
+  background: transparent; cursor: pointer;
+  touch-action: none;                 /* dragging never scrolls the page */
+  --fill: 50%;
+}
+input[type=range]:focus { outline: none; }
+input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=range]::-webkit-slider-runnable-track {
+  height: 10px; border-radius: 5px; border: 1px solid var(--ink);
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--bg) var(--fill));
+}
+input[type=range]::-moz-range-track {
+  height: 10px; border-radius: 5px; border: 1px solid var(--ink);
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--bg) var(--fill));
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 28px; height: 28px; margin-top: -10px; border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--ink);
+}
+input[type=range]::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); border: 3px solid var(--bg); box-shadow: 0 0 0 1px var(--ink);
+}
+input[type=range].untouched::-webkit-slider-runnable-track { background: var(--bg); }
+input[type=range].untouched::-moz-range-track { background: var(--bg); }
+input[type=range].untouched::-webkit-slider-thumb { background: var(--bg); border-color: var(--soft); box-shadow: 0 0 0 1px var(--soft); }
+input[type=range].untouched::-moz-range-thumb { background: var(--bg); border-color: var(--soft); box-shadow: 0 0 0 1px var(--soft); }
+/* .no-fill: two-sided split sliders (allocation) — a fill would read as
+   belonging to one side only. */
+input[type=range].no-fill::-webkit-slider-runnable-track { background: var(--bg); }
+input[type=range].no-fill::-moz-range-track { background: var(--bg); }
