@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 1</title>
 <link rel="stylesheet" href="../shared/activity.css">
+<link rel="stylesheet" href="../shared/dragcursor.css">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -262,6 +263,7 @@
 <script src="../shared/stimuli.js"></script>
 <script src="../shared/session.js"></script>
 <script src="../shared/mousetracking.js"></script>
+<script src="../shared/dragcursor.js"></script>
 <script>
 /* =============================================================
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
@@ -359,6 +361,7 @@ function setupTrial(){
   $('optRightPic').innerHTML = activityPic(right); $('optRightCap').textContent = Session.pick(right);
   ['optLeft','optRight','stimulus','reviewCanvas','reviewBadge','reviewMeta','donePanel','nextBtn','warn']
     .forEach(id => $(id).classList.add('hidden'));
+  drag.reset();
   $('optLeft').classList.remove('review');
   $('optRight').classList.remove('review');
   $('startBtn').classList.remove('hidden');
@@ -395,9 +398,13 @@ $('interBtn').addEventListener('click', () => {
 
 /* ---------- trial flow ---------- */
 
-$('startBtn').addEventListener('click', e => {
-  if (state.stage !== 'awaiting_start') return;
+/* Start a trial from a START press. inputType: 'mouse' (click, cursor
+   tracked by mousemove) or, via the drag cursor, 'touch' / 'pen' /
+   'mouse_drag' (path tracked by dragging). Returns true if started. */
+function startTrial(e, inputType = 'mouse'){
+  if (state.stage !== 'awaiting_start') return false;
   const c = state.current;
+  c.inputType = inputType;
   c.stageRect = $('stage').getBoundingClientRect();
   c.startPos  = { x: e.clientX, y: e.clientY };
   c.startTime = performance.now();
@@ -407,11 +414,21 @@ $('startBtn').addEventListener('click', e => {
   $('optRight').classList.remove('hidden');
   $('stimulus').classList.remove('hidden');
   state.stage = 'in_trial';
-});
+  return true;
+}
+$('startBtn').addEventListener('click', e => startTrial(e));
 
+const addSample = (x, y) => state.current.samples.push({ x, y, t: performance.now() - state.current.startTime });
 document.addEventListener('mousemove', e => {
-  if (state.stage !== 'in_trial') return;
-  state.current.samples.push({ x: e.clientX, y: e.clientY, t: performance.now() - state.current.startTime });
+  if (state.stage !== 'in_trial' || drag.active) return;
+  addSample(e.clientX, e.clientY);
+});
+const drag = DragCursor.create({
+  stage: $('stage'), startBtn: $('startBtn'), targets: [$('optLeft'), $('optRight')],
+  hint: Session.t('drag_hint'),
+  onStart: startTrial,
+  onMove: (x, y) => { if (state.stage === 'in_trial') addSample(x, y); },
+  onDrop: (i, e) => pickOption(i === 0 ? 'left' : 'right', e),
 });
 
 function centerOf(el){ const r = el.getBoundingClientRect(); return { x: r.left + r.width/2, y: r.top + r.height/2 }; }
@@ -513,7 +530,7 @@ function trialRow(t){
     left_picture: activityPicKind(t.leftAct), right_picture: activityPicKind(t.rightAct),
     chosen_id: t.chosenId, chosen: t.chosen, chosen_type: t.chosenType, chosen_side: t.chosenSide,
     rt_ms: Math.round(t.rt), init_time_ms: t.initTime !== null ? Math.round(t.initTime) : '',
-    init_warn_ms: INIT_WARN_MS, slow_start: t.slowStart, auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
+    init_warn_ms: INIT_WARN_MS, slow_start: t.slowStart, input_type: t.inputType, auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
     n_samples: t.samples.length,
     stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
   };
@@ -540,6 +557,7 @@ async function finishTask(){
   state.current = null;
   ['optLeft','optRight','stimulus','startBtn','reviewCanvas','reviewBadge','reviewMeta','nextBtn','warn']
     .forEach(id => $(id).classList.add('hidden'));
+  drag.reset();
   $('donePanel').classList.remove('hidden');
   $('doneNote').textContent = Session.t('saving');
   const all = [...state.practice, ...state.trials];

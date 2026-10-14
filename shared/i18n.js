@@ -61,6 +61,7 @@ const STRINGS = {
     t1_trial: 'round {n} / {total}',
     t1_done: 'Game 1 complete.',
     t1_choose: 'choose',
+    drag_hint: 'Drag the circle to your choice',
 
     /* task 2 */
     t2_title: 'Game 2',
@@ -167,6 +168,7 @@ const STRINGS = {
     t1_trial: 'rodada {n} / {total}',
     t1_done: 'Jogo 1 concluído.',
     t1_choose: 'escolha',
+    drag_hint: 'Arraste o círculo até a sua escolha',
 
     t2_title: 'Jogo 2',
     t2_intro_1: 'Agora você tem cerca de <b>{min} minutos</b> antes da prova. Você verá uma tela dividida: o <b>lado esquerdo mostra conteúdo para estudar</b>, e o <b>lado direito mostra vídeos do YouTube</b>. O lado em que o seu mouse estiver se torna ativo — mova o mouse para um lado para usá-lo.',

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 2</title>
+<link rel="stylesheet" href="../shared/dragcursor.css">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -358,6 +359,7 @@
 <script src="../shared/questions.js"></script>
 <script src="../shared/videos.js"></script>
 <script src="../shared/mousetracking.js"></script>
+<script src="../shared/dragcursor.js"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -633,9 +635,12 @@ $('lockContinue').addEventListener('click', () => {
   logEvent('lock_stage_shown');
 });
 
-$('lockStartBtn').addEventListener('click', e => {
-  if (state.phase !== 'lock' || lockTrial.started) return;
+/* inputType: 'mouse' (click) or, via the drag cursor, 'touch' / 'pen' /
+   'mouse_drag'. Returns true if the trial started. */
+function startLockTrial(e, inputType = 'mouse'){
+  if (state.phase !== 'lock' || lockTrial.started) return false;
   lockTrial.started = true;
+  lockTrial.inputType = inputType;
   lockTrial.stageRect = $('lockStage').getBoundingClientRect();
   lockTrial.startPos = { x: e.clientX, y: e.clientY };
   lockTrial.startTime = performance.now();
@@ -652,14 +657,21 @@ $('lockStartBtn').addEventListener('click', e => {
   $('lockOptLeft').classList.remove('hidden');
   $('lockOptRight').classList.remove('hidden');
   $('lockPrompt').classList.remove('hidden');
-});
+  return true;
+}
+$('lockStartBtn').addEventListener('click', e => startLockTrial(e));
 
+const addLockSample = (x, y) => lockTrial.samples.push({ x, y, t: performance.now() - lockTrial.startTime });
 document.addEventListener('mousemove', e => {
-  if (state.phase !== 'lock' || !lockTrial.started || lockTrial.done) return;
-  lockTrial.samples.push({
-    x: e.clientX, y: e.clientY,
-    t: performance.now() - lockTrial.startTime,
-  });
+  if (state.phase !== 'lock' || !lockTrial.started || lockTrial.done || lockDrag.active) return;
+  addLockSample(e.clientX, e.clientY);
+});
+const lockDrag = DragCursor.create({
+  stage: $('lockStage'), startBtn: $('lockStartBtn'), targets: [$('lockOptLeft'), $('lockOptRight')],
+  hint: Session.t('drag_hint'),
+  onStart: startLockTrial,
+  onMove: (x, y) => { if (lockTrial.started && !lockTrial.done) addLockSample(x, y); },
+  onDrop: (i, e) => pickLock(i === 0 ? 'left' : 'right', e),
 });
 
 function centerOf(el){
@@ -696,6 +708,7 @@ function pickLock(side, e){
     x_flips: m.xFlips,
     rt_ms: Math.round(rt),
     init_ms: initTime !== null ? Math.round(initTime) : '',
+    input_type: lockTrial.inputType,
   });
   // time-normalized trajectory (101 bins) as JSON arrays in one event
   state.events.push({

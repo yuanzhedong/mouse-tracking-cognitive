@@ -44,6 +44,16 @@ Every saved row carries `mt_version`, `mt_rand`, `horizon_group`, `hz_rand`.
 | `mt` — Task 1 prompt | **A** "Você terá uma prova em breve. Qual atividade você escolhe fazer agora?" | **B** "Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?" |
 | `hz` — allocation horizon | **weeks**: 1 week / 2 weeks from now | **months**: 1 month / 2 months from now |
 
+**Touch screens (iPad):** a finger sends no mouse-movement stream, so on
+touch/pen input the choice trials (Task 1 and the Task 2 lock choice) run
+as a drag: pressing START puts a round cursor under the finger and the
+student drags it onto an option and lets go (tapping an option directly
+does nothing; lifting early leaves the cursor in place to pick up again).
+The drag path is scored exactly like a mouse path; rows record
+`input_type` (`mouse` / `touch` / `pen`) — analyze touch trials
+separately, as dragging is slower than mousing. `?drag=1` forces drag mode
+with a mouse for testing (`mouse_drag`).
+
 The "start moving sooner" reminder in Task 1 fires at **300 ms**; every
 trial records `init_time_ms` (and the threshold `init_warn_ms`) so the
 cut-off can be re-tuned from the pilot data.
@@ -98,6 +108,8 @@ shared/
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
   mousetracking.js    – AUC/MD/x-flips metrics (Freeman & Ambady 2010)
+  dragcursor.js/.css  – drag cursor for mouse-tracking on touch screens
+  slider.js/.css      – 0–100 / allocation sliders (mouse + touch)
 backend/
   Code.gs             – Google Apps Script receiver (→ Google Sheet)
   SETUP.md            – deployment steps
