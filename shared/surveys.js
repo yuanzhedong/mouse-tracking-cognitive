@@ -120,3 +120,10 @@ const SURVEYS = [
     ],
   },
 ];
+
+/* Daily Reset questionnaire — shown right before Task 1 (daily_reset/).
+   Questions pending: Priscilla finalizes, Karine translates to PT. Add
+   sections here in the same format as SURVEYS (e.g. a `likert` block with
+   title / instructions / scale / items, each with en + pt); answers go to
+   the `daily_reset` sheet. While empty, student sessions skip the step. */
+const DAILY_RESET = [];

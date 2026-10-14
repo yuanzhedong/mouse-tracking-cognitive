@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 1</title>
+<link rel="stylesheet" href="../shared/activity.css">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -72,12 +73,10 @@
     background: var(--bg); border: 1px solid var(--ink);
     cursor: pointer; font-family: inherit;
     transition: box-shadow 0.12s ease;
-    width: 176px;
+    width: 196px;
   }
-  /* The stimulus PNGs carry an English title in the top ~16 %; crop it and
-     show a localized caption instead. */
-  .option .pic { display: block; width: 164px; height: 128px; overflow: hidden; }
-  .option .pic img { display: block; width: 200px; height: 200px; margin: -66px 0 0 -18px; pointer-events: none; }
+  .option .pic { pointer-events: none; }
+  .option .pic.emoji { font-size: 76px; }
   .option .cap {
     display: block; margin-top: 6px; font-size: 12px; line-height: 1.3;
     font-weight: 600; color: var(--ink); text-align: center; min-height: 32px;
@@ -206,11 +205,11 @@
   <main class="hidden" id="main">
     <div class="stage" id="stage">
       <button class="option opt-left hidden" id="optLeft">
-        <span class="pic"><img id="optLeftImg" alt="" draggable="false"></span>
+        <span id="optLeftPic"></span>
         <span class="cap" id="optLeftCap"></span>
       </button>
       <button class="option opt-right hidden" id="optRight">
-        <span class="pic"><img id="optRightImg" alt="" draggable="false"></span>
+        <span id="optRightPic"></span>
         <span class="cap" id="optRightCap"></span>
       </button>
       <div    class="stimulus hidden"         id="stimulus"></div>
@@ -242,7 +241,7 @@
       <div class="card">
         <h3>Aggregate · n=<span id="nTrials">0</span></h3>
         <dl class="metrics">
-          <dt>condition</dt> <dd id="condLabel">—</dd>
+          <dt>version</dt>  <dd id="condLabel">—</dd>
           <dt>mean AUC</dt> <dd id="meanAUC">—</dd>
           <dt>mean MD</dt>  <dd id="meanMD">—</dd>
           <dt>mean RT</dt>  <dd id="meanRT">—</dd>
@@ -259,6 +258,8 @@
 
 <script src="../shared/config.js"></script>
 <script src="../shared/i18n.js"></script>
+<script src="../shared/videos.js"></script>
+<script src="../shared/stimuli.js"></script>
 <script src="../shared/session.js"></script>
 <script src="../shared/mousetracking.js"></script>
 <script>
@@ -266,34 +267,30 @@
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
    Flow: instructions → practice trials → interstitial → main trials
          → (session: save + next page | standalone: done panel + CSV)
-   Prompt condition (Session.cond): 'immediate' | 'goal' — one prompt
-   per student across all trials. AUC & MD after Freeman & Ambady (2010).
+   Stimuli: the 90 rated activities (shared/stimuli.js) with the same
+   pictures as the ratings. Main trials pair a study activity with an
+   entertainment activity (random pairing per student, goal side balanced);
+   practice trials pair two neutral activities.
+   Prompt version (Session.mt): 'A' choose now | 'B' helps on the test —
+   one per student across all trials. AUC & MD after Freeman & Ambady (2010).
    ============================================================= */
 
 const $ = id => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
 const intParam = (name, dflt) => { const v = parseInt(qs.get(name), 10); return Number.isFinite(v) && v >= 0 ? v : dflt; };
 
-const STIM_DIR = 'goal_temptation_stimuli';
-const stim = key => ({ key, img: `${STIM_DIR}/${key}.png`, label: STIM_LABELS[key].en, caption: Session.pick(STIM_LABELS[key]) });
-const PAIRS = [
-  { goal: stim('01_complete_practice_problems'),   temptation: stim('02_watch_youtube_shorts') },
-  { goal: stim('03_review_your_class_notes'),      temptation: stim('04_play_a_phone_game') },
-  { goal: stim('05_study_with_digital_flashcards'), temptation: stim('06_watch_soccer_highlights') },
-  { goal: stim('07_prepare_for_tomorrows_quiz'),   temptation: stim('08_group_chat_with_friends') },
-  { goal: stim('09_work_on_homework_correction'),  temptation: stim('10_scroll_funny_memes') },
-];
-PAIRS.forEach(p => [p.goal.img, p.temptation.img].forEach(src => { const im = new Image(); im.src = src; }));
+const TYPE_OF = { study: 'goal', entertainment: 'temptation', neutral: 'neutral' };
+const byCat = cat => ACTIVITIES.filter(a => a.cat === cat);
+ACTIVITIES.map(activityImgSrc).filter(Boolean).forEach(src => { const im = new Image(); im.src = src; });
 
 const N_PRACTICE = intParam('practice', CONFIG.TASK1_PRACTICE_TRIALS);
-const N_REPEATS  = intParam('repeats',  CONFIG.TASK1_REPEATS);
-const N_MAIN     = PAIRS.length * N_REPEATS;
+const N_MAIN     = intParam('trials',   CONFIG.TASK1_TRIALS);
 const INIT_WARN_MS = CONFIG.TASK1_INIT_WARN_MS;
 const MOVE_THRESHOLD_PX = 10;
 const N_TIME_BINS = 101;
 const REVIEW = Session.review;
-const COND = Session.cond;
-const PROMPT = Session.t(COND === 'immediate' ? 't1_prompt_immediate' : 't1_prompt_goal');
+const VERSION = Session.mt;     // 'A' | 'B'
+const PROMPT = Session.t('t1_prompt_' + VERSION);
 
 Session.applyI18n();
 document.title = Session.t('t1_title');
@@ -302,12 +299,12 @@ $('interPrompt').textContent = PROMPT;
 $('practiceBadge').textContent = Session.t('t1_practice_badge');
 $('stimulus').textContent = Session.t('t1_choose');
 $('startBtn').textContent = Session.t('start');
-$('condLabel').textContent = COND;
+$('condLabel').textContent = VERSION;
 if (!REVIEW){ $('aside').classList.add('hidden'); $('main').classList.add('no-aside'); }
 
 const state = {
   block: 'practice',   // practice | main
-  order: [], sides: [],
+  plan: [],            // [{ left, right }] activities, one per trial
   trials: [],          // main trials
   practice: [],        // practice trials
   current: null,
@@ -319,15 +316,21 @@ function shuffle(arr){
   for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-/* Trial list: each block is a shuffled pass over all pairs; goal side is
-   balanced within each pass (half left / half right, shuffled). */
-function buildOrder(nPasses, nTrials){
-  const order = [], sides = [];
-  while (order.length < nTrials){
-    order.push(...shuffle(PAIRS.map((_, i) => i)));
-    sides.push(...shuffle(PAIRS.map((_, i) => i % 2 === 0)));
+/* Trial plan. Main: shuffled study and entertainment lists zipped into
+   pairs (each activity once per 30 trials, cycling beyond that); the goal
+   is on the left in half the trials (shuffled). Practice: neutral pairs. */
+function buildPlan(block, n){
+  const cycle = (arr, i) => arr[i % arr.length];
+  const leftFirst = shuffle(Array.from({ length: n }, (_, i) => i % 2 === 0));
+  if (block === 'practice'){
+    const ns = shuffle(byCat('neutral'));
+    return Array.from({ length: n }, (_, i) => ({ left: cycle(ns, 2 * i), right: cycle(ns, 2 * i + 1) }));
   }
-  return { order: order.slice(0, nTrials), sides: sides.slice(0, nTrials) };
+  const st = shuffle(byCat('study')), en = shuffle(byCat('entertainment'));
+  return Array.from({ length: n }, (_, i) => {
+    const goal = cycle(st, i), temptation = cycle(en, i);
+    return leftFirst[i] ? { left: goal, right: temptation } : { left: temptation, right: goal };
+  });
 }
 
 const list = () => state.block === 'practice' ? state.practice : state.trials;
@@ -343,21 +346,17 @@ function setupTrial(){
     return finishTask();
   }
   const i = list().length;
-  const pairIdx = state.order[i];
-  const pair = PAIRS[pairIdx];
-  const leftIsGoal = state.sides[i];
-  const leftStim  = leftIsGoal ? pair.goal : pair.temptation;
-  const rightStim = leftIsGoal ? pair.temptation : pair.goal;
+  const { left, right } = state.plan[i];
   state.current = {
     isPractice: state.block === 'practice',
-    trialIdx: i + 1, pairIdx,
-    left: leftStim.label, right: rightStim.label,
-    leftType:  leftIsGoal ? 'goal' : 'temptation',
-    rightType: leftIsGoal ? 'temptation' : 'goal',
-    pair, samples: [],
+    trialIdx: i + 1,
+    leftAct: left, rightAct: right,
+    left: left.en, right: right.en,
+    leftType: TYPE_OF[left.cat], rightType: TYPE_OF[right.cat],
+    samples: [],
   };
-  $('optLeftImg').src  = leftStim.img;  $('optLeftImg').alt  = leftStim.label;  $('optLeftCap').textContent  = leftStim.caption;
-  $('optRightImg').src = rightStim.img; $('optRightImg').alt = rightStim.label; $('optRightCap').textContent = rightStim.caption;
+  $('optLeftPic').innerHTML  = activityPic(left);  $('optLeftCap').textContent  = Session.pick(left);
+  $('optRightPic').innerHTML = activityPic(right); $('optRightCap').textContent = Session.pick(right);
   ['optLeft','optRight','stimulus','reviewCanvas','reviewBadge','reviewMeta','donePanel','nextBtn','warn']
     .forEach(id => $(id).classList.add('hidden'));
   $('optLeft').classList.remove('review');
@@ -372,16 +371,14 @@ function setupTrial(){
 $('introBtn').addEventListener('click', () => {
   $('intro').classList.add('hidden');
   $('main').classList.remove('hidden');
-  Session.log('task1_start', { condition: COND, n_practice: N_PRACTICE, n_main: N_MAIN });
+  Session.log('task1_start', { mt_version: VERSION, n_practice: N_PRACTICE, n_main: N_MAIN });
   startBlock('practice');
 });
 
 function startBlock(block){
   state.block = block;
-  const n = total();
-  Object.assign(state, buildOrder(Math.ceil(n / PAIRS.length), n));
+  state.plan = buildPlan(block, total());
   $('practiceBadge').classList.toggle('hidden', block !== 'practice');
-  if (n === 0) return setupTrial();
   setupTrial();
 }
 
@@ -428,6 +425,7 @@ function pickOption(side, e){
   trial.leftPos    = centerOf($('optLeft'));
   trial.rightPos   = centerOf($('optRight'));
   trial.chosen     = side === 'left' ? trial.left     : trial.right;
+  trial.chosenId   = (side === 'left' ? trial.leftAct : trial.rightAct).id;
   trial.chosenType = side === 'left' ? trial.leftType : trial.rightType;
   trial.chosenSide = side;
   trial.chosenPos  = side === 'left' ? trial.leftPos  : trial.rightPos;
@@ -505,13 +503,17 @@ function updatePanels(){
 /* ---------- data ---------- */
 
 function trialRow(t){
+  const goal = [t.leftAct, t.rightAct].find(a => a.cat === 'study');
+  const temptation = [t.leftAct, t.rightAct].find(a => a.cat === 'entertainment');
   return {
-    is_practice: t.isPractice, trial: t.trialIdx, pair: t.pairIdx + 1,
-    goal: t.pair.goal.label, temptation: t.pair.temptation.label,
+    is_practice: t.isPractice, trial: t.trialIdx, prompt: PROMPT,
+    goal_id: goal?.id ?? '', temptation_id: temptation?.id ?? '',
+    left_id: t.leftAct.id, right_id: t.rightAct.id,
     left_option: t.left, right_option: t.right, left_type: t.leftType, right_type: t.rightType,
-    chosen: t.chosen, chosen_type: t.chosenType, chosen_side: t.chosenSide,
+    left_picture: activityPicKind(t.leftAct), right_picture: activityPicKind(t.rightAct),
+    chosen_id: t.chosenId, chosen: t.chosen, chosen_type: t.chosenType, chosen_side: t.chosenSide,
     rt_ms: Math.round(t.rt), init_time_ms: t.initTime !== null ? Math.round(t.initTime) : '',
-    slow_start: t.slowStart, auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
+    init_warn_ms: INIT_WARN_MS, slow_start: t.slowStart, auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
     n_samples: t.samples.length,
     stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
   };
@@ -545,7 +547,7 @@ async function finishTask(){
     task1_trials: all.map(trialRow),
     task1_trajectories: all.map(trajectoryRow),
   }, 'task1');
-  await Session.log('task1_complete', { condition: COND, n_main: state.trials.length });
+  await Session.log('task1_complete', { mt_version: VERSION, n_main: state.trials.length });
   if (Session.standalone){
     $('doneNote').textContent = 'Standalone run — export the CSV or reset.';
   } else {

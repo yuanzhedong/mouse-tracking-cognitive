@@ -72,7 +72,7 @@
       <h1 data-i18n="app_title">Self-Control Study</h1>
       <p data-i18n="app_subtitle">Student session</p>
     </div>
-    <div class="lang">
+    <div class="lang" id="langBox" style="display:none">
       <button id="langPt">PT</button>
       <button id="langEn">EN</button>
     </div>
@@ -87,7 +87,7 @@
     <button class="big-btn secondary hidden" id="resumeBtn" style="display:none"></button>
   </div>
 
-  <details class="research">
+  <details class="research" id="research" style="display:none">
     <summary>Researcher</summary>
     <div class="box">
       Flow: <code id="flow"></code><br>
@@ -95,10 +95,12 @@
       Standalone task pages (demo mode, researcher view on):
       <a href="survey/">survey</a> ·
       <a href="ratings/?n=6&nv=3">ratings (short)</a> ·
-      <a href="task1/">task 1</a> ·
+      <a href="daily_reset/">daily reset</a> ·
+      <a href="task1/?practice=1&trials=4">task 1 (short)</a> ·
+      <a href="allocation/">allocation</a> ·
       <a href="task2/?practice=20&dur=40">task 2 (short)</a><br>
-      Session URL options: <code>?pid=S001&amp;lang=pt&amp;cond=immediate|goal&amp;review=1</code><br>
-      Task 1 condition for the code entered above: <code id="condPreview">—</code>
+      Session URL options: <code>?pid=S001&amp;lang=pt|en&amp;mt=A|B&amp;hz=weeks|months&amp;review=1</code><br>
+      Groups for the code entered above (random, fixed once Start is pressed): <code id="condPreview">—</code>
     </div>
   </details>
 </div>
@@ -109,13 +111,17 @@
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
+/* Students see Portuguese only: the language switch and researcher panel
+   appear only with ?review=1 (or a researcher's ?lang=en link). */
+const qs = new URLSearchParams(location.search);
+const RESEARCHER = qs.get('review') === '1' || qs.get('lang') === 'en';
+if (RESEARCHER){ $('langBox').style.display = ''; $('research').style.display = ''; }
 document.title = Session.t('app_title');
 $('langPt').classList.toggle('on', Session.lang === 'pt');
 $('langEn').classList.toggle('on', Session.lang === 'en');
 $('flow').textContent = ['entry', ...CONFIG.FLOW].join(' → ');
 $('endpointStatus').textContent = CONFIG.ENDPOINT ? 'configured' : 'not configured (local-only)';
 
-const qs = new URLSearchParams(location.search);
 $('pid').value = qs.get('pid') || '';
 
 function setLang(l){
@@ -128,10 +134,10 @@ function setLang(l){
 $('langPt').addEventListener('click', () => setLang('pt'));
 $('langEn').addEventListener('click', () => setLang('en'));
 
-function fnv1a(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+const storedGroup = (g, v) => { try { return localStorage.getItem('sc_grp_' + g + '_' + v); } catch (e) { return null; } };
 function refresh(){
   const v = $('pid').value.trim();
-  $('condPreview').textContent = v ? (qs.get('cond') || (fnv1a(v) % 2 === 0 ? 'immediate' : 'goal')) : '—';
+  $('condPreview').textContent = v ? `mt=${qs.get('mt') || storedGroup('mt', v) || '(new draw)'} · hz=${qs.get('hz') || storedGroup('hz', v) || '(new draw)'}` : '—';
   // resume offer if this code already has progress in this browser
   let last = null;
   try { last = v ? localStorage.getItem('sc_done_' + v) : null; } catch (e) {}
@@ -139,7 +145,7 @@ function refresh(){
   const nxt = i >= 0 ? CONFIG.FLOW[i + 1] : null;
   if (nxt && nxt !== 'done'){
     $('resumeBtn').style.display = 'block';
-    $('resumeBtn').textContent = `${Session.t('resume_note')} (${nxt})`;
+    $('resumeBtn').textContent = Session.t('resume_note');
     $('resumeBtn').onclick = () => start(nxt);
   } else {
     $('resumeBtn').style.display = 'none';
@@ -148,11 +154,15 @@ function refresh(){
 $('pid').addEventListener('input', refresh);
 refresh();
 
+/* Entry = the single link given to students. Each code gets its random
+   groups here (coin flips 0/1, kept for that code on this browser and carried
+   in every page URL): mt 0 → version A, 1 → version B; hz 0 → weeks, 1 → months. */
 function start(step){
   const v = $('pid').value.trim();
   if (!v){ $('err').textContent = Session.t('pid_required'); $('pid').focus(); return; }
   const p = new URLSearchParams(location.search);
-  p.set('pid', v); p.set('lang', Session.lang);
+  const g = Session.assignGroups(v, p);
+  p.set('pid', v); p.set('lang', Session.lang); p.set('mt', g.mt); p.set('hz', g.hz); p.delete('cond');
   location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
 }
 $('startBtn').addEventListener('click', () => {

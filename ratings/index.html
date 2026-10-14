@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ratings</title>
+<link rel="stylesheet" href="../shared/activity.css">
 <style>
   :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -23,8 +24,10 @@
   .big-btn:disabled { opacity: 0.5; cursor: default; }
 
   .stim { text-align: center; padding: 18px 10px 26px; border-bottom: 1px solid var(--rule); margin-bottom: 20px; }
+  .stim .pic { width: 100%; max-width: 300px; margin: 0 auto 14px; border: 1px solid var(--ink); }
+  .stim .pic.emoji { font-size: 110px; }
   .stim .txt { font-size: 24px; font-weight: 600; line-height: 1.35; }
-  .stim img { display: block; width: 100%; max-width: 420px; aspect-ratio: 16/9; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--ink); background: #000; }
+  .stim > img { display: block; width: 100%; max-width: 420px; aspect-ratio: 16/9; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--ink); background: #000; }
   .stim .cat { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); margin-top: 8px; }
 
   .q { margin-bottom: 26px; }
@@ -105,8 +108,8 @@ const PARTS = [
     ],
     sheet: 'activity_ratings',
     row: (it, vals, extra) => ({ activity_id: it.id, category: it.cat, subcategory: it.sub ?? '', flagged: !!it.flagged,
-                                 text_en: it.en, text_shown: Session.pick(it), enjoy: vals.enjoy, useful: vals.useful, ...extra }),
-    render: it => `<div class="txt">${esc(Session.pick(it))}</div>`,
+                                 text_en: it.en, text_shown: Session.pick(it), picture: activityPicKind(it), enjoy: vals.enjoy, useful: vals.useful, ...extra }),
+    render: it => `${activityPic(it)}<div class="txt">${esc(Session.pick(it))}</div>`,
   },
   {
     key: 'videos', label: t('r_part_b'), instr: t('r_vid_instr'),
@@ -114,10 +117,11 @@ const PARTS = [
     questions: [ { id: 'interest', label: t('r_vid_q'), lo: t('r_vid_lo'), hi: t('r_vid_hi') } ],
     sheet: 'video_ratings',
     row: (it, vals, extra) => ({ video_id: it.id, category: it.cat, interest: vals.interest, ...extra }),
-    render: it => `<img src="${it.thumb}" alt="" draggable="false"><div class="cat">${esc(it.cat)}</div>`,
+    render: it => `<img src="${it.thumb}" alt="" draggable="false"><div class="cat">${esc(Session.pick(VIDEO_CAT_LABELS[it.cat]) || it.cat)}</div>`,
   },
 ];
-// Preload thumbnails so Part B doesn't stall on the first item
+// Preload pictures/thumbnails so no item stalls on its image
+PARTS[0].items.map(activityImgSrc).filter(Boolean).forEach(src => { const im = new Image(); im.src = src; });
 PARTS[1].items.forEach(v => { const im = new Image(); im.src = v.thumb; });
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }

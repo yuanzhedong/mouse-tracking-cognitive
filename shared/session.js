@@ -1,18 +1,21 @@
-/* Session — participant identity, language, condition assignment, data
+/* Session — participant identity, language, pilot group assignment, data
    persistence/upload, and navigation through CONFIG.FLOW.
 
    Requires shared/config.js and shared/i18n.js to be loaded first.
 
    Data model: every page calls Session.save({ sheetName: [row, ...] }).
-   Rows are flat objects; pid / lang / condition / timestamps are added
+   Rows are flat objects; pid / lang / groups / timestamps are added
    automatically. Each save is (a) appended to localStorage as a fallback
    and (b) POSTed as JSON to CONFIG.ENDPOINT (Google Apps Script → one
    Google Sheet tab per sheetName; see backend/SETUP.md).
 
    URL parameters:
      ?pid=S001      participant code (persisted; required for the session flow)
-     ?lang=pt|en    participant language (default CONFIG.DEFAULT_LANG)
-     ?cond=immediate|goal   force the Task 1 prompt condition
+     ?lang=pt|en    participant language (default CONFIG.DEFAULT_LANG; students
+                    get Portuguese — EN is for researcher review only)
+     ?mt=A|B        force the mouse-tracking prompt version (A = choose now,
+                    B = helps on the test)
+     ?hz=weeks|months   force the 150-problem allocation horizon group
      ?review=1      show researcher views (trajectory plots, metrics)
    A task page opened WITHOUT a pid runs standalone (demo/researcher mode). */
 
@@ -30,22 +33,36 @@ const Session = (() => {
   const standalone = !pid;
   const review = qs.get('review') === '1' || standalone;
 
-  let lang = qs.get('lang') || lsGet('lang') || CONFIG.DEFAULT_LANG;
+  /* Language comes from the URL only (carried page to page by urlFor), so a
+     researcher's EN review on a shared machine never leaks into a student
+     session: a plain student link is always Portuguese. */
+  let lang = qs.get('lang') || CONFIG.DEFAULT_LANG;
   if (!STRINGS[lang]) lang = CONFIG.DEFAULT_LANG;
-  lsSet('lang', lang);
   document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
 
-  /* Task 1 condition: ?cond= wins; otherwise deterministic from the pid so a
-     student who reloads keeps the same condition. Standalone → 'goal'. */
-  function fnv1a(s){
-    let h = 2166136261;
-    for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return h >>> 0;
+  /* Pilot groups — a coin flip (0/1) per group, drawn once per participant
+     code and then fixed: the URL value wins (it is carried on every page),
+     else the value stored for this code in this browser, else a new draw.
+     So a refresh or a restart from the entry page never re-randomizes.
+       mt: mouse-tracking prompt version, 0 → 'A' (choose now), 1 → 'B' (helps on the test)
+       hz: allocation horizon,            0 → 'weeks' (1 / 2 weeks), 1 → 'months' (1 / 2 months) */
+  const GROUPS = { mt: ['A', 'B'], hz: ['weeks', 'months'] };
+  const LEGACY_MT = { immediate: 'A', goal: 'B' };            // old ?cond= links
+  function assignGroups(code, params = qs){
+    const out = {};
+    for (const [g, vals] of Object.entries(GROUPS)){
+      let v = params.get(g);
+      if (g === 'mt' && !vals.includes(v)) v = LEGACY_MT[params.get('cond')];
+      const k = 'grp_' + g + '_' + code;
+      if (!vals.includes(v)) v = code ? lsGet(k) : null;
+      if (!vals.includes(v)) v = code ? vals[Math.random() < 0.5 ? 0 : 1] : vals[0];   // standalone demo → A / weeks
+      if (code) lsSet(k, v);
+      out[g] = v;
+    }
+    return out;
   }
-  let cond = qs.get('cond');
-  if (cond !== 'immediate' && cond !== 'goal'){
-    cond = standalone ? 'goal' : (fnv1a(pid) % 2 === 0 ? 'immediate' : 'goal');
-  }
+  const { mt, hz } = assignGroups(pid);
+  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz) };
 
   const sessionId = (() => {
     if (standalone) return 'demo';
@@ -79,7 +96,7 @@ const Session = (() => {
       session_id: sessionId,
       step,
       lang,
-      condition: cond,
+      ...groupCols,
       client_ts: new Date().toISOString(),
       ...row,
     };
@@ -162,13 +179,15 @@ const Session = (() => {
   function currentStep(){
     const p = location.pathname;
     if (/\/done\.html$/.test(p)) return 'done';
-    const m = p.match(/\/(survey|ratings|task1|task2)\/?(index\.html)?$/);
+    const m = p.match(/\/(survey|ratings|daily_reset|task1|allocation|task2)\/?(index\.html)?$/);
     return m ? m[1] : 'entry';
   }
   function urlFor(step, extra = {}){
     const params = new URLSearchParams(qs);
     if (pid) params.set('pid', pid);
     params.set('lang', lang);
+    params.set('mt', mt); params.set('hz', hz);
+    params.delete('cond');
     for (const [k, v] of Object.entries(extra)) params.set(k, v);
     const page = step === 'entry' ? 'index.html' : step === 'done' ? 'done.html' : step + '/';
     return ROOT + page + '?' + params.toString();
@@ -212,7 +231,7 @@ const Session = (() => {
   setInterval(flushPending, 45000);
   window.addEventListener('online', flushPending);
 
-  return { ROOT, pid, standalone, review, lang, cond, sessionId,
+  return { ROOT, pid, standalone, review, lang, mt, hz, groupCols, assignGroups, sessionId,
            t, pick, applyI18n, save, log, next, go, urlFor, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };

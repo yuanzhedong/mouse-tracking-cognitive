@@ -3,18 +3,22 @@
 A small, hackable, dependency-free battery of browser questionnaires and
 tasks for studying adolescent self-control and attention allocation in the
 face of temptation. Served via **GitHub Pages**; no build step. Participant
-text is **Portuguese (Brazil)** by default with an English switch; content
-follows the team doc *Pilot_Participant_Facing_Materials_EN_PT*.
+text is **Portuguese (Brazil)** only for students (English is available to
+researchers via `?lang=en`); content follows the team doc
+*Pilot_Participant_Facing_Materials_EN_PT*.
 
 ## Student session flow
 
 ```
-index.html  →  survey/  →  ratings/  →  task1/  →  task2/  →  done.html
- (code +        §1–5      stimulus       Game 1      Game 2     thank-you
-  language)   questionnaires  norming
+index.html → survey/ → ratings/ → daily_reset/ → task1/ → allocation/ → task2/ → done.html
+ entry +     §1–5     activities    placeholder    Game 1    150 problems   Game 2   thank-you
+ random      surveys  + pictures    (questions     mouse-    + predictions
+ groups               + videos      pending)       tracking
 ```
 
-Open `index.html?pid=S001` (or let the student type the code). Each page
+**The single student link is the site root** (`index.html`). The student
+types their code; the entry page then draws the pilot groups (below) and
+starts the flow. `index.html?pid=S001` pre-fills the code. Each page
 saves its data, then advances via `Session.next()`; progress is remembered
 per code so a closed window can resume from the entry page.
 
@@ -22,25 +26,38 @@ per code so a closed window can resume from the entry page.
 |---|---|---|
 | `survey/` | 1 Academic Goal Value · 2 Tempting Activities top-3 · 3 ratings piped from the top-3 · 4 Brief Self-Control Scale (validated PT-BR) · 5 Self-Control Strategy Use | `survey` |
 | `ratings/` | Part A: 90 candidate activities (30 study / 30 entertainment / 30 neutral) each on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: video previews (thumbnail) on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
-| `task1/` | instructions → 3 practice rounds → 10 mouse-tracked choice trials (5 icon pairs × 2), one prompt condition per student | `task1_trials`, `task1_trajectories` |
+| `daily_reset/` | Daily Reset questionnaire — **slot only**: questions pending (Priscilla finalizes, Karine translates). Add them to `DAILY_RESET` in `shared/surveys.js`; while it is empty, student sessions skip the step (`daily_reset_skipped` in the log) | `daily_reset` |
+| `task1/` | instructions → 3 practice rounds (neutral vs. neutral) → 30 mouse-tracked trials: each of the 30 study activities paired with one of the 30 entertainment activities (random pairing per student, goal side balanced), same pictures as the ratings; one prompt version (A/B) per student | `task1_trials`, `task1_trajectories` |
+| `allocation/` | split 150 practice problems between two time points (slider) + "why?" text box → two predictions (you / most classmates: move earlier · push later · keep the same) | `allocation` |
 | `task2/` | split-screen practice (2 min) → lock-screen choice (mouse-tracked) → main phase (10 min) | `task2_summary`, `task2_events` |
 | all | milestones | `session_log` |
 
-**Task 1 conditions** (doc §6): `immediate` — "Which activity do you choose
-to do now?" vs. `goal` — "Which activity would better help you do well on
-the upcoming quiz?". Assigned deterministically from the participant code
-(`hash(pid) % 2`), or forced with `?cond=immediate|goal`.
+### Pilot groups (meeting 10/13)
+
+Two independent coin flips (0/1) per participant code, drawn once and then
+fixed — a refresh, a reload of any page, or restarting from the entry page
+keeps them (stored per code in the browser and carried in every page URL).
+Every saved row carries `mt_version`, `mt_rand`, `horizon_group`, `hz_rand`.
+
+| group | 0 | 1 |
+|---|---|---|
+| `mt` — Task 1 prompt | **A** "Você terá uma prova em breve. Qual atividade você escolhe fazer agora?" | **B** "Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?" |
+| `hz` — allocation horizon | **weeks**: 1 week / 2 weeks from now | **months**: 1 month / 2 months from now |
+
+The "start moving sooner" reminder in Task 1 fires at **300 ms**; every
+trial records `init_time_ms` (and the threshold `init_warn_ms`) so the
+cut-off can be re-tuned from the pilot data.
 
 ### URL parameters
 
 | param | where | effect |
 |---|---|---|
 | `pid=S001` | any page | participant code (required for the session flow) |
-| `lang=pt\|en` | any page | participant language (default `pt`) |
-| `cond=immediate\|goal` | any page | force the Task 1 prompt condition |
-| `review=1` | task pages | researcher views: trajectory plots, metrics, CSV buttons |
+| `lang=pt\|en` | any page | language (default `pt`; EN is for researcher review only) |
+| `mt=A\|B`, `hz=weeks\|months` | any page | force a pilot group (old `cond=immediate\|goal` links map to A/B) |
+| `review=1` | any page | researcher views: language switch + researcher panel on the entry page, trajectory plots, metrics, CSV buttons |
 | `n=N`, `nv=N` | ratings | number of activities / videos to rate (default all) |
-| `practice=N`, `repeats=N` | task1 | practice rounds / passes over the 5 pairs |
+| `practice=N`, `trials=N` | task1 | practice rounds / main trials |
 | `practice=SEC`, `dur=SEC` | task2 | phase lengths |
 
 A task page opened **without** `pid` runs standalone (demo mode, researcher
@@ -62,9 +79,10 @@ minutes later", not data loss (details in `backend/SETUP.md`).
 ```
 index.html            – session entry (participant code, language)
 survey/index.html     – questionnaires §1–5
-ratings/index.html    – stimulus norming: activity + video-preview ratings
-task1/index.html      – Task 1: goal–temptation mouse-tracking
-  goal_temptation_stimuli/  – icon stimuli (goal/temptation pairs)
+ratings/index.html    – stimulus norming: activity (with picture) + video-preview ratings
+daily_reset/index.html – Daily Reset questionnaire slot (questions pending)
+task1/index.html      – Task 1: goal–temptation mouse-tracking over the rated activities
+allocation/index.html – 150-problem allocation + predictions
 task2/index.html      – Task 2: split-screen ADT (study vs. YouTube videos)
   lock_stimuli/       – icon cards for the lock-screen choice trial
 done.html             – thank-you page (+ researcher CSV download)
@@ -72,7 +90,10 @@ shared/
   config.js           – endpoint URL, language, trial counts, phase lengths
   i18n.js             – EN/PT UI strings + icon captions
   surveys.js          – questionnaire content (EN/PT) from the team doc
-  stimuli.js          – 90 candidate activities (EN/PT) + video preview list
+  stimuli.js          – 90 candidate activities (EN/PT), their pictures, video preview list
+  activity_images/    – illustrated activity cards (10 so far)
+  activity.css        – activity picture styling (ratings + Task 1)
+  surveyrunner.js     – questionnaire renderer (survey/ and daily_reset/)
   session.js          – participant id, condition, save/upload, navigation
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
@@ -85,6 +106,16 @@ README.md
 
 ### Known gaps / for the team
 
+- **Activity pictures**: only 10 of the 90 activities have an illustrated
+  card (`shared/activity_images/`, mapped in `ACTIVITY_IMAGES`); the other
+  80 show an emoji placeholder, identical in the ratings and in Task 1. The
+  mixed styles are a confound for the pilot — replace with a uniform set
+  when the artwork is ready (the data records `picture: image|emoji`).
+- **Translations pending Karine**: the allocation texts are a draft PT
+  translation; the two prediction questions are in English on purpose
+  (team decision) until her translation arrives (`pr_*` keys in
+  `shared/i18n.js`).
+- Task 2 videos are still the old playlist (new half-screen videos TBD).
 - Stimulus PNGs carry English titles; the title band is cropped by CSS and
   a localized caption is shown instead. The lock cards still show "STUDY /
   LOCKED / FUN" inside the artwork — replace the PNGs for a fully PT version.
@@ -151,14 +182,14 @@ phase lengths for piloting.
 
 | Component | Status | Notes |
 |---|---|---|
-| Binary-choice goal–temptation task (icon stimuli) | done | 5 pairs (study goal vs. temptation), 3 practice + 10 main trials, shuffled order, balanced side assignment |
-| Two prompt conditions (immediate vs. goal-directed) | done | one per student, from the participant code or `?cond=` |
+| Binary-choice goal–temptation task (activity stimuli + pictures) | done | 30 study × 30 entertainment activities paired randomly per student, 3 neutral practice + 30 main trials, balanced side assignment |
+| Two prompt versions (A choose now vs. B helps on the test) | done | random per student at the entry page, fixed, or `?mt=` |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
 | Continuous cursor sampling via `mousemove` | done | Native event rate (typically 60–120 Hz) |
 | **AUC** (signed area vs. idealized straight line) | done | Ideal line = trajectory start → endpoint (Freeman & Ambady, 2010); positive = deviation toward unchosen option |
 | **MD** (signed maximum perpendicular deviation) | done | Same sign convention as AUC |
 | **X-flips** (number of direction reversals on x-axis) | done | Threshold 0.01 normalized units |
-| **RT** and **initiation time** | done | Soft warning if initiation > 500 ms |
+| **RT** and **initiation time** | done | Reminder if initiation > 300 ms (pilot; re-tune from data) |
 | Time-normalization to **101 bins** | done | Standard MouseTracker convention (Freeman & Ambady, 2010) |
 | Coordinate normalization to (0,0) → (−1, 1.5) | done | MouseTracker frame; mirrored across x so the chosen target is top-left, unchosen toward +x |
 | Per-trial researcher view | done | Trajectory, ideal line, uniform AUC shading, MD marker, metrics overlay |
@@ -173,8 +204,8 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
       stimulus as Female/Male, Black/White, etc. The current code is structured
       around food choice; adding a stimulus image + category labels is mostly a
       config change.
-- [x] **Stimulus images** — goal–temptation icon pairs in
-      `goal_temptation_stimuli/`.
+- [x] **Stimulus images** — activity pictures in `shared/activity_images/`
+      (10 illustrated, 80 emoji placeholders).
 - [ ] **Movement deadline** — paper mentions enforcing movement initiation
       within ~400 ms and discarding offending trials. Currently we only warn.
 - [ ] **Integration-times analysis** ([Sullivan et al. 2015],
@@ -229,7 +260,7 @@ at *r* = 0.8–0.9 (Stillman et al. 2018).
 
 - Single trials are noisy — you need at least 25–50 trials per condition.
 - If a participant decides *before* moving, trajectories will be uninformatively
-  straight. The apparatus warns at init > 500 ms; published studies usually
+  straight. The apparatus reminds at init > 300 ms; published studies usually
   also enforce a movement deadline (≈400 ms) and exclude offending trials.
 
 ---

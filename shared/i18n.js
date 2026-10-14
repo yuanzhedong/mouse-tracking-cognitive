@@ -55,8 +55,8 @@ const STRINGS = {
     t1_practice_intro: "Let's practice a few rounds first.",
     t1_practice_badge: 'Practice',
     t1_practice_done: 'Practice complete. Now the real rounds begin.',
-    t1_prompt_immediate: 'You have a quiz coming up. Which activity do you choose to do now?',
-    t1_prompt_goal: 'You have a quiz coming up. Which activity would better help you do well on the upcoming quiz?',
+    t1_prompt_A: 'You have a test coming up soon. Which activity do you choose to do now?',
+    t1_prompt_B: 'You have a test coming up soon. Which activity would help you most to do well on the test?',
     t1_slow: 'Too slow to start! Please begin moving the mouse sooner.',
     t1_trial: 'round {n} / {total}',
     t1_done: 'Game 1 complete.',
@@ -85,11 +85,34 @@ const STRINGS = {
     t2_times_up: 'Time’s up — quiz time!',
     t2_shorts: 'Shorts',
 
+    /* daily reset (questions pending: Priscilla drafts, Karine translates) */
+    dr_title: 'Daily Reset',
+    dr_placeholder: 'Placeholder — the Daily Reset questions are not in yet. In a student session this step is skipped automatically.',
+
+    /* 150-problem allocation */
+    al_title: 'Planning Your Practice',
+    al_intro: 'Imagine your teacher gives you <b>{total} practice problems</b> to prepare for an important test. You will do them in two study sessions: one <b>{t1}</b> and one <b>{t2}</b>. How many problems do you want to do in each session?',
+    al_t1_weeks: '1 week from now', al_t2_weeks: '2 weeks from now',
+    al_t1_months: '1 month from now', al_t2_months: '2 months from now',
+    al_drag: 'Drag the slider to split the {total} problems between the two sessions.',
+    al_problems: 'problems',
+    al_reason: 'Why did you split the problems this way?',
+    al_need_slider: 'Please move the slider to choose how to split the problems.',
+    al_need_reason: 'Please write the reason for your choice.',
+    /* predictions — EN placeholder in both languages until Karine translates */
+    pr_title: 'Looking Ahead',
+    pr_self: 'When the time comes, how do you think you will change this plan?',
+    pr_peers: 'How do you think most of your classmates will change their plan?',
+    pr_earlier: 'Move problems earlier',
+    pr_later: 'Push problems later',
+    pr_same: 'Keep it the same',
+
     /* done */
     done_title: 'All done — thank you!',
     done_body: 'Your answers have been saved. You can close this window now.',
     done_local_note: 'Data was stored in this browser only (no upload endpoint configured).',
     download_data: 'Download data (CSV)',
+    researcher: 'Researcher',
   },
 
   pt: {
@@ -138,8 +161,8 @@ const STRINGS = {
     t1_practice_intro: 'Vamos praticar algumas rodadas primeiro.',
     t1_practice_badge: 'Prática',
     t1_practice_done: 'Prática concluída. Agora começam as rodadas de verdade.',
-    t1_prompt_immediate: 'Você terá uma prova em breve. Qual atividade você escolhe fazer agora?',
-    t1_prompt_goal: 'Você terá uma prova em breve. Qual atividade ajudaria mais você a ir bem na prova?',
+    t1_prompt_A: 'Você terá uma prova em breve. Qual atividade você escolhe fazer agora?',
+    t1_prompt_B: 'Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?',
     t1_slow: 'Demorou para começar! Comece a mover o mouse mais cedo.',
     t1_trial: 'rodada {n} / {total}',
     t1_done: 'Jogo 1 concluído.',
@@ -167,24 +190,31 @@ const STRINGS = {
     t2_times_up: 'Acabou o tempo — hora da prova!',
     t2_shorts: 'Shorts',
 
+    dr_title: 'Daily Reset',
+    dr_placeholder: 'Espaço reservado — as perguntas do Daily Reset ainda não foram incluídas. Na sessão do estudante, esta etapa é pulada automaticamente.',
+
+    /* Allocation: draft PT translation — pending Karine's review */
+    al_title: 'Planejando os seus exercícios',
+    al_intro: 'Imagine que o seu professor passou <b>{total} exercícios</b> para você se preparar para uma prova importante. Você vai fazê-los em dois momentos de estudo: um <b>{t1}</b> e outro <b>{t2}</b>. Quantos exercícios você quer fazer em cada momento?',
+    al_t1_weeks: 'daqui a 1 semana', al_t2_weeks: 'daqui a 2 semanas',
+    al_t1_months: 'daqui a 1 mês', al_t2_months: 'daqui a 2 meses',
+    al_drag: 'Arraste a barra para dividir os {total} exercícios entre os dois momentos.',
+    al_problems: 'exercícios',
+    al_reason: 'Por que você dividiu os exercícios dessa forma?',
+    al_need_slider: 'Por favor, mova a barra para escolher como dividir os exercícios.',
+    al_need_reason: 'Por favor, escreva o motivo da sua escolha.',
+    /* Predictions: English placeholder (team decision 10/13) — Karine to translate */
+    pr_title: 'Looking Ahead',
+    pr_self: 'When the time comes, how do you think you will change this plan?',
+    pr_peers: 'How do you think most of your classmates will change their plan?',
+    pr_earlier: 'Move problems earlier',
+    pr_later: 'Push problems later',
+    pr_same: 'Keep it the same',
+
     done_title: 'Tudo pronto — obrigado!',
     done_body: 'Suas respostas foram salvas. Você já pode fechar esta janela.',
     done_local_note: 'Os dados ficaram salvos apenas neste navegador (nenhum endpoint de envio configurado).',
     download_data: 'Baixar dados (CSV)',
+    researcher: 'Pesquisador(a)',
   },
-};
-
-/* Task 1 icon labels (the PNGs carry English titles; the title band is
-   cropped off and this caption is shown instead). Keys = stimulus file. */
-const STIM_LABELS = {
-  '01_complete_practice_problems':  { en: 'Complete practice problems',   pt: 'Fazer exercícios de prática' },
-  '02_watch_youtube_shorts':        { en: 'Watch YouTube Shorts',         pt: 'Assistir a YouTube Shorts' },
-  '03_review_your_class_notes':     { en: 'Review your class notes',      pt: 'Revisar as anotações da aula' },
-  '04_play_a_phone_game':           { en: 'Play a phone game',            pt: 'Jogar um jogo no celular' },
-  '05_study_with_digital_flashcards': { en: 'Study with digital flashcards', pt: 'Estudar com flashcards digitais' },
-  '06_watch_soccer_highlights':     { en: 'Watch soccer highlights',      pt: 'Ver melhores momentos de futebol' },
-  '07_prepare_for_tomorrows_quiz':  { en: "Prepare for tomorrow's quiz",  pt: 'Preparar-se para a prova de amanhã' },
-  '08_group_chat_with_friends':     { en: 'Group chat with friends',      pt: 'Conversar no grupo com amigos' },
-  '09_work_on_homework_correction': { en: 'Work on your science worksheet', pt: 'Fazer a folha de exercícios de ciências' },
-  '10_scroll_funny_memes':          { en: 'Scroll funny memes',           pt: 'Rolar memes engraçados' },
 };

@@ -1,8 +1,9 @@
 /* Task 1 candidate activity stimuli (N = 90) — from the team doc
    "Task 1 Candidate Activity Stimuli (N = 90) — v2", verbatim. Rated in
    ratings/index.html on two 0–100 scales (enjoyable now / useful for the
-   quiz). `flagged` = item carried an asterisk in the doc (pending review).
-   The list itself is pending Karine's review. */
+   quiz), then used as the Task 1 mouse-tracking stimuli with the same
+   picture (activityPic). `flagged` = item carried an asterisk in the doc
+   (pending review). The list itself is pending Karine's review. */
 
 const ACTIVITIES = [
   // 1. Study activities (goal)
@@ -100,7 +101,49 @@ const ACTIVITIES = [
   { id: 'n30', cat: 'neutral', en: 'Peel vegetables for dinner', pt: 'Descascar os legumes do jantar' },
 ];
 
+/* Pictures — one per activity, the same in the ratings and in Task 1.
+   Ten activities use the illustrated cards in shared/activity_images/ (their
+   English title band is cropped off by CSS); the others show an emoji
+   placeholder until the team's artwork arrives. To add art: drop the file in
+   shared/activity_images/ and map the activity id to it below. */
+const ACTIVITY_IMAGES = {
+  s30: '01_complete_practice_problems.png',
+  e4:  '02_watch_youtube_shorts.png',
+  s21: '03_review_your_class_notes.png',
+  e6:  '04_play_a_phone_game.png',
+  s24: '05_study_with_digital_flashcards.png',
+  e16: '06_watch_soccer_highlights.png',
+  s14: '07_prepare_for_tomorrows_quiz.png',
+  e17: '08_group_chat_with_friends.png',
+  s20: '09_work_on_homework_correction.png',
+  e1:  '10_scroll_funny_memes.png',
+};
+const ACTIVITY_EMOJI = {
+  s1: '🗣️', s2: '👩‍🏫', s3: '🧮', s4: '📝', s5: '✍️', s6: '❓', s7: '🔍', s8: '🙋', s9: '👥', s10: '🗓️',
+  s11: '⏱️', s12: '🔁', s13: '✅', s15: '💡', s16: '📲', s17: '💻', s18: '📉', s19: '💪',
+  s22: '📖', s23: '📄', s25: '🎥', s26: '🖍️', s27: '🧠', s28: '🔤', s29: '📓',
+  e2: '📸', e3: '🖼️', e5: '🤳', e7: '⛏️', e8: '🎮', e9: '🍿', e10: '🍥', e11: '🔴', e12: '▶️',
+  e13: '😲', e14: '🎧', e15: '🎤', e18: '🎙️', e19: '📹', e20: '🏠', e21: '🛍️', e22: '🍕', e23: '🛵',
+  e24: '⚽', e25: '🏐', e26: '🚲', e27: '🏊', e28: '😴', e29: '🃏', e30: '👟',
+  n1: '🪴', n2: '👕', n3: '🧹', n4: '🍽️', n5: '🗑️', n6: '🛏️', n7: '🗂️', n8: '👚', n9: '🧦', n10: '🧽',
+  n11: '💧', n12: '📚', n13: '🧥', n14: '🥣', n15: '🪶', n16: '🍂', n17: '🧼', n18: '♻️', n19: '🔌', n20: '✏️',
+  n21: '🥖', n22: '🍴', n23: '🐶', n24: '🥄', n25: '🪞', n26: '🧺', n27: '🌀', n28: '🛋️', n29: '📬', n30: '🥕',
+};
+const activityImgSrc = act => ACTIVITY_IMAGES[act.id] ? Session.ROOT + 'shared/activity_images/' + ACTIVITY_IMAGES[act.id] : null;
+/* <span class="pic"> markup; each page sizes .pic (aspect 164:128) and the emoji. */
+function activityPic(act){
+  const src = activityImgSrc(act);
+  return src ? `<span class="pic"><img src="${src}" alt="" draggable="false"></span>`
+             : `<span class="pic emoji" aria-hidden="true">${ACTIVITY_EMOJI[act.id] || '•'}</span>`;
+}
+const activityPicKind = act => ACTIVITY_IMAGES[act.id] ? 'image' : 'emoji';
+
 /* Video preview stimuli for the Task 2 rating block: the current Task 2
    playlist (shared/videos.js), thumbnails from YouTube. Replace with the
    team's candidate list when available. */
+const VIDEO_CAT_LABELS = {
+  Sports:     { en: 'Sports',     pt: 'Esportes' },
+  Animals:    { en: 'Animals',    pt: 'Animais' },
+  Satisfying: { en: 'Satisfying', pt: 'Satisfatórios' },
+};
 const VIDEO_STIMULI = VIDEOS.map(v => ({ id: v.id, cat: v.cat, thumb: 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg' }));

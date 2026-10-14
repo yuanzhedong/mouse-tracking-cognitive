@@ -40,16 +40,18 @@ sheet as data arrives:
 
 | tab | one row per | key columns |
 |---|---|---|
-| `session_log` | milestone event | `event`, `condition` |
+| `session_log` | milestone event | `event`, `mt_version`, `horizon_group` |
 | `survey` | answered item | `section`, `item`, `value`, `label`, `activity` (piped block), `rank` (top-3) |
 | `activity_ratings` | rated activity | `activity_id`, `category`, `subcategory`, `flagged`, `enjoy`, `useful` (0–100), `order_idx`, `rt_ms` |
 | `video_ratings` | rated video preview | `video_id`, `category`, `interest` (0–100), `order_idx`, `rt_ms` |
-| `task1_trials` | Task 1 trial | `is_practice`, `chosen_type`, `rt_ms`, `init_time_ms`, `slow_start`, `auc`, `md`, `x_flips` |
+| `daily_reset` | answered item (once the questions are added) | `section`, `item`, `value`, `label` |
+| `task1_trials` | Task 1 trial | `is_practice`, `prompt`, `goal_id`, `temptation_id`, `chosen_id`, `chosen_type`, `rt_ms`, `init_time_ms`, `slow_start`, `auc`, `md`, `x_flips` |
 | `task1_trajectories` | Task 1 trial | `trial`, `n_bins`, `x_norm`, `y_norm` (JSON arrays of 101 time-normalized values) |
+| `allocation` | student | `horizon_group`, `t1_label`, `t2_label`, `n_t1`, `n_t2`, `reason`, `predict_self`, `predict_peers` (earlier / later / same) |
 | `task2_summary` | Task 2 session | `lock_choice`, `lock_auc`, `points`, `main_study_ms`, `main_video_ms`, `switches` |
 | `task2_events` | Task 2 logged event | `type`, `phase`, `t_ms`, answer / video / lock fields |
 
-Every row also carries `pid`, `session_id`, `step`, `lang`, `condition`,
+Every row also carries `pid`, `session_id`, `step`, `lang`, `mt_version`, `mt_rand`, `horizon_group`, `hz_rand`,
 `client_ts` and `server_ts`.
 
 ## Notes

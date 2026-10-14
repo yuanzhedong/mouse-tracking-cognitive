@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planning</title>
+<style>
+  :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .container { max-width: 760px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--ink); }
+  header h1 { font-size: 16px; font-weight: 600; }
+  header .step { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--soft); }
+
+  .card { background: var(--panel); border: 1px solid var(--ink); padding: 28px 32px; }
+  .card h2 { font-size: 19px; margin-bottom: 12px; }
+  .card p { font-size: 15px; line-height: 1.6; margin-bottom: 14px; }
+  .hint { font-size: 13px; color: var(--soft); }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0 8px; }
+  .box { background: var(--bg); border: 1px solid var(--ink); padding: 14px; text-align: center; }
+  .box .when { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); }
+  .box .n { font-size: 34px; font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; margin-top: 6px; }
+  .box .unit { font-size: 12px; color: var(--soft); }
+  input[type=range] { width: 100%; height: 34px; cursor: pointer; accent-color: var(--accent); margin-top: 6px; }
+  input[type=range].untouched { accent-color: var(--rule); opacity: 0.55; }
+  .ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--soft); }
+
+  label.qlab { display: block; font-size: 15px; line-height: 1.5; margin: 22px 0 8px; }
+  textarea { width: 100%; min-height: 96px; padding: 10px 12px; font-family: inherit; font-size: 15px; line-height: 1.5; border: 1px solid var(--ink); background: var(--bg); color: var(--ink); resize: vertical; }
+
+  .q { margin-bottom: 24px; }
+  .q .label { font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
+  .q.missing .label { color: var(--accent); }
+  .opts { display: grid; gap: 8px; }
+  .opts label { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--ink); background: var(--bg); cursor: pointer; font-size: 15px; }
+  .opts label.on { background: var(--ink); color: var(--bg); }
+  .opts input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; }
+  .nav .err { color: var(--accent); font-size: 14px; flex: 1; }
+  .nav button { padding: 12px 34px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-family: inherit; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .nav button:disabled { opacity: 0.5; cursor: default; }
+  .hidden { display: none !important; }
+  @media (max-width: 560px) { .card { padding: 22px 18px; } .box .n { font-size: 28px; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 id="headTitle" data-i18n="al_title"></h1>
+    <span class="step" id="stepLabel"></span>
+  </header>
+
+  <!-- 1. split the problems -->
+  <section class="card" id="allocCard">
+    <h2 data-i18n="al_title"></h2>
+    <p id="alIntro"></p>
+    <p class="hint" id="alDrag"></p>
+    <div class="split">
+      <div class="box"><div class="when" id="t1Label"></div><div class="n" id="n1">—</div><div class="unit" data-i18n="al_problems"></div></div>
+      <div class="box"><div class="when" id="t2Label"></div><div class="n" id="n2">—</div><div class="unit" data-i18n="al_problems"></div></div>
+    </div>
+    <input type="range" id="slider" min="0" step="1" class="untouched">
+    <div class="ends"><span id="endLo"></span><span id="endHi"></span></div>
+    <label class="qlab" for="reason" data-i18n="al_reason"></label>
+    <textarea id="reason" data-i18n-placeholder="other_placeholder"></textarea>
+    <div class="nav"><div class="err" id="err1"></div><button id="next1" data-i18n="next"></button></div>
+  </section>
+
+  <!-- 2. predictions -->
+  <section class="card hidden" id="predCard">
+    <h2 data-i18n="pr_title"></h2>
+    <div id="predQs"></div>
+    <div class="nav"><div class="err" id="err2"></div><button id="next2" data-i18n="finish"></button></div>
+  </section>
+
+  <section class="card hidden" id="doneCard"><p id="doneNote"></p></section>
+</div>
+
+<script src="../shared/config.js"></script>
+<script src="../shared/i18n.js"></script>
+<script src="../shared/session.js"></script>
+<script>
+/* =============================================================
+   150-PROBLEM ALLOCATION (meeting 10/13, items 6–7)
+   Does the time horizon change how students split work? Group
+   (Session.hz, random + fixed per student): 'weeks' → 1 week / 2 weeks,
+   'months' → 1 month / 2 months. The student splits ALLOC_TOTAL problems
+   between the two time points with a slider (value = problems at the later
+   time) and writes a reason. Then two predictions, each "earlier / later /
+   same": how will you adjust this plan, how will most classmates.
+   One row in the `allocation` sheet.
+   ============================================================= */
+
+const $ = id => document.getElementById(id);
+const t = (k, v) => Session.t(k, v);
+const TOTAL = CONFIG.ALLOC_TOTAL;
+const HZ = Session.hz;
+const T1 = t('al_t1_' + HZ), T2 = t('al_t2_' + HZ);
+const enT = k => STRINGS.en[k];
+
+Session.applyI18n();
+document.title = t('al_title');
+$('alIntro').innerHTML = t('al_intro', { total: TOTAL, t1: T1, t2: T2 });
+$('alDrag').textContent = t('al_drag', { total: TOTAL });
+$('t1Label').textContent = $('endLo').textContent = T1;
+$('t2Label').textContent = $('endHi').textContent = T2;
+$('stepLabel').textContent = Session.review || Session.standalone ? `group: ${HZ}` : '';
+
+const slider = $('slider');
+slider.max = TOTAL; slider.value = Math.round(TOTAL / 2);
+const t0 = performance.now();
+let firstTouchMs = null, moves = 0;
+function touch(){
+  if (firstTouchMs === null) firstTouchMs = Math.round(performance.now() - t0);
+  slider.classList.remove('untouched');
+  slider.dataset.touched = '1';
+  moves++;
+  $('n1').textContent = TOTAL - +slider.value;
+  $('n2').textContent = +slider.value;
+}
+slider.addEventListener('input', touch);
+slider.addEventListener('pointerdown', touch);
+
+let allocMs = 0;
+$('next1').addEventListener('click', () => {
+  if (!slider.dataset.touched){ $('err1').textContent = t('al_need_slider'); return; }
+  if (!$('reason').value.trim()){ $('err1').textContent = t('al_need_reason'); $('reason').focus(); return; }
+  allocMs = Math.round(performance.now() - t0);
+  $('allocCard').classList.add('hidden');
+  $('predCard').classList.remove('hidden');
+  showPredictions();
+  window.scrollTo(0, 0);
+});
+
+const PRED_QS = [ { id: 'self', key: 'pr_self' }, { id: 'peers', key: 'pr_peers' } ];
+const PRED_OPTS = [ { id: 'earlier', key: 'pr_earlier' }, { id: 'later', key: 'pr_later' }, { id: 'same', key: 'pr_same' } ];
+let predShownAt = 0;
+function showPredictions(){
+  predShownAt = performance.now();
+  $('predQs').innerHTML = PRED_QS.map(q => `
+    <div class="q" data-q="${q.id}">
+      <div class="label">${t(q.key)}</div>
+      <div class="opts">${PRED_OPTS.map(o => `
+        <label><input type="radio" name="${q.id}" value="${o.id}"><span>${t(o.key)}</span></label>`).join('')}
+      </div>
+    </div>`).join('');
+  $('predQs').querySelectorAll('input[type=radio]').forEach(r => r.addEventListener('change', () => {
+    r.closest('.opts').querySelectorAll('label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked));
+  }));
+}
+
+$('next2').addEventListener('click', async () => {
+  const ans = {};
+  let missing = false;
+  PRED_QS.forEach(q => {
+    const v = document.querySelector(`input[name="${q.id}"]:checked`);
+    document.querySelector(`.q[data-q="${q.id}"]`).classList.toggle('missing', !v);
+    if (v) ans[q.id] = v.value; else missing = true;
+  });
+  if (missing){ $('err2').textContent = t('please_answer_all'); return; }
+  $('next2').disabled = true;
+  $('predCard').classList.add('hidden');
+  $('doneCard').classList.remove('hidden');
+  $('doneNote').textContent = t('saving');
+  await Session.save({ allocation: [{
+    total: TOTAL,
+    t1_label: enT('al_t1_' + HZ), t2_label: enT('al_t2_' + HZ),
+    n_t1: TOTAL - +slider.value, n_t2: +slider.value,
+    slider_events: moves, first_touch_ms: firstTouchMs, alloc_ms: allocMs,
+    reason: $('reason').value.trim(),
+    predict_self: ans.self, predict_peers: ans.peers,
+    predict_ms: Math.round(performance.now() - predShownAt),
+  }] }, 'allocation');
+  await Session.log('allocation_complete', { horizon_group: HZ });
+  if (Session.standalone){ $('doneNote').textContent = 'Standalone run — data is in localStorage (download on done.html).'; return; }
+  Session.next('allocation');
+});
+
+Session.log('allocation_start', { horizon_group: HZ });
+</script>
+</body>
+</html>
