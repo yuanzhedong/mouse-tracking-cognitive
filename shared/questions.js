@@ -5,8 +5,8 @@
    Item 111 is listed in both C and D; it is kept once, in C.
 
    Served easiest block first (B, then C, D, E), shuffled within each block;
-   after the last item the whole bank repeats, reshuffled. Four answer
-   buttons: the answer plus three nearby wrong ones (never negative). */
+   after the last item the whole bank repeats, reshuffled. Students type the
+   answer on a keypad (task2/index.html). */
 
 const MATH_BANK = [
   // [item, block, type, problem as in the sheet, answer]
@@ -164,8 +164,8 @@ const MATH_BANK = [
   [152, 'E', "DDSub", "92 - 27 =", 65],
 ].map(([id, level, type, problem, answer]) => ({
   id, level, type, answer,
-  // shown with a real minus sign; "a + b =" gets a "?", blanks stay as ___
-  text: problem.replace(/ - /g, ' − ') + (problem.includes('___') ? '' : ' ?'),
+  // shown as in the sheet with a real minus sign: "9 − 3", "36 + ___ = 43"
+  text: problem.replace(/ - /g, ' − ').replace(/ =$/, ''),
 }));
 
 const QuestionBank = (() => {
@@ -182,16 +182,9 @@ const QuestionBank = (() => {
 
   let queue = ordered();
 
-  // three distinct wrong answers within ±4 of the right one, none below 0
-  function options(answer){
-    const near = shuffle([1, 2, 3, 4, -1, -2, -3, -4].map(d => answer + d).filter(v => v >= 0));
-    return shuffle([answer, ...near.slice(0, 3)]);
-  }
-
   function next(){
     if (queue.length === 0) queue = shuffle(MATH_BANK);
-    const q = queue.shift();
-    return { ...q, options: options(q.answer) };
+    return { ...queue.shift() };
   }
 
   function reset(){ queue = ordered(); }

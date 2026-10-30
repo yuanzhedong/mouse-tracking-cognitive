@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 2</title>
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202610301530">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202610301533">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -167,21 +167,36 @@
     font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--soft); margin-bottom: 20px;
   }
-  .study-card { flex: 1; display: flex; flex-direction: column; }
-  .study-card .qnum { font-size: 15px; color: var(--soft); margin-bottom: 8px; }
-  .study-card .expr { font-size: 34px; font-weight: 700; margin-bottom: 28px; }
-  .answers {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    max-width: 420px;
+  /* math card (team mock-up): problem, answer box, keypad, then
+     eraser (clear) · thinking face (skip) · check (submit) */
+  .study-card { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  .study-card .qnum { align-self: flex-start; font-size: 15px; color: var(--soft); }
+  .study-card .expr {
+    font-size: 40px; font-weight: 600; letter-spacing: 0.06em; word-spacing: 0.25em;
+    margin: 14px 0 22px; text-align: center; font-variant-numeric: tabular-nums;
   }
-  .answers button {
-    padding: 18px 10px; font-size: 22px;
-    background: var(--bg); border: 1px solid var(--ink);
-    cursor: pointer; font-family: inherit;
+  .keypad { background: #fff; border: 1px solid var(--ink); padding: 14px 18px; width: 210px; }
+  .keypad .display {
+    height: 40px; margin-bottom: 12px; background: #8a8a8a; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-variant-numeric: tabular-nums; transition: background 0.15s;
   }
-  .answers button:hover { background: var(--panel); }
-  .answers button.flash-good { background: var(--good); color: var(--bg); border-color: var(--good); }
-  .answers button.flash-bad  { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .keypad .display.good { background: var(--good); }
+  .keypad .display.bad  { background: var(--accent); }
+  .keypad .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; justify-items: center; }
+  .keypad .keys button {
+    width: 40px; height: 40px; background: #111; color: #fff; border: 0;
+    font-size: 20px; font-weight: 700; font-family: inherit; cursor: pointer;
+  }
+  .keypad .keys button:active { background: #444; }
+  .keypad .keys button.zero { grid-column: 2; }
+  .math-actions { display: flex; gap: 34px; margin-top: 16px; }
+  .math-actions button {
+    width: 58px; height: 58px; border-radius: 50%; border: 0; padding: 0;
+    background: transparent; cursor: pointer; font-size: 46px; line-height: 1;
+  }
+  .math-actions button svg { width: 58px; height: 58px; display: block; }
+  .math-actions button:active { transform: scale(0.94); }
   .study-note {
     margin-top: auto; padding-top: 20px; text-align: center;
     font-size: 13px; color: var(--soft);
@@ -333,8 +348,19 @@
       <div class="study-card">
         <div class="qnum"><span data-i18n="t2_question"></span> <span id="qNum">1</span></div>
         <div class="expr" id="qText"></div>
-        <div class="answers" id="answers">
-          <button></button><button></button><button></button><button></button>
+        <div class="keypad" id="keypad">
+          <div class="display" id="mathDisplay"></div>
+          <div class="keys" id="keys">
+            <button data-d="1">1</button><button data-d="2">2</button><button data-d="3">3</button>
+            <button data-d="4">4</button><button data-d="5">5</button><button data-d="6">6</button>
+            <button data-d="7">7</button><button data-d="8">8</button><button data-d="9">9</button>
+            <button data-d="0" class="zero">0</button>
+          </div>
+        </div>
+        <div class="math-actions">
+          <button id="mathClear" aria-label="clear"><svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="27" fill="#fff" stroke="#ccc" stroke-width="3"/><g transform="rotate(-35 29 29)"><rect x="13" y="22" width="32" height="15" rx="3" fill="#c98aa6"/><rect x="13" y="22" width="11" height="15" rx="3" fill="#e9c4d4"/></g></svg></button>
+          <button id="mathSkip" aria-label="skip">🤔</button>
+          <button id="mathSubmit" aria-label="submit"><svg viewBox="0 0 58 58"><circle cx="29" cy="29" r="26" fill="#fff" stroke="#5b9e3d" stroke-width="5"/><path d="M17 30 l8 8 l16 -17" fill="none" stroke="#5b9e3d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </div>
     </section>
@@ -382,13 +408,13 @@
 
 </div>
 
-<script src="../shared/config.js?v=202610301530"></script>
-<script src="../shared/i18n.js?v=202610301530"></script>
-<script src="../shared/session.js?v=202610301530"></script>
-<script src="../shared/questions.js?v=202610301530"></script>
-<script src="../shared/videos.js?v=202610301530"></script>
-<script src="../shared/mousetracking.js?v=202610301530"></script>
-<script src="../shared/dragcursor.js?v=202610301530"></script>
+<script src="../shared/config.js?v=202610301533"></script>
+<script src="../shared/i18n.js?v=202610301533"></script>
+<script src="../shared/session.js?v=202610301533"></script>
+<script src="../shared/questions.js?v=202610301533"></script>
+<script src="../shared/videos.js?v=202610301533"></script>
+<script src="../shared/mousetracking.js?v=202610301533"></script>
+<script src="../shared/dragcursor.js?v=202610301533"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -537,41 +563,67 @@ $('nextVideoBtn').addEventListener('click', () => {
 
 /* ---------- study side ---------- */
 
+/* Keypad answering (team mock-up): digits build the answer, the eraser
+   clears it, the thinking face skips the question, the check submits.
+   The keyboard works too (digits, Backspace, Enter) while the study side
+   is active. Every submit logs an 'answer' event, every skip a 'skip'. */
+let typed = '';
+const MAX_DIGITS = 3;
+function showTyped(){ $('mathDisplay').textContent = typed; }
+
 function serveQuestion(){
   state.currentQ = QuestionBank.next();
   state.answerLock = false;
+  state.qShownAt = now();
+  typed = ''; showTyped();
+  $('mathDisplay').className = 'display';
   $('qNum').textContent = state.qNum;
   $('qText').textContent = state.currentQ.text;
-  const btns = $('answers').querySelectorAll('button');
-  state.currentQ.options.forEach((opt, i) => {
-    btns[i].textContent = opt;
-    btns[i].className = '';
-  });
 }
-
-$('answers').addEventListener('click', e => {
-  if (swallowClick){ swallowClick = false; return; }
-  const btn = e.target.closest('button');
-  if (!btn || !running() || state.activeSide !== 'study' || state.answerLock) return;
+const canAnswer = () => running() && state.activeSide === 'study' && !state.answerLock;
+function nextQuestion(delay){
+  setTimeout(() => { if (!running()) return; state.qNum++; serveQuestion(); }, delay);
+}
+function qFields(){
+  return { question_id: state.currentQ.id, level: state.currentQ.level, question: state.currentQ.text,
+           correct_answer: state.currentQ.answer, q_ms: now() - state.qShownAt };
+}
+function pressDigit(d){
+  if (!canAnswer() || typed.length >= MAX_DIGITS) return;
+  typed = (typed === '0' ? '' : typed) + d; showTyped();
+}
+function clearTyped(){
+  if (!canAnswer() || !typed) return;
+  logEvent('clear', { question_id: state.currentQ.id, erased: typed });
+  typed = ''; showTyped();
+}
+function skipQuestion(){
+  if (!canAnswer()) return;
   state.answerLock = true;
-  const given = parseInt(btn.textContent, 10);
+  logEvent('skip', { ...qFields(), typed_before_skip: typed });
+  nextQuestion(150);
+}
+function submitAnswer(){
+  if (!canAnswer() || typed === '') return;
+  state.answerLock = true;
+  const given = parseInt(typed, 10);
   const correct = given === state.currentQ.answer;
   if (correct) state.points++;
-  logEvent('answer', {
-    question_id: state.currentQ.id,
-    level: state.currentQ.level,
-    question: state.currentQ.text,
-    given,
-    correct_answer: state.currentQ.answer,
-    is_correct: correct,
-    points_total: state.points,
-  });
-  btn.classList.add(correct ? 'flash-good' : 'flash-bad');
-  setTimeout(() => {
-    if (!running()) return;
-    state.qNum++;
-    serveQuestion();
-  }, 450);
+  logEvent('answer', { ...qFields(), given, is_correct: correct, points_total: state.points });
+  $('mathDisplay').classList.add(correct ? 'good' : 'bad');
+  nextQuestion(450);
+}
+// the tap that activated the study side must not also press a key
+const guard = fn => e => { if (swallowClick){ swallowClick = false; return; } fn(e); };
+$('keys').addEventListener('click', guard(e => { const b = e.target.closest('button'); if (b) pressDigit(b.dataset.d); }));
+$('mathClear').addEventListener('click', guard(clearTyped));
+$('mathSkip').addEventListener('click', guard(skipQuestion));
+$('mathSubmit').addEventListener('click', guard(submitAnswer));
+document.addEventListener('keydown', e => {
+  if (!canAnswer()) return;
+  if (/^[0-9]$/.test(e.key)) pressDigit(e.key);
+  else if (e.key === 'Backspace'){ e.preventDefault(); if (typed){ typed = typed.slice(0, -1); showTyped(); } }
+  else if (e.key === 'Enter') submitAnswer();
 });
 
 /* ---------- side activation ---------- */
@@ -914,6 +966,7 @@ function summaryRow(){
     lock_choice: state.lockChoice,
     lock_auc: m ? +m.auc.toFixed(6) : '', lock_md: m ? +m.md.toFixed(6) : '', lock_x_flips: m ? m.xFlips : '',
     points: state.points, attempted, correct,
+    skipped: state.events.filter(e => e.type === 'skip').length,
     accuracy: attempted ? +(correct / attempted).toFixed(3) : '',
     practice_study_ms: d.practice.study, practice_video_ms: d.practice.video, practice_none_ms: d.practice.none,
     block1_study_ms: d.block1.study, block1_video_ms: d.block1.video, block1_none_ms: d.block1.none,
