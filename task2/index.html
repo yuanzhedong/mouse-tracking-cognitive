@@ -35,11 +35,7 @@
     font-size: 14px;
   }
   header .hud b { font-weight: 600; }
-  .quiz-pill {
-    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-    border: 1px solid var(--ink); padding: 4px 12px;
-    color: var(--soft);
-  }
+  header .hud.points { margin-left: auto; }   /* stays right when the timer is hidden */
 
   /* ---------- intro ---------- */
   .intro {
@@ -265,8 +261,7 @@
 
   <header>
     <span class="hud" id="timeHud">⏱ <b id="timeLeft">1:00</b> <span data-i18n="t2_time_left"></span></span>
-    <span class="quiz-pill" data-i18n="t2_quiz_pill"></span>
-    <span class="hud"><span data-i18n="t2_points"></span>: <b id="points">0</b></span>
+    <span class="hud points"><span data-i18n="t2_points"></span>: <b id="points">0</b></span>
   </header>
 
   <!-- intro -->

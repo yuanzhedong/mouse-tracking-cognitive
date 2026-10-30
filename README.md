@@ -191,7 +191,7 @@ via the YouTube IFrame API). **Whichever side the mouse is over becomes
 active**: hovering the study side pauses the video and enables answering;
 hovering the video side plays the video and disables (dims) the math panel.
 Videos auto-advance when finished and can be skipped with a "next" button.
-Persistent header: points, "Quiz at the end" reminder, and the time
+Persistent header: points, and the time
 remaining during practice only.
 
 Flow: intro → **practice** (1 min) → **block 1** (4 min) → **lock-screen
