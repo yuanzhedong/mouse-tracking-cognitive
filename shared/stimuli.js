@@ -229,14 +229,14 @@ const TASK1_TRIAL_LIST = [
   [120, 'goal_temptation', 'study_03', 'entertainment_11'],
 ].map(([trial_id, trial_type, left, right]) => ({ trial_id, trial_type, left: ACTIVITY_BY_ID[left], right: ACTIVITY_BY_ID[right] }));
 
-/* Pictures. The card already shows the Portuguese label, so pages add a
-   caption only when the text language isn't Portuguese. */
+/* Pictures. The card already shows the (Portuguese) label, so pages show
+   the card alone, with no caption, in every language. */
 const activityImgSrc = act => Session.ROOT + 'shared/activity_images/' + act.cat + '/' + act.id + '.png';
 const activityImgFile = act => act.cat + '/' + act.id + '.png';
 function activityPic(act){
   return `<span class="pic"><img src="${activityImgSrc(act)}" alt="${act.pt.replace(/"/g, '&quot;')}" draggable="false"></span>`;
 }
-const activityCaption = act => Session.lang === 'pt' ? '' : Session.pick(act);
+const activityCaption = act => '';
 
 /* Video preview stimuli for the Task 2 rating block: the current Task 2
    playlist (shared/videos.js), thumbnails from YouTube. */
