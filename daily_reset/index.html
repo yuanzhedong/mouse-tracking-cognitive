@@ -19,16 +19,6 @@
   section.block h2 { font-size: 19px; margin-bottom: 10px; }
   section.block p.instr { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
 
-  /* likert grid */
-  .likert { width: 100%; border-collapse: collapse; }
-  .likert th { font-size: 11px; font-weight: 500; color: var(--soft); line-height: 1.3; padding: 6px 4px 10px; text-align: center; vertical-align: bottom; width: 11%; }
-  .likert th.stmt { text-align: left; width: auto; }
-  .likert td { padding: 10px 4px; border-top: 1px solid var(--rule); text-align: center; vertical-align: middle; }
-  .likert td.stmt { text-align: left; font-size: 15px; line-height: 1.45; padding-right: 12px; }
-  .likert td label { display: block; padding: 6px 0; cursor: pointer; }
-  .likert input[type=radio] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
-  .likert tr.missing td.stmt { color: var(--accent); }
-  .likert td .num { display: block; font-size: 10px; color: var(--soft); margin-top: 2px; }
 
   /* top-3 checklist */
   .checks { display: grid; gap: 8px; }
@@ -47,11 +37,8 @@
   .nav button:hover { opacity: 0.9; }
   .nav button:disabled { opacity: 0.5; cursor: default; }
 
-  @media (max-width: 640px) {
-    .likert th { font-size: 9px; }
-    .likert td.stmt { font-size: 14px; }
-  }
 </style>
+<link rel="stylesheet" href="../shared/survey.css?v=202610301547">
 </head>
 <body>
 <div class="container">
@@ -67,11 +54,11 @@
   </div>
 </div>
 
-<script src="../shared/config.js?v=202610301545"></script>
-<script src="../shared/i18n.js?v=202610301545"></script>
-<script src="../shared/surveys.js?v=202610301545"></script>
-<script src="../shared/session.js?v=202610301545"></script>
-<script src="../shared/surveyrunner.js?v=202610301545"></script>
+<script src="../shared/config.js?v=202610301547"></script>
+<script src="../shared/i18n.js?v=202610301547"></script>
+<script src="../shared/surveys.js?v=202610301547"></script>
+<script src="../shared/session.js?v=202610301547"></script>
+<script src="../shared/surveyrunner.js?v=202610301547"></script>
 <script>
 Session.applyI18n();
 document.title = Session.t('dr_title');

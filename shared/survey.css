@@ -1,0 +1,20 @@
+/* Questionnaire items (shared/surveyrunner.js): each statement with its own
+   row of labelled answers under it — no numbers, no shared header row. */
+.likert .lk-item { padding: 16px 0 18px; border-top: 1px solid var(--rule); }
+.likert .lk-item:first-child { border-top: 0; padding-top: 4px; }
+.likert .lk-stmt { font-size: 16px; line-height: 1.45; margin-bottom: 12px; }
+.likert .lk-item.missing .lk-stmt { color: var(--accent); }
+.likert .lk-opts { display: grid; gap: 6px; }
+.likert .lk-opts label {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 4px; border: 1px solid var(--rule); background: var(--bg);
+  font-size: 12px; line-height: 1.25; text-align: center; color: var(--ink);
+  cursor: pointer; user-select: none;
+}
+.likert .lk-opts label:hover { border-color: var(--ink); }
+.likert .lk-opts label:has(input:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.likert .lk-opts input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+@media (max-width: 640px) {
+  .likert .lk-opts { grid-template-columns: 1fr !important; }
+  .likert .lk-opts label { flex-direction: row; justify-content: flex-start; padding: 10px 12px; font-size: 14px; text-align: left; }
+}

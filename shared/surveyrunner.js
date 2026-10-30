@@ -16,15 +16,13 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
 
   function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-  function scaleHeader(scale){
-    return `<tr><th class="stmt"></th>` +
-      scale[L].map((lab, i) => `<th>${esc(lab)}<span class="num" style="display:block;color:var(--soft);font-size:10px;margin-top:3px">${i + 1}</span></th>`).join('') +
-      `</tr>`;
-  }
-  function likertRow(name, text, n){
-    return `<tr data-name="${esc(name)}"><td class="stmt">${esc(text)}</td>` +
-      Array.from({ length: n }, (_, i) => i + 1).map(v => `<td><label><input type="radio" name="${esc(name)}" value="${v}"></label></td>`).join('') +
-      `</tr>`;
+  /* One item = the statement with its own row of labelled answers under
+     it (team doc 10/30: every question shows the labels, no numbers). */
+  function likertItem(name, text, scale){
+    return `<div class="lk-item" data-name="${esc(name)}"><div class="lk-stmt">${esc(text)}</div>` +
+      `<div class="lk-opts" style="grid-template-columns:repeat(${scale.length},1fr)">` +
+      scale.map((lab, i) => `<label><input type="radio" name="${esc(name)}" value="${i + 1}"><span>${esc(lab)}</span></label>`).join('') +
+      `</div></div>`;
   }
 
   function render(){
@@ -38,8 +36,8 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
     let html = `<section class="block"><h2>${esc(T(sec.title))}</h2><p class="instr">${esc(T(sec.instructions))}</p>`;
 
     if (sec.type === 'likert'){
-      html += `<table class="likert">${scaleHeader(sec.scale)}` +
-        sec.items.map(it => likertRow(`${sec.id}_${it.id}`, T(it), sec.scale[L].length)).join('') + `</table>`;
+      html += `<div class="likert">` +
+        sec.items.map(it => likertItem(`${sec.id}_${it.id}`, T(it), sec.scale[L])).join('') + `</div>`;
     }
     else if (sec.type === 'top3'){
       html += `<div class="checks" id="checks">` +
@@ -55,15 +53,17 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
       const chosen = answers.tempting_top3?.chosen || [];
       html += `<div class="piped">` + chosen.map(c => `
         <h3>${esc(Session.t('rating_for', { activity: c.text }))}</h3>
-        <table class="likert">${scaleHeader(sec.scale)}` +
-          sec.items.map(it => likertRow(`${sec.id}_${c.id}_${it.id}`, T(it), sec.scale[L].length)).join('') +
-        `</table>`).join('') + `</div>`;
+        <div class="likert">` +
+          sec.items.map(it => likertItem(`${sec.id}_${c.id}_${it.id}`, T(it), sec.scale[L])).join('') +
+        `</div>`).join('') + `</div>`;
     }
     html += `</section>`;
     $('host').innerHTML = html;
     Session.applyI18n($('host'));
 
     if (sec.type === 'top3') wireTop3();
+    // an answered statement stops being marked as missing
+    $('host').querySelectorAll('.lk-item').forEach(it => it.addEventListener('change', () => it.classList.remove('missing')));
     window.scrollTo(0, 0);
   }
 
@@ -96,7 +96,7 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
 
     if (sec.type === 'likert' || sec.type === 'piped_likert'){
       let missing = false;
-      document.querySelectorAll('tr[data-name]').forEach(tr => {
+      document.querySelectorAll('.lk-item[data-name]').forEach(tr => {
         const name = tr.dataset.name;
         const v = tr.querySelector('input:checked');
         tr.classList.toggle('missing', !v);
@@ -135,7 +135,7 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
     const rows = collect();
     if (!rows){
       $('err').textContent = SECTIONS[idx].type === 'top3' ? Session.t('choose_three') : Session.t('please_answer_all');
-      const m = document.querySelector('tr.missing'); if (m) m.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      const m = document.querySelector('.lk-item.missing'); if (m) m.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
     $('nextBtn').disabled = true;
