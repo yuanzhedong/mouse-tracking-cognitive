@@ -122,7 +122,7 @@ $('langEn').classList.toggle('on', Session.lang === 'en');
 $('flow').textContent = ['entry', ...CONFIG.FLOW].join(' → ');
 $('endpointStatus').textContent = CONFIG.ENDPOINT ? 'configured' : 'not configured (local-only)';
 
-/* Codes are compared case- and space-insensitively (7kq 4mg = 7KQ4MG). */
+/* Codes are compared case- and space-insensitively (testa 01 = TESTA01). */
 const normCode = v => v.replace(/\s+/g, '').toUpperCase();
 $('pid').value = qs.get('pid') || '';
 

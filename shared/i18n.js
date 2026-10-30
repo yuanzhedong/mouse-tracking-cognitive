@@ -9,7 +9,7 @@ const STRINGS = {
     app_title: 'Self-Control Study',
     app_subtitle: 'Student session',
     pid_label: 'Participant code',
-    pid_placeholder: 'e.g. 7KQ4MG',
+    pid_placeholder: 'e.g. 1234',
     pid_required: 'Please enter your participant code.',
     pid_invalid: 'This code is not valid. Please check it and type it again.',
     lang_label: 'Language',
@@ -130,7 +130,7 @@ const STRINGS = {
     app_title: 'Estudo sobre Autocontrole',
     app_subtitle: 'Sessão do estudante',
     pid_label: 'Código do participante',
-    pid_placeholder: 'ex.: 7KQ4MG',
+    pid_placeholder: 'ex.: 1234',
     pid_required: 'Por favor, digite o seu código de participante.',
     pid_invalid: 'Este código não é válido. Confira e digite de novo.',   // draft
     lang_label: 'Idioma',

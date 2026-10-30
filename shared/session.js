@@ -64,19 +64,11 @@ const Session = (() => {
     }
     return out;
   }
-  /* Student IDs: 6 characters from ID_ALPHABET, the last one a check
-     character (same rule as idCheckChar in backend/Code.gs), so a mistyped
-     or swapped character is caught right away. Codes starting with TEST are
-     for trying the site; the server keeps their data apart. */
-  const ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+  /* Student IDs are integers (1000, 1001, …; the server's student_ids tab
+     says which exist). Codes starting with TEST are for trying the site;
+     the server keeps their data apart. */
   const isTestId = code => /^TEST/.test(code);
-  function idValid(code){
-    if (isTestId(code)) return true;
-    if (!new RegExp('^[' + ID_ALPHABET + ']{6}$').test(code)) return false;
-    let s = 0;
-    for (let i = 0; i < 5; i++) s += (i + 1) * ID_ALPHABET.indexOf(code[i]);
-    return ID_ALPHABET[s % ID_ALPHABET.length] === code[5];
-  }
+  const idValid = code => isTestId(code) || /^\d{3,6}$/.test(code);
 
   /* Ask the server for this code's groups (same answer every time for the
      same code); stored so assignGroups() picks them up. Resolves to the

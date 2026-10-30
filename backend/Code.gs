@@ -32,24 +32,16 @@ const DATA_FOLDER_NAME = 'self-control-battery-data';   // created in My Drive o
 const SPREADSHEET_ID = '';   // leave empty when the script is bound to the spreadsheet
 const GROUPS = { mt: ['A', 'B'], hz: ['weeks', 'months'] };
 const ID_SHEET = 'student_ids';
-const ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';   // 31 symbols: no 0/O, 1/I/L
+const ID_START = 1000;   // student IDs are consecutive integers from here
 
 /* ---------- student IDs ---------- */
 
 const normId = s => String(s || '').replace(/\s+/g, '').toUpperCase();
 const isTestId = id => id.indexOf('TEST') === 0;
 
-/* Last character = check character: weighted sum mod 31 (prime), so any
-   single wrong character or swap of two neighbours is caught. Same rule
-   as idValid() in shared/session.js. */
-function idCheckChar(body){
-  let s = 0;
-  for (let i = 0; i < body.length; i++) s += (i + 1) * ID_ALPHABET.indexOf(body[i]);
-  return ID_ALPHABET[s % ID_ALPHABET.length];
-}
-
 /* Run from the editor: appends n new IDs (default 1000) to the student_ids
-   tab, numbered on from the last one. */
+   tab — consecutive integers continuing after the highest one there (the
+   first is ID_START). */
 function generateIds(n){
   n = Number(n) || 1000;
   const ss = book();
@@ -59,23 +51,14 @@ function generateIds(n){
     sh.appendRow(['no', 'student_id', 'school', 'class', 'given_to', 'note']);
     sh.setFrozenRows(1);
   }
-  const have = {};
   const last = sh.getLastRow();
-  if (last > 1) sh.getRange(2, 2, last - 1, 1).getValues().forEach(r => have[r[0]] = true);
+  let next = ID_START;
+  if (last > 1) sh.getRange(2, 2, last - 1, 1).getValues().forEach(r => { const v = Number(r[0]); if (v >= next) next = v + 1; });
   const rows = [];
-  let no = last - 1;
-  while (rows.length < n){
-    let body = '';
-    for (let i = 0; i < 5; i++) body += ID_ALPHABET[Math.floor(Math.random() * ID_ALPHABET.length)];
-    const id = body + idCheckChar(body);
-    if (have[id] || isTestId(id)) continue;
-    have[id] = true;
-    rows.push([++no, id, '', '', '', '']);
-  }
+  for (let i = 0; i < n; i++) rows.push([last + i, next + i, '', '', '', '']);
   sh.getRange(last + 1, 1, rows.length, 6).setValues(rows);
-  sh.getRange(2, 2, sh.getLastRow() - 1, 1).setFontFamily('Roboto Mono');
   CacheService.getScriptCache().remove('ids');
-  Logger.log('added ' + n + ' IDs; total ' + (sh.getLastRow() - 1));
+  Logger.log('added IDs ' + next + '-' + (next + n - 1) + '; total ' + (sh.getLastRow() - 1));
 }
 
 /* Set of valid IDs (cached 10 min; edits to the tab show up after that). */
@@ -254,6 +237,45 @@ function clearTestData(){
     ss.getSheets().filter(s => s.getName() !== ID_SHEET && s.getName().indexOf('Sheet') !== 0).forEach(s => ss.deleteSheet(s));
   }
   Logger.log('trashed ' + n + ' test files' + (realLeft ? '' : '; group blocks reset'));
+}
+
+/* Wipe single students, e.g. an ID used for testing: write "clear" in the
+   note column of student_ids, then run clearMarkedStudents (from the
+   editor). Their upload files go to the Drive trash, their rows leave every
+   data tab, their group assignment is dropped (the ID starts fresh), and
+   the note becomes "cleared <date>". If no real student is left, the 50/50
+   blocks restart from zero. */
+function clearMarkedStudents(){
+  const ss = book(), sh = ss.getSheetByName(ID_SHEET), f = folders();
+  const props = PropertiesService.getScriptProperties();
+  if (!sh || sh.getLastRow() < 2) return;
+  const marked = {};
+  sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().forEach((r, i) => {
+    if (String(r[5]).trim().toLowerCase() === 'clear') marked[normId(r[1])] = i + 2;
+  });
+  if (!Object.keys(marked).length){ Logger.log('no row has "clear" in the note column'); return; }
+  let files = 0, rows = 0;
+  [f.raw, f.processed].forEach(folder => {
+    const it = folder.getFiles();
+    while (it.hasNext()){
+      const file = it.next(), pid = file.getName().replace(/^TEST__/, '').split('__')[0];
+      if (pid in marked){ file.setTrashed(true); files++; }
+    }
+  });
+  ss.getSheets().forEach(s => {
+    if (s.getName() === ID_SHEET || s.getLastRow() < 2) return;
+    const col = s.getRange(1, 1, 1, s.getLastColumn()).getValues()[0].indexOf('pid');
+    if (col < 0) return;
+    const pids = s.getRange(2, col + 1, s.getLastRow() - 1, 1).getValues();
+    for (let i = pids.length - 1; i >= 0; i--){
+      if (normId(pids[i][0]) in marked){ s.deleteRow(i + 2); rows++; }
+    }
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  Object.keys(marked).forEach(id => { props.deleteProperty('pid_' + id); sh.getRange(marked[id], 6).setValue('cleared ' + today); });
+  const realLeft = Object.keys(props.getProperties()).some(k => k.indexOf('pid_') === 0 && isRealId(k.slice(4)));
+  if (!realLeft) Object.keys(GROUPS).forEach(g => props.deleteProperty('block_' + g));
+  Logger.log('cleared ' + Object.keys(marked).join(', ') + ': ' + files + ' files to trash, ' + rows + ' rows removed' + (realLeft ? '' : '; group blocks reset'));
 }
 
 function folders(){

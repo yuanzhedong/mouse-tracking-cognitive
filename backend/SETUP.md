@@ -46,8 +46,9 @@ sheet every 10 minutes. (Run `buildSheets` by hand to update right away.)
 Run **generateIds** once (function menu → Run). It creates the
 `student_ids` tab with 1,000 IDs (`no`, `student_id`, and empty `school`,
 `class`, `given_to`, `note` columns for your records); run it again to add
-1,000 more. IDs are 6 characters without 0/O/1/I/L; the last one is a check
-character, so a mistyped or swapped character is refused on the spot.
+1,000 more. IDs are consecutive integers starting at 1000 (1000–1999, then
+2000–2999, …). A number that isn't in the tab is refused, but a typo that
+lands on another listed number is not — check `given_to` when in doubt.
 
 - Only IDs in this tab are real participants. The start page refuses any
   other code ("Este código não é válido").
@@ -57,6 +58,9 @@ character, so a mistyped or swapped character is refused on the spot.
   version A and `TESTB…` codes version B; other TEST codes get a random one.
 - The list lives only in this spreadsheet, never in the public repo.
   Deleting a row disables that ID within 10 minutes.
+- To wipe one ID (e.g. used for testing by mistake): write `clear` in its
+  `note` cell and run **clearMarkedStudents** — its files go to the trash,
+  its rows leave the data tabs, and the ID starts fresh.
 - Before the pilot, run **clearTestData**: it moves all TEST (and unlisted)
   uploads to the Drive trash, deletes the TEST_ tabs and their group
   assignments, and — if no real student has started yet — restarts the
