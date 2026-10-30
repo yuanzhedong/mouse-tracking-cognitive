@@ -187,7 +187,7 @@ with the standard metrics — **AUC**, **MD**, **x-flips**,
 
 A free-choice attention-allocation task: ~8 minutes before a quiz, split
 screen with **math questions on the left** (the team's 152-item bank in
-`shared/questions.js`, blocks B → E by difficulty; typed on a keypad with eraser / skip 🤔 / submit ✅) and **YouTube videos on the right** (playlist
+`shared/questions.js`, blocks B → E by difficulty; typed on a keypad with eraser (one digit) / skip 🤔 / submit ✅) and **YouTube videos on the right** (playlist
 via the YouTube IFrame API). **Whichever side the mouse is over becomes
 active**: hovering the study side pauses the video and enables answering;
 hovering the video side plays the video and disables (dims) the math panel.
