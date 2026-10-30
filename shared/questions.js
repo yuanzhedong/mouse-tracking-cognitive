@@ -1,44 +1,174 @@
-/* Shared math question bank for the task battery.
-   Fixed 30-item bank (easy → medium → challenge). Questions are served in
-   bank order on the first pass, then reshuffled for subsequent passes.
-   Multiple-choice options are generated as answer ± 1..4 (unique). */
+/* ADT (Task 2) math bank — the team's smarte_math_unique_items.csv (Drive,
+   2026-10-27): column C (Problem) with its answer, block and type.
+   Blocks B (single-digit facts) → C (two-digit ± one-digit) → D (recall,
+   two-digit ± one-digit) → E (two-digit ± two-digit, fill-in-the-blank).
+   Item 111 is listed in both C and D; it is kept once, in C.
+
+   Served easiest block first (B, then C, D, E), shuffled within each block;
+   after the last item the whole bank repeats, reshuffled. Four answer
+   buttons: the answer plus three nearby wrong ones (never negative). */
 
 const MATH_BANK = [
-  { id:  1, level: 'easy',      text: '7 + 8 = ?',            answer: 15 },
-  { id:  2, level: 'easy',      text: '14 − 6 = ?',           answer: 8 },
-  { id:  3, level: 'easy',      text: '6 × 4 = ?',            answer: 24 },
-  { id:  4, level: 'easy',      text: '35 ÷ 5 = ?',           answer: 7 },
-  { id:  5, level: 'easy',      text: '25 + 17 = ?',          answer: 42 },
-  { id:  6, level: 'easy',      text: '60 − 24 = ?',          answer: 36 },
-  { id:  7, level: 'easy',      text: 'half of 30 = ?',       answer: 15 },
-  { id:  8, level: 'easy',      text: '10% of 70 = ?',        answer: 7 },
-  { id:  9, level: 'easy',      text: 'double 16 = ?',        answer: 32 },
-  { id: 10, level: 'easy',      text: 'x + 4 = 11,  x = ?',   answer: 7 },
-  { id: 11, level: 'medium',    text: '6 × 7 − 10 = ?',       answer: 32 },
-  { id: 12, level: 'medium',    text: '20 ÷ 4 + 9 = ?',       answer: 14 },
-  { id: 13, level: 'medium',    text: '5 + 3 × 4 = ?',        answer: 17 },
-  { id: 14, level: 'medium',    text: '50% of 48 = ?',        answer: 24 },
-  { id: 15, level: 'medium',    text: '25% of 40 = ?',        answer: 10 },
-  { id: 16, level: 'medium',    text: '10% of 250 = ?',       answer: 25 },
-  { id: 17, level: 'medium',    text: '3 + (−8) = ?',         answer: -5 },
-  { id: 18, level: 'medium',    text: '2x = 18,  x = ?',      answer: 9 },
-  { id: 19, level: 'medium',    text: 'x − 7 = 12,  x = ?',   answer: 19 },
-  { id: 20, level: 'medium',    text: '3x = 24,  x = ?',      answer: 8 },
-  { id: 21, level: 'challenge', text: '15% of 60 = ?',        answer: 9 },
-  { id: 22, level: 'challenge', text: '2x + 3 = 15,  x = ?',  answer: 6 },
-  { id: 23, level: 'challenge', text: '4² + 5 = ?',           answer: 21 },
-  { id: 24, level: 'challenge', text: '√64 = ?',              answer: 8 },
-  { id: 25, level: 'challenge', text: '17 × 6 = ?',           answer: 102 },
-  { id: 26, level: 'challenge', text: '45 − 3 × 9 = ?',       answer: 18 },
-  { id: 27, level: 'challenge', text: '20% of 35 = ?',        answer: 7 },
-  { id: 28, level: 'challenge', text: '5x − 4 = 26,  x = ?',  answer: 6 },
-  { id: 29, level: 'challenge', text: '3³ = ?',               answer: 27 },
-  { id: 30, level: 'challenge', text: '84 ÷ 7 = ?',           answer: 12 },
-];
+  // [item, block, type, problem as in the sheet, answer]
+  [1, 'B', "FactSmall", "0 + 1 =", 1],
+  [2, 'B', "FactSmall", "0 + 2 =", 2],
+  [3, 'B', "FactSmall", "0 + 3 =", 3],
+  [4, 'B', "FactLarge", "0 + 6 =", 6],
+  [5, 'B', "FactLarge", "0 + 8 =", 8],
+  [6, 'B', "FactLarge", "0 + 9 =", 9],
+  [7, 'B', "FactSmall", "1 + 0 =", 1],
+  [8, 'B', "FactSmall", "1 + 1 =", 2],
+  [9, 'B', "FactLarge", "1 + 6 =", 7],
+  [10, 'B', "FactSmall", "2 + 0 =", 2],
+  [11, 'B', "FactSmall", "2 + 1 =", 3],
+  [12, 'B', "FactSmall", "2 + 2 =", 4],
+  [13, 'B', "CalcLarge", "2 + 4 =", 6],
+  [14, 'B', "CalcLarge", "2 + 6 =", 8],
+  [15, 'B', "CalcLarge", "2 + 7 =", 9],
+  [16, 'B', "FactSmall", "3 + 0 =", 3],
+  [17, 'B', "FactSmall", "3 + 1 =", 4],
+  [18, 'B', "FactLarge", "3 + 3 =", 6],
+  [19, 'B', "CalcLarge", "3 + 4 =", 7],
+  [20, 'B', "CalcLarge", "3 + 5 =", 8],
+  [21, 'B', "CalcLarge", "3 + 6 =", 9],
+  [22, 'B', "FactSmall", "4 + 0 =", 4],
+  [23, 'B', "CalcLarge", "4 + 3 =", 7],
+  [24, 'B', "FactLarge", "4 + 4 =", 8],
+  [25, 'B', "CalcLarge", "5 + 3 =", 8],
+  [26, 'B', "FactLarge", "6 + 0 =", 6],
+  [27, 'B', "FactLarge", "6 + 1 =", 7],
+  [28, 'B', "CalcLarge", "6 + 2 =", 8],
+  [29, 'B', "CalcLarge", "6 + 3 =", 9],
+  [30, 'B', "FactLarge", "7 + 0 =", 7],
+  [31, 'B', "FactLarge", "7 + 1 =", 8],
+  [32, 'B', "CalcLarge", "7 + 2 =", 9],
+  [33, 'B', "FactLarge", "8 + 1 =", 9],
+  [34, 'B', "FactLarge", "9 + 0 =", 9],
+  [35, 'B', "FactSmall", "1 - 0 =", 1],
+  [36, 'B', "FactSmall", "2 - 0 =", 2],
+  [37, 'B', "FactSmall", "3 - 0 =", 3],
+  [38, 'B', "CalcSmall", "3 - 2 =", 1],
+  [39, 'B', "FactSmall", "4 - 0 =", 4],
+  [40, 'B', "CalcSmall", "4 - 2 =", 2],
+  [41, 'B', "CalcSmall", "4 - 3 =", 1],
+  [42, 'B', "CalcSmall", "5 - 1 =", 4],
+  [43, 'B', "CalcSmall", "5 - 3 =", 2],
+  [44, 'B', "FactLarge", "6 - 0 =", 6],
+  [45, 'B', "CalcSmall", "6 - 2 =", 4],
+  [46, 'B', "CalcSmall", "6 - 3 =", 3],
+  [47, 'B', "CalcSmall", "6 - 4 =", 2],
+  [48, 'B', "CalcSmall", "6 - 5 =", 1],
+  [49, 'B', "FactLarge", "7 - 0 =", 7],
+  [50, 'B', "CalcLarge", "7 - 1 =", 6],
+  [51, 'B', "CalcSmall", "7 - 3 =", 4],
+  [52, 'B', "CalcSmall", "7 - 4 =", 3],
+  [53, 'B', "FactLarge", "8 - 0 =", 8],
+  [54, 'B', "CalcLarge", "8 - 1 =", 7],
+  [55, 'B', "CalcLarge", "8 - 2 =", 6],
+  [56, 'B', "CalcSmall", "8 - 4 =", 4],
+  [57, 'B', "CalcSmall", "8 - 5 =", 3],
+  [58, 'B', "CalcSmall", "8 - 7 =", 1],
+  [59, 'B', "FactLarge", "9 - 0 =", 9],
+  [60, 'B', "CalcLarge", "9 - 2 =", 7],
+  [61, 'B', "CalcLarge", "9 - 3 =", 6],
+  [62, 'B', "CalcSmall", "9 - 6 =", 3],
+  [63, 'B', "CalcSmall", "9 - 7 =", 2],
+  [64, 'C', "CalcNoBC", "12 + 6 =", 18],
+  [65, 'C', "CalcBC", "18 + 6 =", 24],
+  [66, 'C', "CalcNoBC", "21 + 4 =", 25],
+  [67, 'C', "Fact", "22 + 0 =", 22],
+  [68, 'C', "CalcNoBC", "23 + 6 =", 29],
+  [69, 'C', "CalcNoBC", "33 + 5 =", 38],
+  [70, 'C', "CalcBC", "34 + 7 =", 41],
+  [71, 'C', "CalcBC", "38 + 4 =", 42],
+  [72, 'C', "CalcBC", "39 + 4 =", 43],
+  [73, 'C', "Fact", "43 + 0 =", 43],
+  [74, 'C', "CalcBC", "49 + 2 =", 51],
+  [75, 'C', "CalcNoBC", "55 + 3 =", 58],
+  [76, 'C', "CalcNoBC", "61 + 7 =", 68],
+  [77, 'C', "CalcNoBC", "62 + 2 =", 64],
+  [78, 'C', "Fact", "63 + 3 =", 66],
+  [79, 'C', "CalcBC", "67 + 8 =", 75],
+  [80, 'C', "Fact", "68 + 0 =", 68],
+  [81, 'C', "CalcBC", "69 + 9 =", 78],
+  [82, 'C', "Fact", "72 + 2 =", 74],
+  [83, 'C', "Fact", "74 + 0 =", 74],
+  [84, 'C', "CalcBC", "76 + 8 =", 84],
+  [85, 'C', "CalcBC", "88 + 9 =", 97],
+  [86, 'C', "Fact", "91 + 1 =", 92],
+  [87, 'C', "Fact", "11 - 0 =", 11],
+  [88, 'C', "CalcNoBC", "16 - 3 =", 13],
+  [89, 'C', "CalcNoBC", "24 - 2 =", 22],
+  [90, 'C', "Fact", "29 - 0 =", 29],
+  [91, 'C', "CalcNoBC", "29 - 3 =", 26],
+  [92, 'C', "Fact", "33 - 0 =", 33],
+  [93, 'C', "CalcBC", "41 - 5 =", 36],
+  [94, 'C', "Fact", "46 - 0 =", 46],
+  [95, 'C', "CalcBC", "56 - 9 =", 47],
+  [96, 'C', "CalcNoBC", "57 - 3 =", 54],
+  [97, 'C', "CalcNoBC", "59 - 3 =", 56],
+  [98, 'C', "CalcBC", "63 - 7 =", 56],
+  [99, 'C', "CalcNoBC", "65 - 4 =", 61],
+  [100, 'C', "CalcNoBC", "67 - 6 =", 61],
+  [101, 'C', "Fact", "69 - 0 =", 69],
+  [102, 'C', "CalcBC", "71 - 2 =", 69],
+  [103, 'C', "CalcNoBC", "78 - 5 =", 73],
+  [104, 'C', "CalcBC", "81 - 3 =", 78],
+  [105, 'C', "CalcBC", "82 - 9 =", 73],
+  [106, 'C', "Fact", "87 - 0 =", 87],
+  [107, 'C', "CalcNoBC", "87 - 5 =", 82],
+  [108, 'C', "Fact", "88 - 0 =", 88],
+  [109, 'C', "Fact", "91 - 0 =", 91],
+  [110, 'C', "CalcBC", "95 - 6 =", 89],
+  [111, 'C', "Fact", "34 + 4 =", 38],
+  [112, 'D', "CalcBC", "19 + 6 =", 25],
+  [113, 'D', "CalcBC", "28 + 3 =", 31],
+  [114, 'D', "CalcNoBC", "31 + 5 =", 36],
+  [115, 'D', "CalcNoBC", "53 + 6 =", 59],
+  [116, 'D', "CalcNoBC", "63 + 6 =", 69],
+  [117, 'D', "CalcBC", "66 + 9 =", 75],
+  [118, 'D', "CalcBC", "68 + 4 =", 72],
+  [119, 'D', "CalcNoBC", "74 + 5 =", 79],
+  [120, 'D', "CalcBC", "75 + 6 =", 81],
+  [121, 'D', "CalcBC", "89 + 5 =", 94],
+  [122, 'D', "CalcNoBC", "92 + 4 =", 96],
+  [123, 'D', "CalcNoBC", "17 - 4 =", 13],
+  [124, 'D', "CalcNoBC", "24 - 3 =", 21],
+  [125, 'D', "CalcBC", "32 - 4 =", 28],
+  [126, 'D', "CalcBC", "41 - 4 =", 37],
+  [127, 'D', "CalcBC", "47 - 8 =", 39],
+  [128, 'D', "CalcNoBC", "49 - 3 =", 46],
+  [129, 'D', "CalcBC", "57 - 5 =", 52],
+  [130, 'D', "CalcNoBC", "66 - 4 =", 62],
+  [131, 'D', "CalcNoBC", "73 - 2 =", 71],
+  [132, 'D', "CalcBC", "76 - 7 =", 69],
+  [133, 'D', "CalcBC", "81 - 5 =", 76],
+  [134, 'D', "CalcNoBC", "88 - 4 =", 84],
+  [135, 'E', "DDadd", "24 + 52 =", 76],
+  [136, 'E', "DDadd", "28 + 35 =", 63],
+  [137, 'E', "DDadd", "29 + 27 =", 56],
+  [138, 'E', "DDadd", "32 + 44 =", 76],
+  [139, 'E', "DDInference", "36 + ___ = 43", 7],
+  [140, 'E', "DDadd", "36 + 58 =", 94],
+  [141, 'E', "DDInference", "45 + ___ = 49", 4],
+  [142, 'E', "DDInference", "62 + ___ = 71", 9],
+  [143, 'E', "DDadd", "73 + 25 =", 98],
+  [144, 'E', "DDSub", "34 - 22 =", 12],
+  [145, 'E', "DDInference", "35 - ___ = 31", 4],
+  [146, 'E', "DDInference", "42 - ___ = 37", 5],
+  [147, 'E', "DDSub", "53 - 26 =", 27],
+  [148, 'E', "DDSub", "68 - 35 =", 33],
+  [149, 'E', "DDSub", "74 - 49 =", 25],
+  [150, 'E', "DDSub", "86 - 23 =", 63],
+  [151, 'E', "DDInference", "88 - ___ = 83", 5],
+  [152, 'E', "DDSub", "92 - 27 =", 65],
+].map(([id, level, type, problem, answer]) => ({
+  id, level, type, answer,
+  // shown with a real minus sign; "a + b =" gets a "?", blanks stay as ___
+  text: problem.replace(/ - /g, ' − ') + (problem.includes('___') ? '' : ' ?'),
+}));
 
 const QuestionBank = (() => {
-  const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-
   const shuffle = arr => {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--){
@@ -47,22 +177,24 @@ const QuestionBank = (() => {
     }
     return a;
   };
+  const BLOCKS = ['B', 'C', 'D', 'E'];
+  const ordered = () => BLOCKS.flatMap(b => shuffle(MATH_BANK.filter(q => q.level === b)));
 
-  let queue = MATH_BANK.slice();   // first pass: bank order (easy → challenge)
+  let queue = ordered();
+
+  // three distinct wrong answers within ±4 of the right one, none below 0
+  function options(answer){
+    const near = shuffle([1, 2, 3, 4, -1, -2, -3, -4].map(d => answer + d).filter(v => v >= 0));
+    return shuffle([answer, ...near.slice(0, 3)]);
+  }
 
   function next(){
     if (queue.length === 0) queue = shuffle(MATH_BANK);
     const q = queue.shift();
-    const opts = new Set([q.answer]);
-    while (opts.size < 4){
-      opts.add(q.answer + randInt(1, 4) * (Math.random() < 0.5 ? -1 : 1));
-    }
-    return { ...q, options: shuffle([...opts]) };
+    return { ...q, options: options(q.answer) };
   }
 
-  function reset(){
-    queue = MATH_BANK.slice();
-  }
+  function reset(){ queue = ordered(); }
 
   return { next, reset };
 })();

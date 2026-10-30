@@ -136,7 +136,7 @@ shared/
   activity.css        – activity card styling (ratings + Task 1)
   surveyrunner.js     – questionnaire renderer
   session.js          – participant id, groups, save/upload queue, navigation
-  questions.js        – fixed 30-item math bank (easy/medium/challenge)
+  questions.js        – ADT math bank: the team's 152 items (smarte_math_unique_items.csv)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
   mousetracking.js    – fixed-rate sampler, AUC/MD/x-flips metrics
   dragcursor.js/.css  – drag cursor for mouse-tracking on touch screens
@@ -186,8 +186,8 @@ with the standard metrics — **AUC**, **MD**, **x-flips**,
 ## Task 2 — Split-Screen ADT (study vs. videos)
 
 A free-choice attention-allocation task: ~8 minutes before a quiz, split
-screen with **math questions on the left** (1 point per correct answer, fixed
-bank in `shared/questions.js`) and **YouTube videos on the right** (playlist
+screen with **math questions on the left** (the team's 152-item bank in
+`shared/questions.js`, blocks B → E by difficulty, 4 answer buttons) and **YouTube videos on the right** (playlist
 via the YouTube IFrame API). **Whichever side the mouse is over becomes
 active**: hovering the study side pauses the video and enables answering;
 hovering the video side plays the video and disables (dims) the math panel.
