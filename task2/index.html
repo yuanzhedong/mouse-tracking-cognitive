@@ -35,7 +35,6 @@
     font-size: 14px;
   }
   header .hud b { font-weight: 600; }
-  header .hud.points { margin-left: auto; }   /* stays right when the timer is hidden */
 
   /* ---------- intro ---------- */
   .intro {
@@ -259,9 +258,9 @@
 <body>
 <div class="container">
 
-  <header>
+  <!-- shown only during practice: the countdown (no points, no timer in the real blocks) -->
+  <header class="hidden" id="topBar">
     <span class="hud" id="timeHud">⏱ <b id="timeLeft">1:00</b> <span data-i18n="t2_time_left"></span></span>
-    <span class="hud points"><span data-i18n="t2_points"></span>: <b id="points">0</b></span>
   </header>
 
   <!-- intro -->
@@ -327,7 +326,6 @@
         <div class="answers" id="answers">
           <button></button><button></button><button></button><button></button>
         </div>
-        <div class="study-note" data-i18n="t2_point_each"></div>
       </div>
     </section>
 
@@ -548,7 +546,6 @@ $('answers').addEventListener('click', e => {
   const given = parseInt(btn.textContent, 10);
   const correct = given === state.currentQ.answer;
   if (correct) state.points++;
-  $('points').textContent = state.points;
   logEvent('answer', {
     question_id: state.currentQ.id,
     level: state.currentQ.level,
@@ -629,6 +626,7 @@ function pauseSplit(){
   state.activeSide = null;
   if (playerReady && !state.videoLocked) player.pauseVideo();
   $('split').classList.add('hidden');
+  $('topBar').classList.add('hidden');
 }
 function showPracticeDone(){
   pauseSplit();
@@ -655,7 +653,7 @@ function beginPhase(phase, sec){
   $('intro').classList.add('hidden');
   $('done').classList.add('hidden');
   $('split').classList.remove('hidden');
-  $('timeHud').classList.toggle('hidden', phase !== 'practice');   // no countdown in the real blocks
+  $('topBar').classList.toggle('hidden', phase !== 'practice');   // no countdown in the real blocks
   logEvent('phase_start', { duration_sec: sec });
   state.timer = setInterval(tick, TICK_MS);
 }
@@ -851,6 +849,7 @@ $('lockOptRight').addEventListener('click', e => pickLock('right', e));
 function endSession(){
   clearInterval(state.timer);
   state.phase = 'done';
+  $('topBar').classList.add('hidden');
   if (playerReady && !state.videoLocked) player.pauseVideo();
   logEvent('session_end', { points_total: state.points });
 
@@ -945,7 +944,6 @@ $('restartBtn').addEventListener('click', () => {
   $('lockOptLeft').classList.remove('review');
   $('lockOptRight').classList.remove('review');
   QuestionBank.reset();
-  $('points').textContent = '0';
   $('playerBox').classList.remove('hidden');
   $('nextVideoBtn').classList.remove('hidden');
   $('videoOff').classList.add('hidden');
