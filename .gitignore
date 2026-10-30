@@ -17,6 +17,7 @@
 data/
 *.csv
 !docs/example.csv
+!shared/task1_trial_list_60.csv
 
 # Node (if we ever add a build step)
 node_modules/
