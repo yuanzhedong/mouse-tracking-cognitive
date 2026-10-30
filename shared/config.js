@@ -21,7 +21,7 @@ const CONFIG = {
 
   // Task 1 — goal–temptation mouse-tracking (trial order: TASK1_TRIAL_LIST
   // in shared/stimuli.js; ?trials=N runs only the first N)
-  TASK1_PRACTICE_TRIALS: 3,   // practice rounds (neutral vs. neutral activity, not scored)
+  TASK1_PRACTICE_TRIALS: 3,   // practice rounds (TASK1_PRACTICE_LIST in shared/stimuli.js, not scored)
   TASK1_INIT_WARN_MS: 1000,   // "start moving sooner" appears if the cursor hasn't moved by then
   TASK1_MOVE_THRESHOLD_PX: 10,// cursor counts as moving once it is this far from the start
   TASK1_SAMPLE_MS: 16,        // fixed sampling interval (~60 Hz), still periods included

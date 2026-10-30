@@ -272,7 +272,7 @@
    Main trials: TASK1_TRIAL_LIST (shared/stimuli.js), one fixed order of
    60 (30 goal–temptation + 30 goal–neutral, sides balanced; ?trials=N runs
    the first N).
-   Practice: random neutral–neutral pairs (not scored).
+   Practice: TASK1_PRACTICE_LIST, 3 fixed study-vs-other pairs (not scored).
    Prompt version (Session.mt): 'A' choose now | 'B' helps on the quiz —
    one per student across all trials.
    Cursor: sampled at a fixed rate (CONFIG.TASK1_SAMPLE_MS) from the moment
@@ -333,11 +333,7 @@ function shuffle(arr){
 }
 function buildPlan(block, n){
   if (block === 'main') return TASK1_TRIAL_LIST.slice(0, n);
-  const ns = shuffle(ACTIVITIES.filter(a => a.cat === 'neutral'));
-  return Array.from({ length: n }, (_, i) => ({
-    trial_id: 'P' + (i + 1), trial_type: 'practice',
-    left: ns[(2 * i) % ns.length], right: ns[(2 * i + 1) % ns.length],
-  }));
+  return Array.from({ length: n }, (_, i) => TASK1_PRACTICE_LIST[i % TASK1_PRACTICE_LIST.length]);
 }
 
 const list = () => state.block === 'practice' ? state.practice : state.trials;

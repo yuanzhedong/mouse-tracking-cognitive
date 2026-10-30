@@ -24,7 +24,7 @@ so a closed window can resume from the entry page.
 
 | step | content | data tables |
 |---|---|---|
-| `task1/` | instructions (version A or B, doc text) → 3 practice rounds (neutral vs. neutral) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
+| `task1/` | instructions (version A or B, doc text) → 3 practice rounds (fixed study-vs-other pairs, not scored) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
 | `task2/` | split-screen ADT: practice 1 min (timer shown) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
 | `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
 | `ratings/` | Part A: the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: Task 2 video previews on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
@@ -218,7 +218,7 @@ phase lengths for piloting.
 
 | Component | Status | Notes |
 |---|---|---|
-| Binary-choice goal–temptation task (activity cards) | done | Fixed list of 60 trials (30 goal–temptation, 30 goal–neutral, sides balanced), 3 neutral practice trials |
+| Binary-choice goal–temptation task (activity cards) | done | Fixed list of 60 trials (30 goal–temptation, 30 goal–neutral, sides balanced), 3 fixed practice trials (study vs. other) |
 | Two prompt versions (A choose now vs. B helps on the quiz) | done | 50/50 per student (server-balanced), fixed, or `?mt=` |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
 | Fixed-rate cursor sampling | done | Every 16 ms (~60 Hz) from the options appearing, still periods included |

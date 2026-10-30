@@ -176,6 +176,15 @@ const TASK1_TRIAL_LIST = [
 ].map(([trial_id, source_trial, side_swapped, trial_type, left, right]) =>
   ({ trial_id, source_trial, side_swapped, trial_type, left: ACTIVITY_BY_ID[left], right: ACTIVITY_BY_ID[right] }));
 
+/* Task 1 practice trials (not scored), the same for every student: like the
+   real trials, one study card vs. one entertainment card or chore, with
+   both trial types and both sides; none of these pairs is a real trial. */
+const TASK1_PRACTICE_LIST = [
+  ['P1', 'goal_temptation', 'study_10', 'entertainment_17'],
+  ['P2', 'goal_neutral', 'neutral_04', 'study_06'],
+  ['P3', 'goal_temptation', 'entertainment_14', 'study_23'],
+].map(([trial_id, trial_type, left, right]) => ({ trial_id, trial_type, left: ACTIVITY_BY_ID[left], right: ACTIVITY_BY_ID[right] }));
+
 /* Pictures. The card already shows the (Portuguese) label, so pages show
    the card alone, with no caption, in every language. */
 const activityImgSrc = act => Session.ROOT + 'shared/activity_images/' + act.cat + '/' + act.id + '.png';
