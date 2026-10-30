@@ -12,6 +12,7 @@ const STRINGS = {
     pid_placeholder: 'e.g. 1234',
     pid_required: 'Please enter your participant code.',
     pid_invalid: 'This code is not valid. Please check it and type it again.',
+    pid_used: 'This code has already been used. Please talk to your teacher.',
     lang_label: 'Language',
     start_session: 'Start',
     entry_intro: 'You will play two short games and then answer some questions. The whole session takes about 35 minutes. Please do not close this window.',
@@ -138,6 +139,7 @@ const STRINGS = {
     pid_placeholder: 'ex.: 1234',
     pid_required: 'Por favor, digite o seu código de participante.',
     pid_invalid: 'Este código não é válido. Confira e digite de novo.',   // draft
+    pid_used: 'Este código já foi usado. Fale com o(a) professor(a).',   // draft
     lang_label: 'Idioma',
     start_session: 'Começar',
     entry_intro: 'Você vai jogar dois jogos curtos e depois responder a algumas perguntas. A sessão inteira leva cerca de 35 minutos. Não feche esta janela.',

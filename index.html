@@ -106,9 +106,9 @@
   </details>
 </div>
 
-<script src="shared/config.js?v=202610301541"></script>
-<script src="shared/i18n.js?v=202610301541"></script>
-<script src="shared/session.js?v=202610301541"></script>
+<script src="shared/config.js?v=202610301545"></script>
+<script src="shared/i18n.js?v=202610301545"></script>
+<script src="shared/session.js?v=202610301545"></script>
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
@@ -164,12 +164,16 @@ async function start(step){
   const v = normCode($('pid').value);
   if (!v){ $('err').textContent = Session.t('pid_required'); $('pid').focus(); return; }
   if (!Session.idValid(v)){ $('err').textContent = Session.t('pid_invalid'); $('pid').focus(); return; }
+  // a finished session can't be started again (test codes can)
+  let finished = null;
+  try { finished = localStorage.getItem('sc_done_' + v); } catch (e) {}
+  if (finished === 'done' && !Session.isTestId(v)){ $('err').textContent = Session.t('pid_used'); return; }
   const p = new URLSearchParams(location.search);
   $('startBtn').disabled = $('resumeBtn').disabled = true;
   $('err').textContent = '';
   const g = (p.get('mt') || p.get('cond')) ? Session.assignGroups(v, p) : await Session.fetchGroups(v);
-  if (g.unknown){                       // valid-looking but not on the student list
-    $('err').textContent = Session.t('pid_invalid');
+  if (g.unknown || g.used){             // not on the student list / taken by another device
+    $('err').textContent = Session.t(g.used ? 'pid_used' : 'pid_invalid');
     $('startBtn').disabled = $('resumeBtn').disabled = false;
     $('pid').focus(); return;
   }
@@ -181,7 +185,9 @@ async function start(step){
 }
 $('startBtn').addEventListener('click', () => {
   const v = normCode($('pid').value);
-  if (v){ try { localStorage.removeItem('sc_done_' + v); } catch (e) {} }  // fresh start
+  // fresh start: forget earlier progress — except a finished real session,
+  // which start() refuses
+  try { if (v && (localStorage.getItem('sc_done_' + v) !== 'done' || Session.isTestId(v))) localStorage.removeItem('sc_done_' + v); } catch (e) {}
   start(CONFIG.FLOW[0]);
 });
 $('pid').addEventListener('keydown', e => { if (e.key === 'Enter') $('startBtn').click(); });

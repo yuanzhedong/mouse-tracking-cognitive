@@ -8,10 +8,13 @@
       and no spreadsheet write per request, so ~100 students uploading at
       the same time don't queue behind each other.
 
-   2. doGet?action=assign&pid=X — hands out the pilot groups. Each group
-      (mt: A/B, hz: weeks/months) is dealt from shuffled blocks of 4
-      (2 + 2), so the groups stay 50/50 as students arrive. The same pid
-      always gets the same answer.
+   2. doGet?action=assign&pid=X&token=T — hands out the pilot groups. Each
+      group (mt: A/B, hz: weeks/months) is dealt from shuffled blocks of 4
+      (2 + 2), so the groups stay 50/50 as students arrive. A student ID is
+      tied to the browser that used it first (its token): that browser gets
+      the same answer again (resume after a reload or crash), any other one
+      gets error 'used'. TEST codes are never locked. To let a student
+      continue on another device: note "unlock" + unlockMarkedStudents.
 
    3. buildSheets — copies new raw files into the spreadsheet, one tab per
       sheetName (columns = union of the keys seen; duplicates of the same
@@ -110,12 +113,12 @@ function doPost(e){
 
 function doGet(e){
   const p = (e && e.parameter) || {};
-  if (p.action === 'assign') return json(assign(normId(p.pid)));
+  if (p.action === 'assign') return json(assign(normId(p.pid), String(p.token || '')));
   return ContentService.createTextOutput('self-control battery endpoint: OK')
     .setMimeType(ContentService.MimeType.TEXT);
 }
 
-function assign(pid){
+function assign(pid, token){
   if (!pid) return { ok: false, error: 'no pid' };
   const test = isTestId(pid);
   if (!test && !isRealId(pid)) return { ok: false, error: 'unknown_code' };
@@ -126,7 +129,12 @@ function assign(pid){
   lock.waitLock(20000);
   try {
     const known = props.getProperty(key);
-    if (known) return Object.assign({ ok: true, repeat: true }, JSON.parse(known));
+    if (known){
+      const k = JSON.parse(known);
+      if (!test && k.token && token !== k.token) return { ok: false, error: 'used' };   // another device
+      if (!test && !k.token && token){ k.token = token; props.setProperty(key, JSON.stringify(k)); }  // (after unlock)
+      return { ok: true, repeat: true, mt: k.mt, hz: k.hz, real: k.real, assigned_at: k.assigned_at };
+    }
     const out = {};
     for (const g in GROUPS){
       let block = JSON.parse(props.getProperty(blockKey(g)) || '[]');
@@ -136,7 +144,7 @@ function assign(pid){
     }
     out.real = !test;
     out.assigned_at = new Date().toISOString();
-    props.setProperty(key, JSON.stringify(out));
+    props.setProperty(key, JSON.stringify(Object.assign({ token: token }, out)));
     return Object.assign({ ok: true }, out);
   } finally {
     lock.releaseLock();
@@ -276,6 +284,24 @@ function clearMarkedStudents(){
   const realLeft = Object.keys(props.getProperties()).some(k => k.indexOf('pid_') === 0 && isRealId(k.slice(4)));
   if (!realLeft) Object.keys(GROUPS).forEach(g => props.deleteProperty('block_' + g));
   Logger.log('cleared ' + Object.keys(marked).join(', ') + ': ' + files + ' files to trash, ' + rows + ' rows removed' + (realLeft ? '' : '; group blocks reset'));
+}
+
+/* Let a student continue on a different device (e.g. their computer broke):
+   write "unlock" in the note column of student_ids, then run
+   unlockMarkedStudents. Their data and group stay; the next device that
+   uses the ID takes it over. The note becomes "unlocked <date>". */
+function unlockMarkedStudents(){
+  const sh = book().getSheetByName(ID_SHEET), props = PropertiesService.getScriptProperties();
+  if (!sh || sh.getLastRow() < 2) return;
+  const today = new Date().toISOString().slice(0, 10), done = [];
+  sh.getRange(2, 1, sh.getLastRow() - 1, 6).getValues().forEach((r, i) => {
+    if (String(r[5]).trim().toLowerCase() !== 'unlock') return;
+    const id = normId(r[1]), raw = props.getProperty('pid_' + id);
+    if (raw){ const k = JSON.parse(raw); k.token = ''; props.setProperty('pid_' + id, JSON.stringify(k)); }
+    sh.getRange(i + 2, 6).setValue('unlocked ' + today);
+    done.push(id);
+  });
+  Logger.log(done.length ? 'unlocked ' + done.join(', ') : 'no row has "unlock" in the note column');
 }
 
 function folders(){

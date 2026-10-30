@@ -73,16 +73,22 @@ const Session = (() => {
   /* Ask the server for this code's groups (same answer every time for the
      same code); stored so assignGroups() picks them up. Resolves to the
      groups, or { unknown: true } if the server says the code isn't on the
-     student list; falls back to assignGroups() if the server can't be reached. */
+     student list, or { used: true } if the ID is already tied to another
+     browser; falls back to assignGroups() if the server can't be reached.
+     The token is a random string kept in this browser per ID — the server
+     ties the ID to the first token it sees. */
   async function fetchGroups(code){
     if (CONFIG.ENDPOINT && code && !GROUPS.mt.includes(lsGet('grp_mt_' + code))){
       try {
+        let token = lsGet('tok_' + code);
+        if (!token){ token = Math.random().toString(36).slice(2) + Date.now().toString(36); lsSet('tok_' + code, token); }
         const ctl = new AbortController();
         const timer = setTimeout(() => ctl.abort(), 8000);
-        const res = await fetch(CONFIG.ENDPOINT + '?action=assign&pid=' + encodeURIComponent(code), { signal: ctl.signal });
+        const res = await fetch(CONFIG.ENDPOINT + '?action=assign&pid=' + encodeURIComponent(code) + '&token=' + token, { signal: ctl.signal });
         clearTimeout(timer);
         const j = await res.json();
         if (j.ok === false && j.error === 'unknown_code') return { unknown: true };
+        if (j.ok === false && j.error === 'used') return { used: true };
         if (GROUPS.mt.includes(j.mt) && GROUPS.hz.includes(j.hz)){
           lsSet('grp_mt_' + code, j.mt); lsSet('grp_hz_' + code, j.hz); lsSet('grp_src_' + code, 'server');
         }

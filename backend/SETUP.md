@@ -58,6 +58,12 @@ lands on another listed number is not — check `given_to` when in doubt.
   version A and `TESTB…` codes version B; other TEST codes get a random one.
 - The list lives only in this spreadsheet, never in the public repo.
   Deleting a row disables that ID within 10 minutes.
+- Each ID works on one device only: the first browser that uses it can
+  continue after a reload or crash, any other browser gets "Este código já
+  foi usado"; a finished session can't be restarted. To let a student move
+  to another computer: write `unlock` in its `note` cell and run
+  **unlockMarkedStudents** (data and group are kept). TEST codes are never
+  locked.
 - To wipe one ID (e.g. used for testing by mistake): write `clear` in its
   `note` cell and run **clearMarkedStudents** — its files go to the trash,
   its rows leave the data tabs, and the ID starts fresh.
