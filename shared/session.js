@@ -11,8 +11,8 @@
 
    URL parameters:
      ?pid=S001      participant code (persisted; required for the session flow)
-     ?lang=pt|en    participant language (default CONFIG.DEFAULT_LANG; students
-                    get Portuguese — EN is for researcher review only)
+     ?lang=pt|en    participant language (default CONFIG.DEFAULT_LANG; chosen
+                    with the EN / PT switch on the entry page)
      ?mt=A|B        force the mouse-tracking prompt version (A = choose now,
                     B = helps on the test)
      ?hz=weeks|months   force the 150-problem allocation horizon group
@@ -34,16 +34,19 @@ const Session = (() => {
   const review = qs.get('review') === '1' || standalone;
 
   /* Language comes from the URL only (carried page to page by urlFor), so a
-     researcher's EN review on a shared machine never leaks into a student
-     session: a plain student link is always Portuguese. */
+     previous student's choice on a shared machine never carries over: a
+     plain link always opens in CONFIG.DEFAULT_LANG. */
   let lang = qs.get('lang') || CONFIG.DEFAULT_LANG;
   if (!STRINGS[lang]) lang = CONFIG.DEFAULT_LANG;
   document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
 
-  /* Pilot groups — a coin flip (0/1) per group, drawn once per participant
-     code and then fixed: the URL value wins (it is carried on every page),
-     else the value stored for this code in this browser, else a new draw.
-     So a refresh or a restart from the entry page never re-randomizes.
+  /* Pilot groups — fixed per participant code: the URL value wins (it is
+     carried on every page), else the value stored for this code in this
+     browser, else a new draw. So a refresh or a restart from the entry page
+     never re-randomizes. The entry page first asks the server
+     (fetchGroups), which hands out A/B and weeks/months in shuffled blocks
+     of 4, so the groups come out exactly 50/50; the local coin flip below
+     is only the fallback when there is no server.
        mt: mouse-tracking prompt version, 0 → 'A' (choose now), 1 → 'B' (helps on the test)
        hz: allocation horizon,            0 → 'weeks' (1 / 2 weeks), 1 → 'months' (1 / 2 months) */
   const GROUPS = { mt: ['A', 'B'], hz: ['weeks', 'months'] };
@@ -61,14 +64,34 @@ const Session = (() => {
     }
     return out;
   }
+  /* Ask the server for this code's groups (same answer every time for the
+     same code); stored so assignGroups() picks them up. Resolves to the
+     groups, falling back to assignGroups() if the server can't be reached. */
+  async function fetchGroups(code){
+    if (CONFIG.ENDPOINT && code && !GROUPS.mt.includes(lsGet('grp_mt_' + code))){
+      try {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 8000);
+        const res = await fetch(CONFIG.ENDPOINT + '?action=assign&pid=' + encodeURIComponent(code), { signal: ctl.signal });
+        clearTimeout(timer);
+        const j = await res.json();
+        if (GROUPS.mt.includes(j.mt) && GROUPS.hz.includes(j.hz)){
+          lsSet('grp_mt_' + code, j.mt); lsSet('grp_hz_' + code, j.hz); lsSet('grp_src_' + code, 'server');
+        }
+      } catch (e) { console.warn('group assignment: server unreachable, using a local coin flip', e.message); }
+    }
+    if (code && !lsGet('grp_src_' + code)) lsSet('grp_src_' + code, 'local');
+    return assignGroups(code, new URLSearchParams());
+  }
   const { mt, hz } = assignGroups(pid);
-  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz) };
+  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz),
+                      group_source: (pid && lsGet('grp_src_' + pid)) || (qs.get('mt') ? 'url' : '') };
 
   const sessionId = (() => {
     if (standalone) return 'demo';
     const k = 'sid_' + pid;
     let v = lsGet(k);
-    if (!v){ v = pid + '_' + Date.now().toString(36); lsSet(k, v); }
+    if (!v){ v = pid + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); lsSet(k, v); }
     return v;
   })();
 
@@ -130,16 +153,26 @@ const Session = (() => {
     return false;
   }
 
+  /* Every payload goes into the localStorage queue BEFORE it is sent and
+     leaves it only once the server confirms, so closing the tab mid-upload
+     loses nothing: the next page load sends it. (A payload can then arrive
+     twice; rows carry save_id, and the sheet builder drops duplicates.) */
   function readPending(){ try { return JSON.parse(lsGet('pending') || '[]'); } catch (e) { return []; } }
   function enqueue(payload){ const q = readPending(); q.push(payload); lsSet('pending', JSON.stringify(q)); }
+  function dequeue(saveId){ lsSet('pending', JSON.stringify(readPending().filter(p => p.save_id !== saveId))); }
+  const inFlight = new Set();
+  async function send(payload, attempts){
+    inFlight.add(payload.save_id);
+    const ok = await upload(payload, attempts);
+    inFlight.delete(payload.save_id);
+    if (ok) dequeue(payload.save_id);
+    return ok;
+  }
   let flushing = false;
   async function flushPending(){
-    if (flushing) return;
-    const pend = readPending();
-    if (!pend.length || !CONFIG.ENDPOINT) return;
+    if (flushing || !CONFIG.ENDPOINT) return;
     flushing = true;
-    lsSet('pending', '[]');
-    for (const p of pend){ if (!(await upload(p, 2))) enqueue(p); }
+    for (const p of readPending()){ if (!inFlight.has(p.save_id)) await send(p, 2); }
     flushing = false;
   }
 
@@ -172,7 +205,19 @@ const Session = (() => {
     }
     writeStore(store);
     const payload = { pid: standalone ? 'demo' : pid, session_id: sessionId, step, save_id: saveId, tables: stamped };
-    if (CONFIG.ENDPOINT && !(await upload(payload))) enqueue(payload);
+    if (!CONFIG.ENDPOINT) return;
+    enqueue(payload);
+    // Wait at most 4 s: if the server is slow the payload stays queued and
+    // keeps retrying in the background (and on the next page), so a student
+    // never sits on "Saving…" for long.
+    await Promise.race([send(payload), sleep(4000)]);
+  }
+
+  /* One row per task in `task_status`: 'not_completed' when the task
+     starts, 'completed' when it ends — a task whose last row is still
+     not_completed was abandoned. */
+  function status(task, completionStatus, extra = {}){
+    return save({ task_status: [{ task, completion_status: completionStatus, ...extra }] }, task);
   }
 
   /* ---------- navigation ---------- */
@@ -193,6 +238,8 @@ const Session = (() => {
     return ROOT + page + '?' + params.toString();
   }
   function go(step, extra){ location.href = urlFor(step, extra); }
+  /* Same page in the other language (the EN / PT switch). */
+  function langUrl(l){ const p = new URLSearchParams(location.search); p.set('lang', l); return location.pathname + '?' + p.toString(); }
   function next(fromStep){
     fromStep = fromStep || currentStep();
     if (!standalone) lsSet('done_' + pid, fromStep);
@@ -231,8 +278,8 @@ const Session = (() => {
   setInterval(flushPending, 45000);
   window.addEventListener('online', flushPending);
 
-  return { ROOT, pid, standalone, review, lang, mt, hz, groupCols, assignGroups, sessionId,
-           t, pick, applyI18n, save, log, next, go, urlFor, currentStep,
+  return { ROOT, pid, standalone, review, lang, mt, hz, groupCols, assignGroups, fetchGroups, sessionId,
+           t, pick, applyI18n, save, status, log, next, go, urlFor, langUrl, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };
 })();

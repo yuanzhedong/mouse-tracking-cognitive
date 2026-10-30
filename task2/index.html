@@ -264,7 +264,7 @@
 <div class="container">
 
   <header>
-    <span class="hud">⏱ <b id="timeLeft">12:00</b> <span data-i18n="t2_time_left"></span></span>
+    <span class="hud" id="timeHud">⏱ <b id="timeLeft">1:00</b> <span data-i18n="t2_time_left"></span></span>
     <span class="quiz-pill" data-i18n="t2_quiz_pill"></span>
     <span class="hud"><span data-i18n="t2_points"></span>: <b id="points">0</b></span>
   </header>
@@ -277,7 +277,13 @@
     <button class="big-btn" id="startBtn" data-i18n="start"></button>
   </section>
 
-  <!-- lock-screen instructions (shown after the practice phase) -->
+  <!-- practice → block 1 -->
+  <section class="intro hidden" id="practiceDone">
+    <p><b data-i18n="t2_practice_done"></b></p>
+    <button class="big-btn" id="block1Btn" data-i18n="continue_"></button>
+  </section>
+
+  <!-- lock-screen instructions (shown after block 1) -->
   <section class="intro hidden" id="lockScreen">
     <h2 data-i18n="t2_lock_title"></h2>
     <p id="lockIntro"></p>
@@ -358,7 +364,8 @@
       <dt>questions attempted</dt><dd id="rAttempted">—</dd>
       <dt>accuracy</dt>          <dd id="rAccuracy">—</dd>
       <dt>practice study / video</dt><dd id="rPractice">—</dd>
-      <dt>main study / video</dt>    <dd id="rMain">—</dd>
+      <dt>block 1 study / video</dt> <dd id="rBlock1">—</dd>
+      <dt>block 2 study / video</dt> <dd id="rBlock2">—</dd>
       <dt>study share</dt>       <dd id="rShare">—</dd>
       <dt>side switches</dt>     <dd id="rSwitches">—</dd>
       <dt>videos completed</dt>  <dd id="rVideos">—</dd>
@@ -387,12 +394,14 @@
    plays a real YouTube playlist via the IFrame API — playing
    only while the video pane is active.
 
-   Flow:  intro → PRACTICE (split screen) → LOCK-SCREEN CHOICE
-          → MAIN (split screen; video side off if "put away")
-          → researcher summary.
+   Flow (team doc 10/28, 8 min in all):
+          intro → PRACTICE 1 min (timer shown) → BLOCK 1 4 min
+          → LOCK-SCREEN CHOICE (put the videos away / keep them)
+          → BLOCK 2 3 min (video side off if "put away") → summary.
+   Neither block shows the time remaining.
    The lock choice is the design's core measure. Time allocation,
-   switches, answers, and video events are logged per phase and
-   exportable as CSV.
+   switches, answers, and video events are logged per phase, uploaded
+   at the end of each phase, and exportable as CSV.
    ============================================================= */
 
 const qs = new URLSearchParams(location.search);
@@ -400,8 +409,10 @@ const secParam = (name, dflt) => {
   const v = parseInt(qs.get(name), 10);
   return Number.isFinite(v) && v > 0 ? v : dflt;
 };
-const PRACTICE_SEC = secParam('practice', CONFIG.TASK2_PRACTICE_SEC);   // practice phase
-const MAIN_SEC     = secParam('dur', CONFIG.TASK2_MAIN_SEC);            // main phase after choice
+const PRACTICE_SEC = secParam('practice', CONFIG.TASK2_PRACTICE_SEC);
+const B1_SEC = secParam('b1', secParam('dur', CONFIG.TASK2_BLOCK1_SEC)); // block 1, before the lock choice
+const B2_SEC = secParam('b2', secParam('dur', CONFIG.TASK2_BLOCK2_SEC)); // block 2, after it
+const PHASE_SEC = { practice: PRACTICE_SEC, block1: B1_SEC, block2: B2_SEC };
 const TICK_MS = 200;
 const REVIEW = Session.review;
 // Primary input can't hover (iPad / phone without a mouse): tap-to-switch UI and instructions.
@@ -412,8 +423,8 @@ if (TOUCH_UI) document.body.classList.add('touch-ui');
 Session.applyI18n();
 document.title = Session.t('t2_title');
 {
-  const mainMin  = Math.round(MAIN_SEC / 60);
-  const totalMin = Math.round((PRACTICE_SEC + MAIN_SEC) / 60);
+  const mainMin  = Math.round(B2_SEC / 60);
+  const totalMin = Math.round((PRACTICE_SEC + B1_SEC + B2_SEC) / 60);
   document.getElementById('intro1').innerHTML = Session.t(TOUCH_UI ? 't2_intro_1_touch' : 't2_intro_1', { min: totalMin });
   document.getElementById('intro2').innerHTML = Session.t('t2_intro_2');
   document.getElementById('lockIntro').innerHTML = Session.t('t2_lock_intro', { min: mainMin });
@@ -434,7 +445,7 @@ function shuffle(arr){
 }
 
 const state = {
-  phase: 'intro',        // intro | practice | lock | main | done
+  phase: 'intro',        // intro | practice | practice_done | block1 | lock | block2 | done
   startTime: null,
   phaseElapsedMs: 0,
   phaseSec: PRACTICE_SEC,
@@ -445,7 +456,8 @@ const state = {
   activeSide: null,      // 'study' | 'video' | null
   dwell: {
     practice: { study: 0, video: 0, none: 0 },
-    main:     { study: 0, video: 0, none: 0 },
+    block1:   { study: 0, video: 0, none: 0 },
+    block2:   { study: 0, video: 0, none: 0 },
   },
   switches: 0,
   playlist: shuffle(VIDEOS),
@@ -458,7 +470,7 @@ const state = {
   timer: null,
 };
 
-const running = () => state.phase === 'practice' || state.phase === 'main';
+const running = () => state.phase in PHASE_SEC;
 const now = () => state.startTime === null ? 0 : Math.round(performance.now() - state.startTime);
 
 function logEvent(type, detail = {}){
@@ -601,10 +613,40 @@ function tick(){
   const ss = Math.floor(remain % 60);
   $('timeLeft').textContent = `${mm}:${String(ss).padStart(2, '0')}`;
   if (remain <= 0){
-    if (state.phase === 'practice') enterLockScreen();
-    else                            endSession();
+    if (state.phase === 'practice')    showPracticeDone();
+    else if (state.phase === 'block1') enterLockScreen();
+    else                               endSession();
   }
 }
+
+/* Upload the events logged since the last upload (end of each phase), so
+   a student who leaves midway keeps the phases already done. */
+let savedEvents = 0;
+function saveEvents(){
+  const rows = state.events.slice(savedEvents);
+  savedEvents = state.events.length;
+  return rows.length ? Session.save({ task2_events: rows.map(e => ({ ...e })) }, 'task2') : Promise.resolve();
+}
+window.addEventListener('pagehide', () => { if (state.phase !== 'done') saveEvents(); });
+
+function pauseSplit(){
+  clearInterval(state.timer);
+  state.activeSide = null;
+  if (playerReady && !state.videoLocked) player.pauseVideo();
+  $('split').classList.add('hidden');
+}
+function showPracticeDone(){
+  pauseSplit();
+  state.phase = 'practice_done';
+  $('practiceDone').classList.remove('hidden');
+  logEvent('practice_done_shown');
+  saveEvents();
+}
+$('block1Btn').addEventListener('click', () => {
+  if (state.phase !== 'practice_done') return;
+  $('practiceDone').classList.add('hidden');
+  beginPhase('block1', B1_SEC);
+});
 
 function beginPhase(phase, sec){
   state.phase = phase;
@@ -618,26 +660,26 @@ function beginPhase(phase, sec){
   $('intro').classList.add('hidden');
   $('done').classList.add('hidden');
   $('split').classList.remove('hidden');
+  $('timeHud').classList.toggle('hidden', phase !== 'practice');   // no countdown in the real blocks
   logEvent('phase_start', { duration_sec: sec });
   state.timer = setInterval(tick, TICK_MS);
 }
 
 function startSession(){
   state.startTime = performance.now();
-  logEvent('session_start', { practice_sec: PRACTICE_SEC, main_sec: MAIN_SEC });
+  logEvent('session_start', { practice_sec: PRACTICE_SEC, block1_sec: B1_SEC, block2_sec: B2_SEC });
+  Session.status('task2', 'not_completed');
   serveQuestion();
   updateVidCat();
   beginPhase('practice', PRACTICE_SEC);
 }
 
 function enterLockScreen(){
-  clearInterval(state.timer);
+  pauseSplit();
   state.phase = 'lock';
-  state.activeSide = null;
-  if (playerReady) player.pauseVideo();
-  $('split').classList.add('hidden');
   $('lockScreen').classList.remove('hidden');
   logEvent('lock_instructions_shown');
+  saveEvents();
 }
 
 /* The choice itself is a Task-1-style mouse-tracking trial: Start button
@@ -678,8 +720,7 @@ function startLockTrial(e, inputType = 'mouse'){
   lockTrial.inputType = inputType;
   lockTrial.stageRect = $('lockStage').getBoundingClientRect();
   lockTrial.startPos = { x: e.clientX, y: e.clientY };
-  lockTrial.startTime = performance.now();
-  lockTrial.samples = [{ x: e.clientX, y: e.clientY, t: 0 }];
+  lockSampler.start(e.clientX, e.clientY);
   lockTrial.leftChoice = Math.random() < 0.5 ? 'put_away' : 'keep';
   const rightChoice = lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away';
   $('lockOptLeftImg').src  = LOCK_STIMULI[lockTrial.leftChoice].img;
@@ -696,7 +737,9 @@ function startLockTrial(e, inputType = 'mouse'){
 }
 $('lockStartBtn').addEventListener('click', e => startLockTrial(e));
 
-const addLockSample = (x, y) => lockTrial.samples.push({ x, y, t: performance.now() - lockTrial.startTime });
+// Fixed-rate sampling (still periods included), as in Task 1.
+const lockSampler = createSampler(CONFIG.TASK1_SAMPLE_MS, CONFIG.TASK1_MOVE_THRESHOLD_PX);
+const addLockSample = (x, y) => lockSampler.move(x, y);
 document.addEventListener('mousemove', e => {
   if (state.phase !== 'lock' || !lockTrial.started || lockTrial.done || lockDrag.active) return;
   addLockSample(e.clientX, e.clientY);
@@ -720,15 +763,9 @@ function pickLock(side, e){
   const choice = side === 'left'
     ? lockTrial.leftChoice
     : (lockTrial.leftChoice === 'put_away' ? 'keep' : 'put_away');
-  const rt = performance.now() - lockTrial.startTime;
-  lockTrial.samples.push({ x: e.clientX, y: e.clientY, t: rt });
-
-  let initTime = null;
-  for (let i = 1; i < lockTrial.samples.length; i++){
-    const dx = lockTrial.samples[i].x - lockTrial.startPos.x;
-    const dy = lockTrial.samples[i].y - lockTrial.startPos.y;
-    if (Math.hypot(dx, dy) > 10){ initTime = lockTrial.samples[i].t; break; }
-  }
+  const rt = lockSampler.stop(e.clientX, e.clientY);
+  lockTrial.samples = lockSampler.samples;
+  const initTime = lockSampler.firstMoveT;
 
   const btn = side === 'left' ? $('lockOptLeft') : $('lockOptRight');
   const m = computeMetrics(lockTrial.samples, lockTrial.startPos, centerOf(btn));
@@ -744,10 +781,16 @@ function pickLock(side, e){
     rt_ms: Math.round(rt),
     init_ms: initTime !== null ? Math.round(initTime) : '',
     input_type: lockTrial.inputType,
+    n_samples: lockTrial.samples.length,
   });
   // time-normalized trajectory (101 bins) as JSON arrays in one event
+  const r0 = lockTrial.stageRect;
   state.events.push({
     t_ms: now(), phase: 'lock', type: 'lock_trajectory', n_bins: m.normalized.length,
+    // raw fixed-rate samples: t ms from the options appearing, x/y px in the stage
+    samples_t: JSON.stringify(lockTrial.samples.map(p => Math.round(p.t))),
+    samples_x: JSON.stringify(lockTrial.samples.map(p => Math.round(p.x - r0.left))),
+    samples_y: JSON.stringify(lockTrial.samples.map(p => Math.round(p.y - r0.top))),
     x_norm: JSON.stringify(m.normalized.map(p => +p.x.toFixed(5))),
     y_norm: JSON.stringify(m.normalized.map(p => +p.y.toFixed(5))),
   });
@@ -764,11 +807,11 @@ function pickLock(side, e){
   if (!REVIEW){
     ['lockOptLeft','lockOptRight','lockPrompt'].forEach(id => $(id).classList.add('hidden'));
     $('lockStageWrap').classList.add('hidden');
-    setTimeout(() => beginPhase('main', MAIN_SEC), 300);
+    setTimeout(() => beginPhase('block2', B2_SEC), 300);
     return;
   }
   // Researcher view of the choice trajectory (Task-1 style) before the
-  // main phase starts.
+  // block 2 starts.
   const chosenBtn = side === 'left' ? $('lockOptLeft') : $('lockOptRight');
   showLockReview({
     samples:   lockTrial.samples,
@@ -804,7 +847,7 @@ $('lockNextBtn').addEventListener('click', () => {
   $('lockOptLeft').classList.remove('review');
   $('lockOptRight').classList.remove('review');
   $('lockStageWrap').classList.add('hidden');
-  beginPhase('main', MAIN_SEC);
+  beginPhase('block2', B2_SEC);
 });
 
 $('lockOptLeft').addEventListener('click',  e => pickLock('left', e));
@@ -823,8 +866,8 @@ function endSession(){
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   };
   const d = state.dwell;
-  const studyMs  = d.practice.study + d.main.study;
-  const activeMs = studyMs + d.practice.video + d.main.video;
+  const studyMs  = d.block1.study + d.block2.study;
+  const activeMs = studyMs + d.block1.video + d.block2.video;
 
   $('rLock').textContent      = state.lockChoice === 'put_away' ? 'put videos away'
                               : state.lockChoice === 'keep'     ? 'kept videos' : '—';
@@ -835,8 +878,9 @@ function endSession(){
   $('rAttempted').textContent = attempted;
   $('rAccuracy').textContent  = attempted ? `${Math.round(100 * correct / attempted)}%` : '—';
   $('rPractice').textContent  = `${fmt(d.practice.study)} / ${fmt(d.practice.video)}`;
-  $('rMain').textContent      = `${fmt(d.main.study)} / ${fmt(d.main.video)}`;
-  $('rShare').textContent     = activeMs ? `${Math.round(100 * studyMs / activeMs)}% study` : '—';
+  $('rBlock1').textContent    = `${fmt(d.block1.study)} / ${fmt(d.block1.video)}`;
+  $('rBlock2').textContent    = `${fmt(d.block2.study)} / ${fmt(d.block2.video)}`;
+  $('rShare').textContent     = activeMs ? `${Math.round(100 * studyMs / activeMs)}% study (blocks 1–2)` : '—';
   $('rSwitches').textContent  = state.switches;
   $('rVideos').textContent    = state.videosCompleted;
 
@@ -861,13 +905,14 @@ function summaryRow(){
   const correct   = state.events.filter(e => e.type === 'answer' && e.is_correct).length;
   const d = state.dwell, m = state.lockMetrics;
   return {
-    practice_sec: PRACTICE_SEC, main_sec: MAIN_SEC,
+    practice_sec: PRACTICE_SEC, block1_sec: B1_SEC, block2_sec: B2_SEC,
     lock_choice: state.lockChoice,
     lock_auc: m ? +m.auc.toFixed(6) : '', lock_md: m ? +m.md.toFixed(6) : '', lock_x_flips: m ? m.xFlips : '',
     points: state.points, attempted, correct,
     accuracy: attempted ? +(correct / attempted).toFixed(3) : '',
     practice_study_ms: d.practice.study, practice_video_ms: d.practice.video, practice_none_ms: d.practice.none,
-    main_study_ms: d.main.study, main_video_ms: d.main.video, main_none_ms: d.main.none,
+    block1_study_ms: d.block1.study, block1_video_ms: d.block1.video, block1_none_ms: d.block1.none,
+    block2_study_ms: d.block2.study, block2_video_ms: d.block2.video, block2_none_ms: d.block2.none,
     switches: state.switches, videos_completed: state.videosCompleted,
     touch_ui: TOUCH_UI,
     taps: state.events.filter(e => e.type === 'switch' && e.via === 'tap').length,
@@ -876,19 +921,22 @@ function summaryRow(){
 let saved = false;
 async function saveSession(){
   if (saved) return; saved = true;
-  await Session.save({ task2_summary: [summaryRow()], task2_events: state.events.map(e => ({ ...e })) }, 'task2');
+  await saveEvents();
+  await Session.save({ task2_summary: [summaryRow()] }, 'task2');
+  await Session.status('task2', 'completed', { lock_choice: state.lockChoice });
   await Session.log('task2_complete', { lock_choice: state.lockChoice });
 }
 $('continueBtn').addEventListener('click', () => Session.next('task2'));
 
-$('startBtn').addEventListener('click', () => { Session.log('task2_start', { practice_sec: PRACTICE_SEC, main_sec: MAIN_SEC }); startSession(); });
+$('startBtn').addEventListener('click', () => { Session.log('task2_start', { practice_sec: PRACTICE_SEC, block1_sec: B1_SEC, block2_sec: B2_SEC }); startSession(); });
 $('restartBtn').addEventListener('click', () => {
   Object.assign(state, {
     phase: 'intro', startTime: null, phaseElapsedMs: 0, phaseSec: PRACTICE_SEC,
     points: 0, qNum: 1, currentQ: null, answerLock: false, activeSide: null,
     dwell: {
       practice: { study: 0, video: 0, none: 0 },
-      main:     { study: 0, video: 0, none: 0 },
+      block1:   { study: 0, video: 0, none: 0 },
+      block2:   { study: 0, video: 0, none: 0 },
     },
     switches: 0, playlist: shuffle(VIDEOS), vidIdx: 0, videosCompleted: 0,
     lockChoice: null, lockMetrics: null, videoLocked: false, events: [],
@@ -910,7 +958,7 @@ $('restartBtn').addEventListener('click', () => {
   $('lockOptRight').classList.add('hidden');
   $('lockPrompt').classList.add('hidden');
   if (playerReady) player.cueVideoById(state.playlist[0].id);
-  saved = false;
+  saved = false; savedEvents = 0;
   startSession();
 });
 

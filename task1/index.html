@@ -47,6 +47,7 @@
   }
   .intro h2 { font-size: 20px; margin-bottom: 16px; }
   .intro p  { font-size: 15px; line-height: 1.6; margin-bottom: 12px; }
+  .intro .stem { margin-top: 18px; padding: 12px 14px; background: var(--bg); border-left: 3px solid var(--accent); font-weight: 600; }
   .intro .big-btn {
     display: block; margin: 24px auto 0;
     padding: 12px 40px; border: 1px solid var(--ink);
@@ -69,32 +70,24 @@
   }
 
   .option {
-    position: absolute; top: 22px;
-    display: block; padding: 6px 6px 8px;
-    background: var(--bg); border: 1px solid var(--ink);
+    position: absolute; top: 3%;
+    display: block; padding: 4px;
+    background: #fff; border: 1px solid var(--ink);
     cursor: pointer; font-family: inherit;
     transition: box-shadow 0.12s ease;
-    width: 196px;
+    width: 31%;
   }
   .option .pic { pointer-events: none; }
-  .option .pic.emoji { font-size: 76px; }
   .option .cap {
-    display: block; margin-top: 6px; font-size: 12px; line-height: 1.3;
-    font-weight: 600; color: var(--ink); text-align: center; min-height: 32px;
+    display: block; margin-top: 4px; font-size: 13px; line-height: 1.3;
+    font-weight: 600; color: var(--ink); text-align: center;
     pointer-events: none;
   }
+  .option .cap:empty { display: none; }
   .option:hover { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
-  .option.opt-left  { left: 22px; }
-  .option.opt-right { right: 22px; }
+  .option.opt-left  { left: 3%; }
+  .option.opt-right { right: 3%; }
   .option.review { pointer-events: none; cursor: default; }
-
-  .stimulus {
-    position: absolute; top: 40%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px; letter-spacing: 0.18em;
-    text-transform: uppercase; color: var(--soft);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
 
   .stage-btn {
     position: absolute; left: 50%; transform: translateX(-50%);
@@ -102,12 +95,13 @@
     font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
     cursor: pointer; font-family: inherit;
   }
-  .start-btn { bottom: 30px; background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .start-btn { bottom: 4%; background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .next-btn  { bottom: 20px; background: var(--accent); color: var(--bg); border-color: var(--accent); z-index: 3; }
   .stage-btn:hover { opacity: 0.9; }
 
   .warn {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    position: absolute; top: 62%; left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none;
     background: var(--accent); color: var(--bg);
     padding: 16px 24px; font-size: 16px; font-weight: 600; text-align: center;
     max-width: 70%; z-index: 4;
@@ -190,9 +184,9 @@
   <!-- instructions -->
   <section class="intro" id="intro">
     <h2 data-i18n="t1_title"></h2>
-    <p data-i18n="t1_instr_1"></p>
-    <p data-i18n="t1_instr_2"></p>
+    <div id="instr"></div>
     <p><b data-i18n="t1_practice_intro"></b></p>
+    <p class="stem" id="introPrompt"></p>
     <button class="big-btn" id="introBtn" data-i18n="start"></button>
   </section>
 
@@ -213,7 +207,6 @@
         <span id="optRightPic"></span>
         <span class="cap" id="optRightCap"></span>
       </button>
-      <div    class="stimulus hidden"         id="stimulus"></div>
       <button class="stage-btn start-btn"     id="startBtn"></button>
       <div    class="warn hidden"             id="warn"></div>
       <canvas class="review-canvas hidden"    id="reviewCanvas"></canvas>
@@ -236,6 +229,7 @@
           <dt>x-flips</dt> <dd id="lastFlips">—</dd>
           <dt>RT</dt>      <dd id="lastRT">—</dd>
           <dt>init</dt>    <dd id="lastInit">—</dd>
+          <dt>samples</dt> <dd id="lastN">—</dd>
         </dl>
       </div>
 
@@ -269,12 +263,18 @@
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
    Flow: instructions → practice trials → interstitial → main trials
          → (session: save + next page | standalone: done panel + CSV)
-   Stimuli: the 90 rated activities (shared/stimuli.js) with the same
-   pictures as the ratings. Main trials pair a study activity with an
-   entertainment activity (random pairing per student, goal side balanced);
-   practice trials pair two neutral activities.
-   Prompt version (Session.mt): 'A' choose now | 'B' helps on the test —
-   one per student across all trials. AUC & MD after Freeman & Ambady (2010).
+   Main trials: TASK1_TRIAL_LIST (shared/stimuli.js), the team's fixed
+   order, 60 goal–temptation + 60 goal–neutral (?trials=N runs the first N).
+   Practice: random neutral–neutral pairs (not scored).
+   Prompt version (Session.mt): 'A' choose now | 'B' helps on the quiz —
+   one per student across all trials.
+   Cursor: sampled at a fixed rate (CONFIG.TASK1_SAMPLE_MS) from the moment
+   the options appear until the choice, including still periods. If the
+   cursor hasn't moved by CONFIG.TASK1_INIT_WARN_MS, the "start moving
+   sooner" reminder appears (warning_shown = 1). AUC / MD / x-flips:
+   shared/mousetracking.js.
+   Saving: rows are uploaded every CONFIG.TASK1_SAVE_EVERY trials, so a
+   student who leaves midway keeps the trials already done.
    ============================================================= */
 
 const $ = id => document.getElementById(id);
@@ -282,57 +282,55 @@ const qs = new URLSearchParams(location.search);
 const intParam = (name, dflt) => { const v = parseInt(qs.get(name), 10); return Number.isFinite(v) && v >= 0 ? v : dflt; };
 
 const TYPE_OF = { study: 'goal', entertainment: 'temptation', neutral: 'neutral' };
-const byCat = cat => ACTIVITIES.filter(a => a.cat === cat);
-ACTIVITIES.map(activityImgSrc).filter(Boolean).forEach(src => { const im = new Image(); im.src = src; });
-
 const N_PRACTICE = intParam('practice', CONFIG.TASK1_PRACTICE_TRIALS);
-const N_MAIN     = intParam('trials',   CONFIG.TASK1_TRIALS);
+const N_MAIN     = Math.min(intParam('trials', TASK1_TRIAL_LIST.length), TASK1_TRIAL_LIST.length);
 const INIT_WARN_MS = CONFIG.TASK1_INIT_WARN_MS;
-const MOVE_THRESHOLD_PX = 10;
+const SAMPLE_MS = CONFIG.TASK1_SAMPLE_MS;
+const MOVE_THRESHOLD_PX = CONFIG.TASK1_MOVE_THRESHOLD_PX;
 const N_TIME_BINS = 101;
 const REVIEW = Session.review;
 const VERSION = Session.mt;     // 'A' | 'B'
 const PROMPT = Session.t('t1_prompt_' + VERSION);
+const TOUCH_UI = matchMedia('(hover: none)').matches;
+
+ACTIVITIES.forEach(a => { const im = new Image(); im.src = activityImgSrc(a); });
 
 Session.applyI18n();
 document.title = Session.t('t1_title');
+$('instr').innerHTML = ['t1_i1', 't1_i2', 't1_i3_' + VERSION, 't1_i4', TOUCH_UI ? 't1_i5_touch' : 't1_i5', 't1_i6_' + VERSION, 't1_i7']
+  .map(k => `<p>${Session.t(k)}</p>`).join('');
 $('prompt').textContent = PROMPT;
+$('introPrompt').textContent = PROMPT;
 $('interPrompt').textContent = PROMPT;
 $('practiceBadge').textContent = Session.t('t1_practice_badge');
-$('stimulus').textContent = Session.t('t1_choose');
 $('startBtn').textContent = Session.t('start');
 $('condLabel').textContent = VERSION;
 if (!REVIEW){ $('aside').classList.add('hidden'); $('main').classList.add('no-aside'); }
 
 const state = {
   block: 'practice',   // practice | main
-  plan: [],            // [{ left, right }] activities, one per trial
+  plan: [],            // [{ trial_id, trial_type, left, right }], one per trial
   trials: [],          // main trials
   practice: [],        // practice trials
+  unsaved: [],         // finished trials not yet uploaded
   current: null,
   stage: 'idle',       // idle | awaiting_start | in_trial | review | done
 };
+const sampler = createSampler(SAMPLE_MS, MOVE_THRESHOLD_PX);
+let warnTimer = null;
 
 function shuffle(arr){
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
-/* Trial plan. Main: shuffled study and entertainment lists zipped into
-   pairs (each activity once per 30 trials, cycling beyond that); the goal
-   is on the left in half the trials (shuffled). Practice: neutral pairs. */
 function buildPlan(block, n){
-  const cycle = (arr, i) => arr[i % arr.length];
-  const leftFirst = shuffle(Array.from({ length: n }, (_, i) => i % 2 === 0));
-  if (block === 'practice'){
-    const ns = shuffle(byCat('neutral'));
-    return Array.from({ length: n }, (_, i) => ({ left: cycle(ns, 2 * i), right: cycle(ns, 2 * i + 1) }));
-  }
-  const st = shuffle(byCat('study')), en = shuffle(byCat('entertainment'));
-  return Array.from({ length: n }, (_, i) => {
-    const goal = cycle(st, i), temptation = cycle(en, i);
-    return leftFirst[i] ? { left: goal, right: temptation } : { left: temptation, right: goal };
-  });
+  if (block === 'main') return TASK1_TRIAL_LIST.slice(0, n);
+  const ns = shuffle(ACTIVITIES.filter(a => a.cat === 'neutral'));
+  return Array.from({ length: n }, (_, i) => ({
+    trial_id: 'P' + (i + 1), trial_type: 'practice',
+    left: ns[(2 * i) % ns.length], right: ns[(2 * i + 1) % ns.length],
+  }));
 }
 
 const list = () => state.block === 'practice' ? state.practice : state.trials;
@@ -348,18 +346,17 @@ function setupTrial(){
     return finishTask();
   }
   const i = list().length;
-  const { left, right } = state.plan[i];
+  const p = state.plan[i];
   state.current = {
     isPractice: state.block === 'practice',
-    trialIdx: i + 1,
-    leftAct: left, rightAct: right,
-    left: left.en, right: right.en,
-    leftType: TYPE_OF[left.cat], rightType: TYPE_OF[right.cat],
-    samples: [],
+    trialIdx: i + 1, trialId: p.trial_id, trialType: p.trial_type,
+    leftAct: p.left, rightAct: p.right,
+    leftType: TYPE_OF[p.left.cat], rightType: TYPE_OF[p.right.cat],
+    warningShown: 0,
   };
-  $('optLeftPic').innerHTML  = activityPic(left);  $('optLeftCap').textContent  = Session.pick(left);
-  $('optRightPic').innerHTML = activityPic(right); $('optRightCap').textContent = Session.pick(right);
-  ['optLeft','optRight','stimulus','reviewCanvas','reviewBadge','reviewMeta','donePanel','nextBtn','warn']
+  $('optLeftPic').innerHTML  = activityPic(p.left);  $('optLeftCap').textContent  = activityCaption(p.left);
+  $('optRightPic').innerHTML = activityPic(p.right); $('optRightCap').textContent = activityCaption(p.right);
+  ['optLeft','optRight','reviewCanvas','reviewBadge','reviewMeta','donePanel','nextBtn','warn']
     .forEach(id => $(id).classList.add('hidden'));
   drag.reset();
   $('optLeft').classList.remove('review');
@@ -375,6 +372,7 @@ $('introBtn').addEventListener('click', () => {
   $('intro').classList.add('hidden');
   $('main').classList.remove('hidden');
   Session.log('task1_start', { mt_version: VERSION, n_practice: N_PRACTICE, n_main: N_MAIN });
+  Session.status('task1', 'not_completed', { n_planned: N_MAIN });
   startBlock('practice');
 });
 
@@ -398,36 +396,40 @@ $('interBtn').addEventListener('click', () => {
 
 /* ---------- trial flow ---------- */
 
-/* Start a trial from a START press. inputType: 'mouse' (click, cursor
-   tracked by mousemove) or, via the drag cursor, 'touch' / 'pen' /
-   'mouse_drag' (path tracked by dragging). Returns true if started. */
+/* Start a trial from a START press: the options appear (t = 0) and the
+   fixed-rate sampler starts. inputType: 'mouse' (click, cursor tracked by
+   mousemove) or, via the drag cursor, 'touch' / 'pen' / 'mouse_drag'. */
 function startTrial(e, inputType = 'mouse'){
   if (state.stage !== 'awaiting_start') return false;
   const c = state.current;
   c.inputType = inputType;
   c.stageRect = $('stage').getBoundingClientRect();
   c.startPos  = { x: e.clientX, y: e.clientY };
-  c.startTime = performance.now();
-  c.samples.push({ x: e.clientX, y: e.clientY, t: 0 });
   $('startBtn').classList.add('hidden');
   $('optLeft').classList.remove('hidden');
   $('optRight').classList.remove('hidden');
-  $('stimulus').classList.remove('hidden');
+  sampler.start(e.clientX, e.clientY);
+  clearTimeout(warnTimer);
+  warnTimer = setTimeout(() => {
+    if (state.stage !== 'in_trial' || sampler.firstMoveT !== null) return;
+    c.warningShown = 1;
+    $('warn').textContent = Session.t('t1_slow');
+    $('warn').classList.remove('hidden');
+  }, INIT_WARN_MS);
   state.stage = 'in_trial';
   return true;
 }
 $('startBtn').addEventListener('click', e => startTrial(e));
 
-const addSample = (x, y) => state.current.samples.push({ x, y, t: performance.now() - state.current.startTime });
 document.addEventListener('mousemove', e => {
   if (state.stage !== 'in_trial' || drag.active) return;
-  addSample(e.clientX, e.clientY);
+  sampler.move(e.clientX, e.clientY);
 });
 const drag = DragCursor.create({
   stage: $('stage'), startBtn: $('startBtn'), targets: [$('optLeft'), $('optRight')],
   hint: Session.t('drag_hint'),
   onStart: startTrial,
-  onMove: (x, y) => { if (state.stage === 'in_trial') addSample(x, y); },
+  onMove: (x, y) => { if (state.stage === 'in_trial') sampler.move(x, y); },
   onDrop: (i, e) => pickOption(i === 0 ? 'left' : 'right', e),
 });
 
@@ -436,46 +438,31 @@ function centerOf(el){ const r = el.getBoundingClientRect(); return { x: r.left 
 function pickOption(side, e){
   if (state.stage !== 'in_trial') return;
   const trial = state.current;
-  trial.rt = performance.now() - trial.startTime;
-  trial.samples.push({ x: e.clientX, y: e.clientY, t: trial.rt });   // true endpoint
+  trial.rt = sampler.stop(e.clientX, e.clientY);       // last sample = the choice point
+  trial.samples = sampler.samples;
+  trial.initTime = sampler.firstMoveT;
+  clearTimeout(warnTimer);
+  $('warn').classList.add('hidden');
 
   trial.leftPos    = centerOf($('optLeft'));
   trial.rightPos   = centerOf($('optRight'));
-  trial.chosen     = side === 'left' ? trial.left     : trial.right;
-  trial.chosenId   = (side === 'left' ? trial.leftAct : trial.rightAct).id;
+  trial.chosenAct  = side === 'left' ? trial.leftAct  : trial.rightAct;
   trial.chosenType = side === 'left' ? trial.leftType : trial.rightType;
   trial.chosenSide = side;
   trial.chosenPos  = side === 'left' ? trial.leftPos  : trial.rightPos;
-  trial.otherPos   = side === 'left' ? trial.rightPos : trial.leftPos;
-
-  trial.initTime = null;
-  for (let i = 1; i < trial.samples.length; i++){
-    if (Math.hypot(trial.samples[i].x - trial.startPos.x, trial.samples[i].y - trial.startPos.y) > MOVE_THRESHOLD_PX){
-      trial.initTime = trial.samples[i].t; break;
-    }
-  }
-  trial.slowStart = trial.initTime === null || trial.initTime > INIT_WARN_MS;
 
   const m = computeMetrics(trial.samples, trial.startPos, trial.chosenPos);
   Object.assign(trial, { auc: m.auc, md: m.md, xFlips: m.xFlips, normalized: m.normalized, mdIdx: m.mdIdx });
 
   list().push(trial);
+  queueSave(trial);
   state.stage = 'review';
   $('optLeft').classList.add('review');
   $('optRight').classList.add('review');
-  $('stimulus').classList.add('hidden');
   if (!trial.isPractice) updatePanels();
 
   if (REVIEW) return showReview(trial);
-
-  // Participant mode: slow-start warning (doc §6) or straight on.
-  if (trial.slowStart){
-    $('warn').textContent = Session.t('t1_slow');
-    $('warn').classList.remove('hidden');
-    setTimeout(setupTrial, 1800);
-  } else {
-    setTimeout(setupTrial, 350);
-  }
+  setTimeout(setupTrial, 350);
 }
 $('optLeft').addEventListener('click',  e => pickOption('left', e));
 $('optRight').addEventListener('click', e => pickOption('right', e));
@@ -490,25 +477,26 @@ function showReview(trial){
   $('nextBtn').classList.remove('hidden');
   $('nextBtn').textContent = list().length >= total() ? Session.t('continue_') : Session.t('next') + ' →';
   $('reviewMeta').innerHTML =
-    `${trial.isPractice ? '<b>practice</b><br>' : ''}` +
-    `chose <b>${trial.chosen}</b> (${trial.chosenType})<br>` +
+    `${trial.isPractice ? '<b>practice</b>' : `trial <b>${trial.trialId}</b> · ${trial.trialType}`}<br>` +
+    `chose <b>${trial.chosenAct.en}</b> (${trial.chosenType})<br>` +
     `AUC <b>${trial.auc.toFixed(3)}</b> · MD <b>${trial.md.toFixed(3)}</b><br>` +
     `x-flips ${trial.xFlips} · RT ${Math.round(trial.rt)} ms<br>` +
     `init ${trial.initTime !== null ? Math.round(trial.initTime) + ' ms' : '—'}` +
-    (trial.slowStart ? ' <span style="color:var(--accent)">(slow)</span>' : '');
-  if (trial.slowStart){ $('warn').textContent = Session.t('t1_slow'); $('warn').classList.remove('hidden'); }
+    (trial.warningShown ? ' <span style="color:var(--accent)">(warned)</span>' : '') +
+    `<br>${trial.samples.length} samples`;
   drawTrajectoryReview($('reviewCanvas'), $('stage'), trial);
 }
 
 function updatePanels(){
   const last = state.trials[state.trials.length - 1];
   if (!last) return;
-  $('lastChoice').textContent = `${last.chosen} · ${last.chosenType}`;
+  $('lastChoice').textContent = `${last.chosenAct.en} · ${last.chosenType}`;
   $('lastAUC').textContent    = last.auc.toFixed(3);
   $('lastMD').textContent     = last.md.toFixed(3);
   $('lastFlips').textContent  = last.xFlips;
   $('lastRT').textContent     = `${Math.round(last.rt)} ms`;
   $('lastInit').textContent   = last.initTime !== null ? `${Math.round(last.initTime)} ms` : '—';
+  $('lastN').textContent      = last.samples.length;
   const n = state.trials.length;
   $('nTrials').textContent = n;
   const mean = arr => arr.reduce((s,v) => s+v, 0) / arr.length;
@@ -519,52 +507,76 @@ function updatePanels(){
 
 /* ---------- data ---------- */
 
+/* Positions are saved in px relative to the stage's top-left corner. */
+const local = (t, p) => ({ x: Math.round(p.x - t.stageRect.left), y: Math.round(p.y - t.stageRect.top) });
+
 function trialRow(t){
-  const goal = [t.leftAct, t.rightAct].find(a => a.cat === 'study');
-  const temptation = [t.leftAct, t.rightAct].find(a => a.cat === 'entertainment');
+  const goal  = [t.leftAct, t.rightAct].find(a => a.cat === 'study');
+  const other = goal ? [t.leftAct, t.rightAct].find(a => a !== goal) : null;
+  const st = local(t, t.startPos), lp = local(t, t.leftPos), rp = local(t, t.rightPos);
   return {
-    is_practice: t.isPractice, trial: t.trialIdx, prompt: PROMPT,
-    goal_id: goal?.id ?? '', temptation_id: temptation?.id ?? '',
+    block: t.isPractice ? 'practice' : 'main', trial: t.trialIdx, trial_id: t.trialId, trial_type: t.trialType,
+    mt_prompt: PROMPT,
     left_id: t.leftAct.id, right_id: t.rightAct.id,
-    left_option: t.left, right_option: t.right, left_type: t.leftType, right_type: t.rightType,
-    left_picture: activityPicKind(t.leftAct), right_picture: activityPicKind(t.rightAct),
-    chosen_id: t.chosenId, chosen: t.chosen, chosen_type: t.chosenType, chosen_side: t.chosenSide,
-    rt_ms: Math.round(t.rt), init_time_ms: t.initTime !== null ? Math.round(t.initTime) : '',
-    init_warn_ms: INIT_WARN_MS, slow_start: t.slowStart, input_type: t.inputType, auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
-    n_samples: t.samples.length,
+    left_image: activityImgFile(t.leftAct), right_image: activityImgFile(t.rightAct),
+    left_type: t.leftType, right_type: t.rightType,
+    goal_id: goal?.id ?? '', other_id: other?.id ?? '',
+    goal_side: goal ? (goal === t.leftAct ? 'left' : 'right') : '',
+    chosen_id: t.chosenAct.id, chosen_side: t.chosenSide, chosen_type: t.chosenType,
+    chose_goal: goal ? +(t.chosenAct === goal) : '',
+    rt_ms: Math.round(t.rt),
+    initiation_time: t.initTime !== null ? Math.round(t.initTime) : '',
+    warning_shown: t.warningShown, init_warn_ms: INIT_WARN_MS,
+    input_type: t.inputType,
+    auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
+    n_samples: t.samples.length, sample_ms: SAMPLE_MS,
     stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
+    start_x: st.x, start_y: st.y, left_x: lp.x, left_y: lp.y, right_x: rp.x, right_y: rp.y,
   };
 }
-/* One row per trial; the 101 time-normalized (x, y) samples are stored as
-   JSON arrays (keeps the Google Sheet ~100× smaller than one row per bin). */
+/* One row per trial. Raw fixed-rate samples (t ms from the options
+   appearing, x/y px in the stage) and the 101 time-normalized bins, each
+   as a JSON array (keeps the Google Sheet small). */
 function trajectoryRow(t){
+  const pts = t.samples.map(p => local(t, p));
   return {
-    is_practice: t.isPractice, trial: t.trialIdx, n_bins: N_TIME_BINS,
+    block: t.isPractice ? 'practice' : 'main', trial: t.trialIdx, trial_id: t.trialId,
+    n_samples: t.samples.length, sample_ms: SAMPLE_MS,
+    t_ms: JSON.stringify(t.samples.map(p => Math.round(p.t))),
+    x: JSON.stringify(pts.map(p => p.x)),
+    y: JSON.stringify(pts.map(p => p.y)),
+    n_bins: N_TIME_BINS,
     x_norm: JSON.stringify(t.normalized.map(p => +p.x.toFixed(5))),
     y_norm: JSON.stringify(t.normalized.map(p => +p.y.toFixed(5))),
   };
 }
-/* Long format (one row per bin) for the standalone CSV export. */
-function trajectoryRows(t){
-  return t.normalized.map((p, si) => ({
-    is_practice: t.isPractice, trial: t.trialIdx, sample_idx: si,
-    t_norm: +(si / (N_TIME_BINS - 1)).toFixed(4), x_norm: +p.x.toFixed(6), y_norm: +p.y.toFixed(6),
-  }));
+/* Long format (one row per raw sample) for the standalone CSV export. */
+function sampleRows(t){
+  return t.samples.map((p, si) => { const q = local(t, p); return { sample_idx: si, t_ms: Math.round(p.t), x: q.x, y: q.y }; });
 }
+
+function queueSave(trial){
+  state.unsaved.push(trial);
+  if (state.unsaved.length >= CONFIG.TASK1_SAVE_EVERY) flushTrials();
+}
+function flushTrials(){
+  if (!state.unsaved.length) return Promise.resolve();
+  const batch = state.unsaved; state.unsaved = [];
+  return Session.save({ task1_trials: batch.map(trialRow), task1_trajectories: batch.map(trajectoryRow) }, 'task1');
+}
+// Leaving midway (tab closed, page reloaded): send what's left.
+window.addEventListener('pagehide', () => { if (state.stage !== 'done') flushTrials(); });
 
 async function finishTask(){
   state.stage = 'done';
   state.current = null;
-  ['optLeft','optRight','stimulus','startBtn','reviewCanvas','reviewBadge','reviewMeta','nextBtn','warn']
+  ['optLeft','optRight','startBtn','reviewCanvas','reviewBadge','reviewMeta','nextBtn','warn']
     .forEach(id => $(id).classList.add('hidden'));
   drag.reset();
   $('donePanel').classList.remove('hidden');
   $('doneNote').textContent = Session.t('saving');
-  const all = [...state.practice, ...state.trials];
-  await Session.save({
-    task1_trials: all.map(trialRow),
-    task1_trajectories: all.map(trajectoryRow),
-  }, 'task1');
+  await flushTrials();
+  await Session.status('task1', 'completed', { n_planned: N_MAIN, n_done: state.trials.length });
   await Session.log('task1_complete', { mt_version: VERSION, n_main: state.trials.length });
   if (Session.standalone){
     $('doneNote').textContent = 'Standalone run — export the CSV or reset.';
@@ -578,13 +590,13 @@ async function finishTask(){
 $('exportBtn').addEventListener('click', () => {
   const all = [...state.practice, ...state.trials];
   if (!all.length) return;
-  const rows = all.flatMap(t => trajectoryRows(t).map(r => ({ ...trialRow(t), ...r })));
+  const rows = all.flatMap(t => sampleRows(t).map(r => ({ ...trialRow(t), ...r })));
   Session.download(`task1_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`, Session.csvOf(rows));
 });
 $('resetBtn').addEventListener('click', () => {
   if (state.trials.length > 0 && !confirm('Clear all recorded trials?')) return;
-  state.trials = []; state.practice = [];
-  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit','meanAUC','meanMD','meanRT'].forEach(id => $(id).textContent = '—');
+  state.trials = []; state.practice = []; state.unsaved = [];
+  ['lastChoice','lastAUC','lastMD','lastFlips','lastRT','lastInit','lastN','meanAUC','meanMD','meanRT'].forEach(id => $(id).textContent = '—');
   $('nTrials').textContent = '0';
   startBlock('practice');
 });

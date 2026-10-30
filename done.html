@@ -40,7 +40,8 @@
 <script>
 Session.applyI18n();
 document.title = Session.t('done_title');
-Session.log('session_complete', {}, true);
+Session.log('session_complete');
+if (!Session.standalone) Session.status('session', 'completed');
 try { if (Session.pid) localStorage.setItem('sc_done_' + Session.pid, 'done'); } catch (e) {}
 // Researcher panel: shown in review mode, or when there is no upload endpoint
 // (then the CSV download is the only copy of the data).

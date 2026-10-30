@@ -1,7 +1,37 @@
-/* Survey content — sections 1–5 of the team doc
-   "Pilot_Participant_Facing_Materials_EN_PT" (verbatim). survey/index.html
-   renders these in order. Section 4 Portuguese items are the validated
-   Brazilian adaptation (Figueira et al., 2019) — do not reword. */
+/* Questionnaire content.
+   SELF_REPORT — the self-report questionnaire of the team doc 10/28
+   (verbatim EN / PT items and scale), shown by survey/ after Task 2.
+   SURVEYS — the earlier sections 1–5 of "Pilot_Participant_Facing_Materials_EN_PT"
+   (no longer in the session flow; kept for reference). Section 4 Portuguese
+   items are the validated Brazilian adaptation (Figueira et al., 2019) —
+   do not reword. */
+
+const SCALE_AGREE_7 = {
+  en: ['Strongly disagree', 'Disagree', 'Somewhat disagree', 'Neither agree nor disagree', 'Somewhat agree', 'Agree', 'Strongly agree'],
+  pt: ['Discordo totalmente', 'Discordo', 'Discordo parcialmente', 'Nem concordo nem discordo', 'Concordo parcialmente', 'Concordo', 'Concordo totalmente'],
+};
+
+const SELF_REPORT = [
+  {
+    id: 'self_report',
+    type: 'likert',
+    title: { en: 'About your studying', pt: 'Sobre os seus estudos' },
+    // instructions: draft — the doc gives only the items and the scale
+    instructions: { en: 'Please indicate how much you agree or disagree with each statement.',
+                    pt: 'Indique o quanto você concorda ou discorda de cada frase.' },
+    scale: SCALE_AGREE_7,
+    items: [
+      { id: 1, en: 'Even when I have not followed my study plans in the past, I still expect to follow my study plans in the future.', pt: 'Mesmo que eu não tenha seguido meus planos de estudo no passado, ainda acho que vou segui-los no futuro.' },
+      { id: 2, en: 'I’ll have fun now, but I’ll study later.', pt: 'Vou me divertir agora, mas vou estudar depois.' },
+      { id: 3, en: 'I can easily make up later for any studying I skip today.', pt: 'Se eu deixar de estudar hoje, consigo facilmente colocar os estudos em dia depois.' },
+      { id: 4, en: 'When I don’t study as planned, I usually think, “It’s just this once.”', pt: 'Quando não estudo como planejei, geralmente penso: “É só desta vez.”' },
+      { id: 5, en: 'If I skip studying today, I’ll likely skip studying again in the future.', pt: 'Se eu deixar de estudar hoje, provavelmente vou deixar de estudar de novo no futuro.' },
+      { id: 6, en: 'It feels okay to skip studying today because I can usually find another way to meet school requirements later.', pt: 'Acho que não tem problema deixar de estudar hoje, porque geralmente consigo encontrar outra forma de atender às exigências da escola mais tarde.' },
+      { id: 7, en: 'Believing I can usually find a way around deadlines makes it feel okay to have fun now.', pt: 'Por achar que geralmente consigo dar um jeito de lidar com os prazos, sinto que está tudo bem me divertir agora.' },
+      { id: 8, en: 'Even if I have not studied as planned, I am confident I can find another way to meet school requirements.', pt: 'Mesmo que eu não tenha estudado como planejei, confio que consigo encontrar outra maneira de dar conta das tarefas da escola.' },
+    ],
+  },
+];
 
 const SCALE_INTENSITY = {
   en: ['Not at all', 'Slightly', 'Moderately', 'Very', 'Extremely'],

@@ -72,9 +72,9 @@
       <h1 data-i18n="app_title">Self-Control Study</h1>
       <p data-i18n="app_subtitle">Student session</p>
     </div>
-    <div class="lang" id="langBox" style="display:none">
-      <button id="langPt">PT</button>
-      <button id="langEn">EN</button>
+    <div class="lang" id="langBox">
+      <button id="langPt">Português</button>
+      <button id="langEn">English</button>
     </div>
   </header>
 
@@ -99,8 +99,9 @@
       <a href="task1/?practice=1&trials=4">task 1 (short)</a> ·
       <a href="allocation/">allocation</a> ·
       <a href="task2/?practice=20&dur=40">task 2 (short)</a><br>
+      (allocation and daily reset are not in the current flow)<br>
       Session URL options: <code>?pid=S001&amp;lang=pt|en&amp;mt=A|B&amp;hz=weeks|months&amp;review=1</code><br>
-      Groups for the code entered above (random, fixed once Start is pressed): <code id="condPreview">—</code>
+      Groups for the code entered above (balanced 50/50 by the server when one is configured, fixed once Start is pressed): <code id="condPreview">—</code>
     </div>
   </details>
 </div>
@@ -111,23 +112,24 @@
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
-/* Students see Portuguese only: the language switch and researcher panel
-   appear only with ?review=1 (or a researcher's ?lang=en link). */
+/* The EN / PT switch is for everyone; the researcher panel only shows
+   with ?review=1. */
 const qs = new URLSearchParams(location.search);
-const RESEARCHER = qs.get('review') === '1' || qs.get('lang') === 'en';
-if (RESEARCHER){ $('langBox').style.display = ''; $('research').style.display = ''; }
+if (qs.get('review') === '1') $('research').style.display = '';
 document.title = Session.t('app_title');
 $('langPt').classList.toggle('on', Session.lang === 'pt');
 $('langEn').classList.toggle('on', Session.lang === 'en');
 $('flow').textContent = ['entry', ...CONFIG.FLOW].join(' → ');
 $('endpointStatus').textContent = CONFIG.ENDPOINT ? 'configured' : 'not configured (local-only)';
 
+/* Codes are compared case- and space-insensitively (S001 = s 001). */
+const normCode = v => v.replace(/\s+/g, '').toUpperCase();
 $('pid').value = qs.get('pid') || '';
 
 function setLang(l){
   const p = new URLSearchParams(location.search);
   p.set('lang', l);
-  const v = $('pid').value.trim();
+  const v = normCode($('pid').value);
   if (v) p.set('pid', v); else p.delete('pid');
   location.search = p.toString();
 }
@@ -136,7 +138,7 @@ $('langEn').addEventListener('click', () => setLang('en'));
 
 const storedGroup = (g, v) => { try { return localStorage.getItem('sc_grp_' + g + '_' + v); } catch (e) { return null; } };
 function refresh(){
-  const v = $('pid').value.trim();
+  const v = normCode($('pid').value);
   $('condPreview').textContent = v ? `mt=${qs.get('mt') || storedGroup('mt', v) || '(new draw)'} · hz=${qs.get('hz') || storedGroup('hz', v) || '(new draw)'}` : '—';
   // resume offer if this code already has progress in this browser
   let last = null;
@@ -154,19 +156,21 @@ function refresh(){
 $('pid').addEventListener('input', refresh);
 refresh();
 
-/* Entry = the single link given to students. Each code gets its random
-   groups here (coin flips 0/1, kept for that code on this browser and carried
-   in every page URL): mt 0 → version A, 1 → version B; hz 0 → weeks, 1 → months. */
-function start(step){
-  const v = $('pid').value.trim();
+/* Entry = the single link given to students. Each code gets its groups
+   here — from the server (exact 50/50, Session.fetchGroups), else a local
+   coin flip — kept for that code and carried in every page URL:
+   mt → version A / B; hz → weeks / months. ?mt= / ?hz= in the link force them. */
+async function start(step){
+  const v = normCode($('pid').value);
   if (!v){ $('err').textContent = Session.t('pid_required'); $('pid').focus(); return; }
   const p = new URLSearchParams(location.search);
-  const g = Session.assignGroups(v, p);
+  $('startBtn').disabled = $('resumeBtn').disabled = true;
+  const g = (p.get('mt') || p.get('cond')) ? Session.assignGroups(v, p) : await Session.fetchGroups(v);
   p.set('pid', v); p.set('lang', Session.lang); p.set('mt', g.mt); p.set('hz', g.hz); p.delete('cond');
   location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
 }
 $('startBtn').addEventListener('click', () => {
-  const v = $('pid').value.trim();
+  const v = normCode($('pid').value);
   if (v){ try { localStorage.removeItem('sc_done_' + v); } catch (e) {} }  // fresh start
   start(CONFIG.FLOW[0]);
 });

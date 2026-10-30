@@ -25,8 +25,7 @@
   .big-btn:disabled { opacity: 0.5; cursor: default; }
 
   .stim { text-align: center; padding: 18px 10px 26px; border-bottom: 1px solid var(--rule); margin-bottom: 20px; }
-  .stim .pic { width: 100%; max-width: 300px; margin: 0 auto 14px; border: 1px solid var(--ink); }
-  .stim .pic.emoji { font-size: 110px; }
+  .stim .pic { width: 100%; max-width: 340px; margin: 0 auto 10px; border: 1px solid var(--ink); }
   .stim .txt { font-size: 24px; font-weight: 600; line-height: 1.35; }
   .stim > img { display: block; width: 100%; max-width: 420px; aspect-ratio: 16/9; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--ink); background: #000; }
   .stim .cat { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); margin-top: 8px; }
@@ -107,9 +106,10 @@ const PARTS = [
       { id: 'useful', label: t('r_act_q2'), lo: t('r_act_lo'), hi: t('r_act_hi') },
     ],
     sheet: 'activity_ratings',
-    row: (it, vals, extra) => ({ activity_id: it.id, category: it.cat, subcategory: it.sub ?? '', flagged: !!it.flagged,
-                                 text_en: it.en, text_shown: Session.pick(it), picture: activityPicKind(it), enjoy: vals.enjoy, useful: vals.useful, ...extra }),
-    render: it => `${activityPic(it)}<div class="txt">${esc(Session.pick(it))}</div>`,
+    row: (it, vals, extra) => ({ activity_id: it.id, category: it.cat, image: activityImgFile(it),
+                                 text_en: it.en, text_pt: it.pt, enjoy: vals.enjoy, useful: vals.useful, ...extra }),
+    // The card shows the Portuguese label; other languages get a caption.
+    render: it => `${activityPic(it)}${activityCaption(it) ? `<div class="txt">${esc(activityCaption(it))}</div>` : ''}`,
   },
   {
     key: 'videos', label: t('r_part_b'), instr: t('r_vid_instr'),
@@ -121,7 +121,7 @@ const PARTS = [
   },
 ];
 // Preload pictures/thumbnails so no item stalls on its image
-PARTS[0].items.map(activityImgSrc).filter(Boolean).forEach(src => { const im = new Image(); im.src = src; });
+PARTS[0].items.map(activityImgSrc).forEach(src => { const im = new Image(); im.src = src; });
 PARTS[1].items.forEach(v => { const im = new Image(); im.src = v.thumb; });
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -176,7 +176,7 @@ async function flush(force){
   await Session.save({ [P.sheet]: rows }, 'ratings');
 }
 
-$('introBtn').addEventListener('click', () => { idx = 0; Session.log(`ratings_${PARTS[part].key}_start`, { n_items: PARTS[part].items.length }); showItem(); });
+$('introBtn').addEventListener('click', () => { idx = 0; if (part === 0) Session.status('ratings', 'not_completed'); Session.log(`ratings_${PARTS[part].key}_start`, { n_items: PARTS[part].items.length }); showItem(); });
 
 $('nextBtn').addEventListener('click', async () => {
   const P = PARTS[part];
@@ -206,6 +206,7 @@ async function finish(){
   $('bar').style.width = '100%';
   $('progress').textContent = '';
   $('doneNote').textContent = t('saving');
+  await Session.status('ratings', 'completed');
   await Session.log('ratings_complete', {}, true);
   if (Session.standalone){
     $('doneNote').textContent = 'Standalone run — data is in localStorage (download on done.html).';

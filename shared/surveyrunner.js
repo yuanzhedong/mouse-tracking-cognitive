@@ -1,4 +1,4 @@
-/* Questionnaire runner shared by survey/ (§1–5) and daily_reset/.
+/* Questionnaire runner shared by survey/ and daily_reset/.
    runSurvey({ sections, step, sheet }) renders the sections one page at a
    time (types: likert, top3, piped_likert — see shared/surveys.js), saves
    each page's answers to `sheet`, then advances the session flow.
@@ -21,9 +21,9 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
       scale[L].map((lab, i) => `<th>${esc(lab)}<span class="num" style="display:block;color:var(--soft);font-size:10px;margin-top:3px">${i + 1}</span></th>`).join('') +
       `</tr>`;
   }
-  function likertRow(name, text){
+  function likertRow(name, text, n){
     return `<tr data-name="${esc(name)}"><td class="stmt">${esc(text)}</td>` +
-      [1,2,3,4,5].map(v => `<td><label><input type="radio" name="${esc(name)}" value="${v}"></label></td>`).join('') +
+      Array.from({ length: n }, (_, i) => i + 1).map(v => `<td><label><input type="radio" name="${esc(name)}" value="${v}"></label></td>`).join('') +
       `</tr>`;
   }
 
@@ -39,7 +39,7 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
 
     if (sec.type === 'likert'){
       html += `<table class="likert">${scaleHeader(sec.scale)}` +
-        sec.items.map(it => likertRow(`${sec.id}_${it.id}`, T(it))).join('') + `</table>`;
+        sec.items.map(it => likertRow(`${sec.id}_${it.id}`, T(it), sec.scale[L].length)).join('') + `</table>`;
     }
     else if (sec.type === 'top3'){
       html += `<div class="checks" id="checks">` +
@@ -56,7 +56,7 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
       html += `<div class="piped">` + chosen.map(c => `
         <h3>${esc(Session.t('rating_for', { activity: c.text }))}</h3>
         <table class="likert">${scaleHeader(sec.scale)}` +
-          sec.items.map(it => likertRow(`${sec.id}_${c.id}_${it.id}`, T(it))).join('') +
+          sec.items.map(it => likertRow(`${sec.id}_${c.id}_${it.id}`, T(it), sec.scale[L].length)).join('') +
         `</table>`).join('') + `</div>`;
     }
     html += `</section>`;
@@ -143,11 +143,13 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
     if (idx < TOTAL - 1){ idx++; render(); $('nextBtn').disabled = false; }
     else {
       $('bar').style.width = '100%';
+      await Session.status(STEP, 'completed');
       await Session.log(STEP + '_complete');
       Session.next(STEP);
     }
   });
 
   Session.log(STEP + '_start');
+  Session.status(STEP, 'not_completed');
   render();
 }

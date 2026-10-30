@@ -3,79 +3,99 @@
 A small, hackable, dependency-free battery of browser questionnaires and
 tasks for studying adolescent self-control and attention allocation in the
 face of temptation. Served via **GitHub Pages**; no build step. Participant
-text is **Portuguese (Brazil)** only for students (English is available to
-researchers via `?lang=en`); content follows the team doc
-*Pilot_Participant_Facing_Materials_EN_PT*.
+text is **Portuguese (Brazil)** by default, with an **English / Português**
+switch on the entry page.
 
-## Student session flow
+## Student session flow (team doc 10/28)
 
 ```
-index.html → survey/ → ratings/ → daily_reset/ → task1/ → allocation/ → task2/ → done.html
- entry +     §1–5     activities    placeholder    Game 1    150 problems   Game 2   thank-you
- random      surveys  + pictures    (questions     mouse-    + predictions
- groups               + videos      pending)       tracking
+index.html → task1/ → task2/ → survey/ → ratings/ → done.html
+ entry +     Game 1    Game 2   8-item    activities  thank-you
+ groups      mouse-    ADT      self-     + videos
+             tracking           report
 ```
 
 **The single student link is the site root** (`index.html`). The student
-types their code; the entry page then draws the pilot groups (below) and
-starts the flow. `index.html?pid=S001` pre-fills the code. Each page
-saves its data, then advances via `Session.next()`; progress is remembered
-per code so a closed window can resume from the entry page.
+types their code (case and spaces are ignored: `s 001` = `S001`); the entry
+page then gets the pilot groups (below) and starts the flow.
+`index.html?pid=S001` pre-fills the code. Each page saves its data as it
+goes, then advances via `Session.next()`; progress is remembered per code
+so a closed window can resume from the entry page.
 
 | step | content | data tables |
 |---|---|---|
-| `survey/` | 1 Academic Goal Value · 2 Tempting Activities top-3 · 3 ratings piped from the top-3 · 4 Brief Self-Control Scale (validated PT-BR) · 5 Self-Control Strategy Use | `survey` |
-| `ratings/` | Part A: 90 candidate activities (30 study / 30 entertainment / 30 neutral) each on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: video previews (thumbnail) on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
-| `daily_reset/` | Daily Reset questionnaire — **slot only**: questions pending (Priscilla finalizes, Karine translates). Add them to `DAILY_RESET` in `shared/surveys.js`; while it is empty, student sessions skip the step (`daily_reset_skipped` in the log) | `daily_reset` |
-| `task1/` | instructions → 3 practice rounds (neutral vs. neutral) → 30 mouse-tracked trials: each of the 30 study activities paired with one of the 30 entertainment activities (random pairing per student, goal side balanced), same pictures as the ratings; one prompt version (A/B) per student | `task1_trials`, `task1_trajectories` |
-| `allocation/` | split 150 practice problems between two time points (slider) + "why?" text box → two predictions (you / most classmates: move earlier · push later · keep the same) | `allocation` |
-| `task2/` | split-screen practice (2 min) → lock-screen choice (mouse-tracked) → main phase (10 min) | `task2_summary`, `task2_events` |
+| `task1/` | instructions (version A or B, doc text) → 3 practice rounds (neutral vs. neutral) → **120 trials in the fixed order of `Task1_trial_list_60x60`** (60 goal–temptation + 60 goal–neutral), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
+| `task2/` | split-screen ADT: practice 1 min (timer shown) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
+| `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
+| `ratings/` | Part A: the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: Task 2 video previews on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
+| all | task start / end | `task_status` (`completion_status`: not_completed / completed) |
 | all | milestones | `session_log` |
 
-### Pilot groups (meeting 10/13)
+Still in the repo but not in the flow (add back via `CONFIG.FLOW`):
+`allocation/` (150-problem split + predictions), `daily_reset/` (questions
+pending), and the earlier questionnaire sections 1–5 (`SURVEYS` in
+`shared/surveys.js`).
 
-Two independent coin flips (0/1) per participant code, drawn once and then
-fixed — a refresh, a reload of any page, or restarting from the entry page
-keeps them (stored per code in the browser and carried in every page URL).
-Every saved row carries `mt_version`, `mt_rand`, `horizon_group`, `hz_rand`.
+### Pilot groups
 
-| group | 0 | 1 |
+Each participant code gets two groups, fixed for good (stored per code and
+carried in every page URL; a reload or restart never re-randomizes). With
+the upload server configured, the server deals them from shuffled blocks of
+4, so the groups stay **exactly 50/50**; without it, the entry page flips a
+coin. Every saved row carries `mt_version`, `horizon_group` and
+`group_source` (`server` / `local` / `url`).
+
+| group | | |
 |---|---|---|
-| `mt` — Task 1 prompt | **A** "Você terá uma prova em breve. Qual atividade você escolhe fazer agora?" | **B** "Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?" |
-| `hz` — allocation horizon | **weeks**: 1 week / 2 weeks from now | **months**: 1 month / 2 months from now |
+| `mt` — Task 1 prompt | **A** "Você terá uma prova em breve. Qual atividade você gostaria de fazer agora?" | **B** "Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?" |
+| `hz` — allocation horizon (allocation not in the flow) | **weeks**: 1 week / 2 weeks from now | **months**: 1 month / 2 months from now |
 
-**Touch screens (iPad):** a finger sends no mouse-movement stream, so on
-touch/pen input the choice trials (Task 1 and the Task 2 lock choice) run
-as a drag: pressing START puts a round cursor under the finger and the
-student drags it onto an option and lets go (tapping an option directly
-does nothing; lifting early leaves the cursor in place to pick up again).
-The drag path is scored exactly like a mouse path; rows record
-`input_type` (`mouse` / `touch` / `pen`) — analyze touch trials
-separately, as dragging is slower than mousing. `?drag=1` forces drag mode
-with a mouse for testing (`mouse_drag`).
+### Task 1 recording
+
+- **Fixed-rate sampling**: from the moment the options appear (t = 0) to
+  the choice, the cursor position is recorded every **16 ms (~60 Hz)**,
+  whether or not it moves — the still period before the first movement is
+  in the record. Saved per trial in `task1_trajectories`: `t_ms`, `x`, `y`
+  (px from the stage's top-left), plus 101 time-normalized bins.
+- **initiation_time**: ms from the options appearing to the cursor first
+  being 10 px from the start (from the pointer event itself).
+  **warning_shown** = 1 if the "Comece a mover o mouse mais cedo!" reminder
+  appeared, which happens when the cursor hasn't moved by **1000 ms**.
+- **x_flips**: reversals of horizontal direction; a reversal counts once the
+  cursor comes back ≥ 0.02 normalized units (≈ 5–8 px) from the furthest
+  point reached.
+- **AUC / MD units**: normalized space where start → chosen option is 1
+  horizontally and 1.5 vertically. MD is a distance in those units, AUC an
+  area in units² — unitless and comparable across screen sizes. A straight
+  path gives 0; positive = bent toward the unchosen option.
+- Each row has `trial_id` (= row of the trial list), `trial_type`,
+  `left_id` / `right_id`, `left_image` / `right_image`, `goal_side`,
+  `chosen_id`, `chose_goal`, `rt_ms`, `auc`, `md`, `x_flips`.
+
+**Touch screens (iPad / Android tablets):** a finger sends no
+mouse-movement stream, so on touch/pen input the choice trials (Task 1 and
+the Task 2 lock choice) run as a drag: pressing START puts a round cursor
+under the finger and the student drags it onto an option and lets go. The
+drag path is sampled the same way; rows record `input_type` (`mouse` /
+`touch` / `pen`) — analyze touch trials separately. `?drag=1` forces drag
+mode with a mouse for testing (`mouse_drag`).
 
 In the Task 2 split screen a finger can't hover, so on a touch screen
 (`(hover: none)`) the intro says "tap a side to use it" and each inactive
 side shows "Toque para estudar / assistir"; the last side tapped stays
-active. The first tap on the inactive study side only switches (it never
-answers). Switch events record `via` (`hover` / `tap` / `click`); the
-summary records `touch_ui` and `taps`.
-
-The "start moving sooner" reminder in Task 1 fires at **300 ms**; every
-trial records `init_time_ms` (and the threshold `init_warn_ms`) so the
-cut-off can be re-tuned from the pilot data.
+active. Switch events record `via` (`hover` / `tap` / `click`).
 
 ### URL parameters
 
 | param | where | effect |
 |---|---|---|
 | `pid=S001` | any page | participant code (required for the session flow) |
-| `lang=pt\|en` | any page | language (default `pt`; EN is for researcher review only) |
-| `mt=A\|B`, `hz=weeks\|months` | any page | force a pilot group (old `cond=immediate\|goal` links map to A/B) |
-| `review=1` | any page | researcher views: language switch + researcher panel on the entry page, trajectory plots, metrics, CSV buttons |
+| `lang=pt\|en` | any page | language (default `pt`; also set by the entry page switch) |
+| `mt=A\|B`, `hz=weeks\|months` | any page | force a pilot group |
+| `review=1` | any page | researcher views: researcher panel on the entry page, trajectory plots, metrics, CSV buttons |
 | `n=N`, `nv=N` | ratings | number of activities / videos to rate (default all) |
-| `practice=N`, `trials=N` | task1 | practice rounds / main trials |
-| `practice=SEC`, `dur=SEC` | task2 | phase lengths |
+| `practice=N`, `trials=N` | task1 | practice rounds / run only the first N trials of the list |
+| `practice=SEC`, `b1=SEC`, `b2=SEC`, `dur=SEC` | task2 | phase lengths (`dur` sets both blocks) |
 
 A task page opened **without** `pid` runs standalone (demo mode, researcher
 view on, nothing uploaded).
@@ -83,74 +103,69 @@ view on, nothing uploaded).
 ### Data collection
 
 Every save goes to (a) `localStorage` in the student's browser and (b) a
-Google Apps Script endpoint that appends rows to a Google Sheet, one tab per
-table — free, no server. Setup in **`backend/SETUP.md`** (5 minutes), then
-paste the URL into `shared/config.js`. With no endpoint configured the
-battery still runs and the final page's *Researcher* panel downloads each
-table as CSV. Uploads retry with backoff and queue offline, so a classroom
-of 200 finishing a task in the same minute degrades to "arrives a few
-minutes later", not data loss (details in `backend/SETUP.md`).
+Google Apps Script web app owned by the study's Google account
+(yzd@stanford.edu), which stores each upload as a JSON file in Drive and
+copies them into a Google Sheet every 10 minutes — free, no server, and
+built for ~100 students at once. Setup in **`backend/SETUP.md`**, then
+paste the URL into `shared/config.js`.
+
+Saving is incremental — Task 1 every 10 trials, Task 2 at the end of each
+phase, ratings every 15 items — and every upload sits in a browser queue
+until the server confirms it, so a student who leaves midway keeps
+everything done so far. With no endpoint configured the battery still runs
+and the final page (`?review=1`) downloads each table as CSV.
 
 ## Repo structure
 
 ```
-index.html            – session entry (participant code, language)
-survey/index.html     – questionnaires §1–5
-ratings/index.html    – stimulus norming: activity (with picture) + video-preview ratings
-daily_reset/index.html – Daily Reset questionnaire slot (questions pending)
-task1/index.html      – Task 1: goal–temptation mouse-tracking over the rated activities
-allocation/index.html – 150-problem allocation + predictions
+index.html            – session entry (participant code, EN / PT switch)
+task1/index.html      – Task 1: goal–temptation mouse-tracking (fixed trial list)
 task2/index.html      – Task 2: split-screen ADT (study vs. YouTube videos)
   lock_stimuli/       – icon cards for the lock-screen choice trial
+survey/index.html     – 8-item self-report
+ratings/index.html    – stimulus norming: activity cards + video-preview ratings
+allocation/index.html – 150-problem allocation + predictions (not in the flow)
+daily_reset/index.html – Daily Reset questionnaire slot (not in the flow)
 done.html             – thank-you page (+ researcher CSV download)
 shared/
-  config.js           – endpoint URL, language, trial counts, phase lengths
-  i18n.js             – EN/PT UI strings + icon captions
-  surveys.js          – questionnaire content (EN/PT) from the team doc
-  stimuli.js          – 90 candidate activities (EN/PT), their pictures, video preview list
-  activity_images/    – illustrated activity cards (10 so far)
-  activity.css        – activity picture styling (ratings + Task 1)
-  surveyrunner.js     – questionnaire renderer (survey/ and daily_reset/)
-  session.js          – participant id, condition, save/upload, navigation
+  config.js           – endpoint URL, flow, timings, sampling, batch sizes
+  i18n.js             – EN/PT UI strings
+  surveys.js          – questionnaire content (EN/PT)
+  stimuli.js          – the 90 activities (EN/PT), Task 1 trial list, picture helpers
+  activity_images/    – the 90 illustrated cards (study/, entertainment/, neutral/)
+  activity.css        – activity card styling (ratings + Task 1)
+  surveyrunner.js     – questionnaire renderer
+  session.js          – participant id, groups, save/upload queue, navigation
   questions.js        – fixed 30-item math bank (easy/medium/challenge)
   videos.js           – Task 2 YouTube playlist (video ids + categories)
-  mousetracking.js    – AUC/MD/x-flips metrics (Freeman & Ambady 2010)
+  mousetracking.js    – fixed-rate sampler, AUC/MD/x-flips metrics
   dragcursor.js/.css  – drag cursor for mouse-tracking on touch screens
   slider.js/.css      – 0–100 / allocation sliders (mouse + touch)
 backend/
-  Code.gs             – Google Apps Script receiver (→ Google Sheet)
+  Code.gs             – Google Apps Script: uploads → Drive files → Sheet; 50/50 groups
   SETUP.md            – deployment steps
 README.md
 ```
 
 ### Known gaps / for the team
 
-- **Activity pictures**: only 10 of the 90 activities have an illustrated
-  card (`shared/activity_images/`, mapped in `ACTIVITY_IMAGES`); the other
-  80 show an emoji placeholder, identical in the ratings and in Task 1. The
-  mixed styles are a confound for the pilot — replace with a uniform set
-  when the artwork is ready (the data records `picture: image|emoji`).
-- **Translations pending Karine**: the allocation texts are a draft PT
-  translation; the two prediction questions are in English on purpose
-  (team decision) until her translation arrives (`pr_*` keys in
-  `shared/i18n.js`).
-- Task 2 videos are still the old playlist (new half-screen videos TBD).
-- Stimulus PNGs carry English titles; the title band is cropped by CSS and
-  a localized caption is shown instead. The lock cards still show "STUDY /
-  LOCKED / FUN" inside the artwork — replace the PNGs for a fully PT version.
-- `ratings/` is in the default flow after the surveys. 90 activities × 2
-  sliders takes adolescents roughly 10–15 min; if the ratings are meant as
-  a separate norming study, remove `'ratings'` from `CONFIG.FLOW` and run
-  it standalone (`ratings/?pid=NORM01`). The activity list is pending
-  Karine's review (asterisked items are flagged in the data). Video
-  previews currently use the Task 2 playlist thumbnails.
-- Section 3 scale is coded 1–5 (team note asked to confirm vs. 0–5).
-- The Task 2 intro states the real total (practice + main = 12 min); the
-  doc's wording says "about 10 minutes".
+- **Drafts not from the team doc** (please check): the Task 2
+  "practice is over" line, the touch-screen version of Task 1 instruction 5
+  ("Arraste o círculo…"), the self-report title and instruction line, and
+  the entry-page text.
+- **Version A question**: the doc's practice intro says "você *escolhe
+  fazer* agora?" but its trial-stem rows say "você *gostaria de fazer*
+  agora?"; the site uses "gostaria de fazer" everywhere.
+- **Trial list order**: in trials 1–60 the goal is mostly on the right
+  (21 of 30 goal–temptation trials), in 61–120 mostly on the left, so side
+  is tied to time in the task. The site follows the list as given.
+- 120 trials (~6–8 min) — the doc mentions "60 stimuli"; `?trials=` can
+  shorten it.
+- The lock cards still show "STUDY / LOCKED / FUN" inside the artwork.
 - A student who reloads a task page restarts that task (previous data is
-  kept, so duplicates are distinguishable by `client_ts`).
+  kept, so duplicates are distinguishable by `session_id` / `client_ts`).
 - No movement deadline in Task 1 — slow starts are warned and flagged
-  (`slow_start`), not excluded.
+  (`warning_shown`), not excluded.
 
 ## Task 1 — Goal–Temptation Mouse-Tracking
 
@@ -161,30 +176,31 @@ A binary-choice **mouse-tracking** paradigm after:
 > *Trends in Cognitive Sciences*, **22**(6), 531–543.
 > https://doi.org/10.1016/j.tics.2018.03.012
 
-Practice rounds, then 10 trials (5 study-goal vs. temptation icon pairs × 2
-passes, goal side balanced). Cursor trajectories are recorded and scored
+Practice rounds, then the team's fixed list of 120 trials (study activity
+vs. entertainment or chore). Cursor trajectories are recorded and scored
 with the standard metrics — **AUC**, **MD**, **x-flips**,
 **RT**, **initiation time** — plus time-normalized trajectory exports.
 
 ## Task 2 — Split-Screen ADT (study vs. videos)
 
-A free-choice attention-allocation task: ~12 minutes before a quiz, split
+A free-choice attention-allocation task: ~8 minutes before a quiz, split
 screen with **math questions on the left** (1 point per correct answer, fixed
 bank in `shared/questions.js`) and **YouTube videos on the right** (playlist
 via the YouTube IFrame API). **Whichever side the mouse is over becomes
 active**: hovering the study side pauses the video and enables answering;
 hovering the video side plays the video and disables (dims) the math panel.
 Videos auto-advance when finished and can be skipped with a "next" button.
-Persistent header: time remaining, points, "Quiz at the end" reminder.
+Persistent header: points, "Quiz at the end" reminder, and the time
+remaining during practice only.
 
-Flow: intro → **practice phase** (default 2 min) → **lock-screen
+Flow: intro → **practice** (1 min) → **block 1** (4 min) → **lock-screen
 instructions** → **lock-screen choice** (锁屏选择, the design's core
-measure) → **main phase** (default 10 min) → researcher summary. The
+measure) → **block 2** (3 min) → researcher summary. The
 instructions page explains the two options; the choice itself is a
 Task-1-style **mouse-tracking trial** (Start button at the bottom, the two
 options at the top corners, sides randomized) between
-"[ Put the videos away ]" (the video side turns off for the whole main
-phase — irreversible) and "[ Keep the videos on my screen ]" (everything
+"[ Put the videos away ]" (the video side turns off for all of block 2 —
+irreversible) and "[ Keep the videos on my screen ]" (everything
 stays as in practice). The choice trajectory is scored with the shared
 AUC/MD metrics (`shared/mousetracking.js`) and its 101-bin time-normalized
 trajectory is included in the CSV. There is no right or wrong choice.
@@ -192,7 +208,7 @@ trajectory is included in the CSV. There is no right or wrong choice.
 Logged events (exportable CSV, tagged by phase): the lock choice, side
 switches, per-side dwell time, every answer (question id, level, response,
 correctness, running points), and video load/play/pause/complete/skip with
-video id + category. `?practice=SECONDS` and `?dur=SECONDS` override the
+video id + category. `?practice=`, `?b1=`, `?b2=` (seconds) override the
 phase lengths for piloting.
 
 ---
@@ -201,18 +217,18 @@ phase lengths for piloting.
 
 | Component | Status | Notes |
 |---|---|---|
-| Binary-choice goal–temptation task (activity stimuli + pictures) | done | 30 study × 30 entertainment activities paired randomly per student, 3 neutral practice + 30 main trials, balanced side assignment |
-| Two prompt versions (A choose now vs. B helps on the test) | done | random per student at the entry page, fixed, or `?mt=` |
+| Binary-choice goal–temptation task (activity cards) | done | Fixed list of 120 trials (60 goal–temptation, 60 goal–neutral), 3 neutral practice trials |
+| Two prompt versions (A choose now vs. B helps on the quiz) | done | 50/50 per student (server-balanced), fixed, or `?mt=` |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
-| Continuous cursor sampling via `mousemove` | done | Native event rate (typically 60–120 Hz) |
+| Fixed-rate cursor sampling | done | Every 16 ms (~60 Hz) from the options appearing, still periods included |
 | **AUC** (signed area vs. idealized straight line) | done | Ideal line = trajectory start → endpoint (Freeman & Ambady, 2010); positive = deviation toward unchosen option |
 | **MD** (signed maximum perpendicular deviation) | done | Same sign convention as AUC |
-| **X-flips** (number of direction reversals on x-axis) | done | Threshold 0.01 normalized units |
-| **RT** and **initiation time** | done | Reminder if initiation > 300 ms (pilot; re-tune from data) |
+| **X-flips** (number of direction reversals on x-axis) | done | Backtrack ≥ 0.02 normalized units from the furthest point |
+| **RT** and **initiation time** | done | Live reminder if no movement by 1000 ms (`warning_shown`) |
 | Time-normalization to **101 bins** | done | Standard MouseTracker convention (Freeman & Ambady, 2010) |
 | Coordinate normalization to (0,0) → (−1, 1.5) | done | MouseTracker frame; mirrored across x so the chosen target is top-left, unchosen toward +x |
 | Per-trial researcher view | done | Trajectory, ideal line, uniform AUC shading, MD marker, metrics overlay |
-| CSV export (sample-level, with trial-level metrics) | done | One row per (trial × time bin), 101 rows/trial |
+| CSV export (sample-level, with trial-level metrics) | done | One row per raw sample |
 | Aggregate panel (mean AUC, MD, RT across trials) | done | |
 
 ## Roadmap — paper features not yet implemented
@@ -223,8 +239,8 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
       stimulus as Female/Male, Black/White, etc. The current code is structured
       around food choice; adding a stimulus image + category labels is mostly a
       config change.
-- [x] **Stimulus images** — activity pictures in `shared/activity_images/`
-      (10 illustrated, 80 emoji placeholders).
+- [x] **Stimulus images** — the 90 illustrated activity cards in
+      `shared/activity_images/`.
 - [ ] **Movement deadline** — paper mentions enforcing movement initiation
       within ~400 ms and discarding offending trials. Currently we only warn.
 - [ ] **Integration-times analysis** ([Sullivan et al. 2015],
@@ -236,8 +252,7 @@ These map directly to sections of Stillman, Shen & Ferguson (2018):
 - [ ] **Velocity & acceleration profiles** per time bin (Figure 2, right panel).
 - [ ] **Sample-entropy** of trajectories (Hehman et al. 2015).
 - [x] **Practice trials** and instructions screen.
-- [x] **Counterbalancing** — per-session balanced (shuffled) assignment of
-      which side the goal appears on.
+- [x] **Counterbalancing** — goal side balanced per item in the trial list.
 - [x] **Server-side data collection** — Google Apps Script → Google Sheet
       (`backend/`), with localStorage mirror and CSV fallback.
 
@@ -279,7 +294,7 @@ at *r* = 0.8–0.9 (Stillman et al. 2018).
 
 - Single trials are noisy — you need at least 25–50 trials per condition.
 - If a participant decides *before* moving, trajectories will be uninformatively
-  straight. The apparatus reminds at init > 300 ms; published studies usually
+  straight. The apparatus reminds at init > 1000 ms; published studies usually
   also enforce a movement deadline (≈400 ms) and exclude offending trials.
 
 ---

@@ -12,7 +12,51 @@
          (positive = toward the unchosen option).
    AUC = signed geometric area between actual and ideal trajectory;
          area on the unchosen side counts positive, area on the far
-         side counts negative. */
+         side counts negative.
+   Units: both are in normalized space, where the horizontal distance
+   start → chosen option is 1 and the vertical distance is 1.5, so they are
+   comparable across screen sizes. MD is in those distance units; AUC is an
+   area in those units² (a straight path = 0; a path that goes all the way
+   to the other option first ≈ 1.5–3).
+   X_FLIP_MIN = smallest backtrack counted as an x-flip, same units
+   (0.02 ≈ 5–8 px on a laptop screen). */
+
+const X_FLIP_MIN = 0.02;
+
+/* Fixed-rate cursor sampler. Pointer events only fire while the pointer
+   moves, so instead the last known position is recorded every intervalMs
+   from the moment the options appear (t = 0) until the choice — still
+   periods (before the first movement, pauses) are in the record too.
+   firstMoveT = time the pointer first got moveThresholdPx away from the
+   start, taken from the pointer event itself (ms precision). */
+function createSampler(intervalMs = 16, moveThresholdPx = 10){
+  let timer = null, t0 = 0, pos = null, start = null;
+  const s = { samples: [], firstMoveT: null,
+    start(x, y){
+      s.samples = []; s.firstMoveT = null;
+      start = { x, y }; pos = { x, y }; t0 = performance.now();
+      s.samples.push({ x, y, t: 0 });
+      clearInterval(timer);
+      timer = setInterval(() => s.samples.push({ x: pos.x, y: pos.y, t: performance.now() - t0 }), intervalMs);
+    },
+    move(x, y){
+      if (!pos) return;
+      pos = { x, y };
+      if (s.firstMoveT === null && Math.hypot(x - start.x, y - start.y) > moveThresholdPx) s.firstMoveT = performance.now() - t0;
+    },
+    elapsed: () => performance.now() - t0,
+    stop(x, y){           // final sample at the choice point; returns RT
+      clearInterval(timer); timer = null;
+      if (x !== undefined) s.move(x, y);
+      const t = performance.now() - t0;
+      s.samples.push({ x: pos.x, y: pos.y, t });
+      pos = null;
+      return t;
+    },
+    cancel(){ clearInterval(timer); timer = null; pos = null; },
+  };
+  return s;
+}
 
 function computeMetrics(samples, startPos, chosenPos, nBins = 101){
   const dx = chosenPos.x - startPos.x;
@@ -59,11 +103,20 @@ function computeMetrics(samples, startPos, chosenPos, nBins = 101){
     if (Math.abs(d) > Math.abs(md)){ md = d; mdIdx = i; }
   }
 
-  let xFlips = 0;
-  for (let i = 2; i < norm.length; i++){
-    const a = norm[i - 1].x - norm[i - 2].x;
-    const b = norm[i].x     - norm[i - 1].x;
-    if (a * b < 0 && Math.abs(b) > 0.01) xFlips++;
+  // x-flips = reversals of horizontal direction. Compared against the
+  // furthest point reached in the current direction (not sample to sample,
+  // which at 60 Hz moves far less than any threshold): a reversal counts
+  // once the cursor has come back X_FLIP_MIN from that extreme.
+  let xFlips = 0, dir = 0, ext = norm[0].x;
+  for (let i = 1; i < norm.length; i++){
+    const x = norm[i].x;
+    if (dir === 0){
+      if (Math.abs(x - ext) >= X_FLIP_MIN){ dir = Math.sign(x - ext); ext = x; }
+    } else if ((x - ext) * dir > 0){
+      ext = x;
+    } else if ((ext - x) * dir >= X_FLIP_MIN){
+      xFlips++; dir = -dir; ext = x;
+    }
   }
 
   const tNorm = timeNormalize(norm, nBins);

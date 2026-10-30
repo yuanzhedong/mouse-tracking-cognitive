@@ -1,7 +1,5 @@
-/* Activity picture (activityPic in shared/stimuli.js) — same look in the
-   ratings and in Task 1. Width comes from the page; height follows the
-   164:128 crop. The illustrated PNGs carry an English title in their top
-   band, which this crop hides. */
-.pic { display: block; position: relative; overflow: hidden; aspect-ratio: 164 / 128; background: #f9f9f9; }
-.pic img { position: absolute; width: 121.95%; left: -10.98%; top: -51.56%; pointer-events: none; }
-.pic.emoji { display: flex; align-items: center; justify-content: center; line-height: 1; user-select: none; }
+/* Activity card (activityPic in shared/stimuli.js) — same look in the
+   ratings and in Task 1. The whole square card is shown (illustration +
+   printed Portuguese label); width comes from the page. */
+.pic { display: block; aspect-ratio: 1 / 1; background: #fff; }
+.pic img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; -webkit-user-drag: none; }
