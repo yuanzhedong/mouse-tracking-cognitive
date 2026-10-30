@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 2</title>
-<link rel="stylesheet" href="../shared/dragcursor.css">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202610301525">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -35,6 +35,10 @@
     font-size: 14px;
   }
   header .hud b { font-weight: 600; }
+  header .practice-tag {
+    padding: 3px 8px; background: var(--accent); color: var(--bg);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
 
   /* ---------- intro ---------- */
   .intro {
@@ -260,26 +264,32 @@
 
   <!-- shown only during practice: the countdown (no points, no timer in the real blocks) -->
   <header class="hidden" id="topBar">
-    <span class="hud" id="timeHud">⏱ <b id="timeLeft">1:00</b> <span data-i18n="t2_time_left"></span></span>
+    <span class="practice-tag" data-i18n="t2_practice_label"></span>
+    <span class="hud" id="timeHud">⏱ <b id="timeLeft">0:30</b> <span data-i18n="t2_time_left"></span></span>
   </header>
 
   <!-- intro -->
+  <!-- screen 1 (team doc 界面1) -->
   <section class="intro" id="intro">
-    <h2 data-i18n="t2_title"></h2>
+    <h2 data-i18n="t2_intro_title"></h2>
     <p id="intro1"></p>
     <p id="intro2"></p>
+    <p><b data-i18n="t2_try_first"></b></p>
     <button class="big-btn" id="startBtn" data-i18n="start"></button>
   </section>
 
   <!-- practice → block 1 -->
+  <!-- screen 3 (界面3): practice → block 1 -->
   <section class="intro hidden" id="practiceDone">
-    <p><b data-i18n="t2_practice_done"></b></p>
-    <button class="big-btn" id="block1Btn" data-i18n="continue_"></button>
+    <h2 data-i18n="t2_practice_done"></h2>
+    <p id="pdTime"></p>
+    <p data-i18n="t2_pd_math"></p>
+    <p><b data-i18n="t2_pd_start"></b></p>
+    <button class="big-btn" id="block1Btn" data-i18n="start"></button>
   </section>
 
   <!-- lock-screen instructions (shown after block 1) -->
   <section class="intro hidden" id="lockScreen">
-    <h2 data-i18n="t2_lock_title"></h2>
     <p id="lockIntro"></p>
     <div class="lock-options">
       <div class="choice-info">
@@ -372,13 +382,13 @@
 
 </div>
 
-<script src="../shared/config.js"></script>
-<script src="../shared/i18n.js"></script>
-<script src="../shared/session.js"></script>
-<script src="../shared/questions.js"></script>
-<script src="../shared/videos.js"></script>
-<script src="../shared/mousetracking.js"></script>
-<script src="../shared/dragcursor.js"></script>
+<script src="../shared/config.js?v=202610301525"></script>
+<script src="../shared/i18n.js?v=202610301525"></script>
+<script src="../shared/session.js?v=202610301525"></script>
+<script src="../shared/questions.js?v=202610301525"></script>
+<script src="../shared/videos.js?v=202610301525"></script>
+<script src="../shared/mousetracking.js?v=202610301525"></script>
+<script src="../shared/dragcursor.js?v=202610301525"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -421,6 +431,7 @@ document.title = Session.t('t2_title');
   document.getElementById('intro1').innerHTML = Session.t(TOUCH_UI ? 't2_intro_1_touch' : 't2_intro_1', { min: totalMin });
   document.getElementById('intro2').innerHTML = Session.t('t2_intro_2');
   document.getElementById('lockIntro').innerHTML = Session.t('t2_lock_intro', { min: mainMin });
+  document.getElementById('pdTime').textContent = Session.t('t2_pd_time', { min: Math.round((B1_SEC + B2_SEC) / 60) });
   document.getElementById('putAwayDesc').textContent = Session.t('t2_put_away_desc', { min: mainMin });
 }
 

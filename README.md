@@ -25,7 +25,7 @@ so a closed window can resume from the entry page.
 | step | content | data tables |
 |---|---|---|
 | `task1/` | instructions (version A or B, doc text) → 3 practice rounds (fixed study-vs-other pairs, not scored) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
-| `task2/` | split-screen ADT: practice 1 min (timer shown) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
+| `task2/` | split-screen ADT (doc text, 4 screens): practice 30 s ("Sessão de prática" + timer) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
 | `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
 | `ratings/` | Part A: the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: Task 2 video previews on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
 | all | task start / end | `task_status` (`completion_status`: not_completed / completed) |
@@ -150,7 +150,8 @@ README.md
 ### Known gaps / for the team
 
 - **Drafts not from the team doc** (please check): the Task 2
-  "practice is over" line, the touch-screen version of Task 1 instruction 5
+  "Sessão de prática" label (the doc has it in English only), the touch-screen
+  version of the Task 2 intro ("Toque em um lado…"), the touch-screen version of Task 1 instruction 5
   ("Arraste o círculo…"), the self-report title and instruction line, and
   the entry-page text.
 - **Version A question**: the doc's practice intro says "você *escolhe
@@ -194,7 +195,7 @@ Videos auto-advance when finished and can be skipped with a "next" button.
 Header: only the time
 remaining during practice only.
 
-Flow: intro → **practice** (1 min) → **block 1** (4 min) → **lock-screen
+Flow: intro → **practice** (30 s) → **block 1** (4 min) → **lock-screen
 instructions** → **lock-screen choice** (锁屏选择, the design's core
 measure) → **block 2** (3 min) → researcher summary. The
 instructions page explains the two options; the choice itself is a

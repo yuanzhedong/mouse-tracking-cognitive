@@ -32,7 +32,7 @@ const CONFIG = {
 
   // Task 2 (ADT split screen), seconds: practice → block 1 → lock-screen
   // question → block 2. ?practice=, ?b1=, ?b2= override (?dur= sets both blocks).
-  TASK2_PRACTICE_SEC: 60,
+  TASK2_PRACTICE_SEC: 30,
   TASK2_BLOCK1_SEC: 4 * 60,
   TASK2_BLOCK2_SEC: 3 * 60,
 };
