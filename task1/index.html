@@ -176,15 +176,21 @@
 <body>
 <div class="container">
 
-  <header>
+  <header class="hidden" id="topBar">
     <h1><span class="badge hidden" id="practiceBadge"></span><span id="prompt"></span></h1>
     <span class="trial" id="trialLabel"></span>
   </header>
 
   <!-- instructions -->
+  <!-- instructions, screen 1 (team doc 界面1) -->
   <section class="intro" id="intro">
     <h2 data-i18n="t1_title"></h2>
     <div id="instr"></div>
+    <button class="big-btn" id="instrNext" data-i18n="next"></button>
+  </section>
+
+  <!-- instructions, screen 2 (界面2): practice line + the question -->
+  <section class="intro hidden" id="intro2">
     <p><b data-i18n="t1_practice_intro"></b></p>
     <p class="stem" id="introPrompt"></p>
     <button class="big-btn" id="introBtn" data-i18n="start"></button>
@@ -370,8 +376,14 @@ function setupTrial(){
 
 /* ---------- screens ---------- */
 
-$('introBtn').addEventListener('click', () => {
+$('instrNext').addEventListener('click', () => {
   $('intro').classList.add('hidden');
+  $('intro2').classList.remove('hidden');
+  window.scrollTo(0, 0);
+});
+$('introBtn').addEventListener('click', () => {
+  $('intro2').classList.add('hidden');
+  $('topBar').classList.remove('hidden');
   $('main').classList.remove('hidden');
   Session.log('task1_start', { mt_version: VERSION, n_practice: N_PRACTICE, n_main: N_MAIN });
   Session.status('task1', 'not_completed', { n_planned: N_MAIN });
