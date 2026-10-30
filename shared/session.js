@@ -64,9 +64,24 @@ const Session = (() => {
     }
     return out;
   }
+  /* Student IDs: 6 characters from ID_ALPHABET, the last one a check
+     character (same rule as idCheckChar in backend/Code.gs), so a mistyped
+     or swapped character is caught right away. Codes starting with TEST are
+     for trying the site; the server keeps their data apart. */
+  const ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+  const isTestId = code => /^TEST/.test(code);
+  function idValid(code){
+    if (isTestId(code)) return true;
+    if (!new RegExp('^[' + ID_ALPHABET + ']{6}$').test(code)) return false;
+    let s = 0;
+    for (let i = 0; i < 5; i++) s += (i + 1) * ID_ALPHABET.indexOf(code[i]);
+    return ID_ALPHABET[s % ID_ALPHABET.length] === code[5];
+  }
+
   /* Ask the server for this code's groups (same answer every time for the
      same code); stored so assignGroups() picks them up. Resolves to the
-     groups, falling back to assignGroups() if the server can't be reached. */
+     groups, or { unknown: true } if the server says the code isn't on the
+     student list; falls back to assignGroups() if the server can't be reached. */
   async function fetchGroups(code){
     if (CONFIG.ENDPOINT && code && !GROUPS.mt.includes(lsGet('grp_mt_' + code))){
       try {
@@ -75,6 +90,7 @@ const Session = (() => {
         const res = await fetch(CONFIG.ENDPOINT + '?action=assign&pid=' + encodeURIComponent(code), { signal: ctl.signal });
         clearTimeout(timer);
         const j = await res.json();
+        if (j.ok === false && j.error === 'unknown_code') return { unknown: true };
         if (GROUPS.mt.includes(j.mt) && GROUPS.hz.includes(j.hz)){
           lsSet('grp_mt_' + code, j.mt); lsSet('grp_hz_' + code, j.hz); lsSet('grp_src_' + code, 'server');
         }
@@ -278,7 +294,7 @@ const Session = (() => {
   setInterval(flushPending, 45000);
   window.addEventListener('online', flushPending);
 
-  return { ROOT, pid, standalone, review, lang, mt, hz, groupCols, assignGroups, fetchGroups, sessionId,
+  return { ROOT, pid, standalone, review, lang, mt, hz, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
            t, pick, applyI18n, save, status, log, next, go, urlFor, langUrl, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };

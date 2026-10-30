@@ -18,12 +18,89 @@
       save_id are skipped), then moves each file to "processed". Run it from
       the editor or let the trigger from setupTrigger() run it every 10 min.
 
+   Student IDs: generateIds() writes pre-generated IDs into the
+   "student_ids" tab. Only those IDs are real participants: the entry page
+   refuses other codes, and uploads from codes starting with TEST (for
+   trying the site) go to separate TEST_<table> tabs and don't use up the
+   50/50 group blocks. The ID list stays in the spreadsheet, never in the
+   public repo.
+
    The raw JSON files are the primary copy of the data; the spreadsheet can
    always be rebuilt from them (resetSheets). */
 
 const DATA_FOLDER_NAME = 'self-control-battery-data';   // created in My Drive on first use
 const SPREADSHEET_ID = '';   // leave empty when the script is bound to the spreadsheet
 const GROUPS = { mt: ['A', 'B'], hz: ['weeks', 'months'] };
+const ID_SHEET = 'student_ids';
+const ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';   // 31 symbols: no 0/O, 1/I/L
+
+/* ---------- student IDs ---------- */
+
+const normId = s => String(s || '').replace(/\s+/g, '').toUpperCase();
+const isTestId = id => id.indexOf('TEST') === 0;
+
+/* Last character = check character: weighted sum mod 31 (prime), so any
+   single wrong character or swap of two neighbours is caught. Same rule
+   as idValid() in shared/session.js. */
+function idCheckChar(body){
+  let s = 0;
+  for (let i = 0; i < body.length; i++) s += (i + 1) * ID_ALPHABET.indexOf(body[i]);
+  return ID_ALPHABET[s % ID_ALPHABET.length];
+}
+
+/* Run from the editor: appends n new IDs (default 1000) to the student_ids
+   tab, numbered on from the last one. */
+function generateIds(n){
+  n = Number(n) || 1000;
+  const ss = book();
+  let sh = ss.getSheetByName(ID_SHEET);
+  if (!sh){
+    sh = ss.insertSheet(ID_SHEET, 0);
+    sh.appendRow(['no', 'student_id', 'school', 'class', 'given_to', 'note']);
+    sh.setFrozenRows(1);
+  }
+  const have = {};
+  const last = sh.getLastRow();
+  if (last > 1) sh.getRange(2, 2, last - 1, 1).getValues().forEach(r => have[r[0]] = true);
+  const rows = [];
+  let no = last - 1;
+  while (rows.length < n){
+    let body = '';
+    for (let i = 0; i < 5; i++) body += ID_ALPHABET[Math.floor(Math.random() * ID_ALPHABET.length)];
+    const id = body + idCheckChar(body);
+    if (have[id] || isTestId(id)) continue;
+    have[id] = true;
+    rows.push([++no, id, '', '', '', '']);
+  }
+  sh.getRange(last + 1, 1, rows.length, 6).setValues(rows);
+  sh.getRange(2, 2, sh.getLastRow() - 1, 1).setFontFamily('Roboto Mono');
+  CacheService.getScriptCache().remove('ids');
+  Logger.log('added ' + n + ' IDs; total ' + (sh.getLastRow() - 1));
+}
+
+/* Set of valid IDs (cached 10 min; edits to the tab show up after that). */
+function realIds(){
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('ids');
+  if (hit) return JSON.parse(hit);
+  const sh = book().getSheetByName(ID_SHEET);
+  const set = {};
+  if (sh && sh.getLastRow() > 1){
+    sh.getRange(2, 2, sh.getLastRow() - 1, 1).getValues().forEach(r => { const id = normId(r[0]); if (id) set[id] = 1; });
+  }
+  cache.put('ids', JSON.stringify(set), 600);
+  return set;
+}
+const isRealId = id => !isTestId(id) && !!realIds()[id];
+
+/* The bound spreadsheet, also from web-app requests. */
+function book(){
+  if (SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
+  const props = PropertiesService.getScriptProperties();
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active){ props.setProperty('ss_id', active.getId()); return active; }
+  return SpreadsheetApp.openById(props.getProperty('ss_id'));
+}
 
 /* ---------- 1. uploads ---------- */
 
@@ -33,11 +110,12 @@ function doPost(e){
     const body = JSON.parse(text);
     if (!body || typeof body.tables !== 'object') throw new Error('no tables');
     const saveId = String(body.save_id || Utilities.getUuid()).replace(/[^\w-]/g, '');
-    const pid = String(body.pid || 'unknown').replace(/[^\w-]/g, '').slice(0, 40);
-    const name = pid + '__' + saveId + '.json';
+    const pid = normId(body.pid).replace(/[^\w-]/g, '').slice(0, 40) || 'unknown';
+    const real = isRealId(pid);
+    const name = (real ? '' : 'TEST__') + pid + '__' + saveId + '.json';
     const raw = folders().raw;
     if (!raw.getFilesByName(name).hasNext()){          // a retry of an upload that already arrived
-      raw.createFile(name, JSON.stringify({ server_ts: new Date().toISOString(), body: body }), 'application/json');
+      raw.createFile(name, JSON.stringify({ server_ts: new Date().toISOString(), real: real, body: body }), 'application/json');
     }
     return json({ ok: true });
   } catch (err){
@@ -49,15 +127,18 @@ function doPost(e){
 
 function doGet(e){
   const p = (e && e.parameter) || {};
-  if (p.action === 'assign') return json(assign(String(p.pid || '').trim()));
+  if (p.action === 'assign') return json(assign(normId(p.pid)));
   return ContentService.createTextOutput('self-control battery endpoint: OK')
     .setMimeType(ContentService.MimeType.TEXT);
 }
 
 function assign(pid){
   if (!pid) return { ok: false, error: 'no pid' };
+  const test = isTestId(pid);
+  if (!test && !isRealId(pid)) return { ok: false, error: 'unknown_code' };
   const props = PropertiesService.getScriptProperties();
   const key = 'pid_' + pid;
+  const blockKey = g => (test ? 'testblock_' : 'block_') + g;   // test codes don't touch the real 50/50 blocks
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -65,11 +146,12 @@ function assign(pid){
     if (known) return Object.assign({ ok: true, repeat: true }, JSON.parse(known));
     const out = {};
     for (const g in GROUPS){
-      let block = JSON.parse(props.getProperty('block_' + g) || '[]');
+      let block = JSON.parse(props.getProperty(blockKey(g)) || '[]');
       if (!block.length) block = shuffle([0, 0, 1, 1]);
       out[g] = GROUPS[g][block.shift()];
-      props.setProperty('block_' + g, JSON.stringify(block));
+      props.setProperty(blockKey(g), JSON.stringify(block));
     }
+    out.real = !test;
     out.assigned_at = new Date().toISOString();
     props.setProperty(key, JSON.stringify(out));
     return Object.assign({ ok: true }, out);
@@ -88,7 +170,8 @@ function groupCounts(){
   const all = PropertiesService.getScriptProperties().getProperties();
   const n = { A: 0, B: 0, weeks: 0, months: 0 };
   Object.keys(all).filter(k => k.indexOf('pid_') === 0).forEach(k => {
-    const g = JSON.parse(all[k]); n[g.mt]++; n[g.hz]++;
+    const g = JSON.parse(all[k]); if (g.real === false || isTestId(k.slice(4))) return;
+    n[g.mt]++; n[g.hz]++;
   });
   Logger.log(JSON.stringify(n));
 }
@@ -100,7 +183,7 @@ function buildSheets(){
   if (!lock.tryLock(1000)) return;                     // a previous run is still going
   try {
     const f = folders();
-    const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+    const ss = book();
     const t0 = Date.now();
     const byTable = {}, done = [];
     const files = f.raw.getFiles();
@@ -111,9 +194,11 @@ function buildSheets(){
       try { rec = JSON.parse(file.getBlob().getDataAsString()); }
       catch (err){ Logger.log('skip unreadable ' + file.getName()); continue; }
       const tables = (rec.body && rec.body.tables) || {};
+      const prefix = rec.real === false || file.getName().indexOf('TEST__') === 0 ? 'TEST_' : '';   // test codes → TEST_ tabs
       for (const name in tables){
-        (byTable[sanitizeName(name)] = byTable[sanitizeName(name)] || [])
-          .push.apply(byTable[sanitizeName(name)], tables[name].map(r => Object.assign({ server_ts: rec.server_ts }, r)));
+        const tab = sanitizeName(prefix + name);
+        (byTable[tab] = byTable[tab] || [])
+          .push.apply(byTable[tab], tables[name].map(r => Object.assign({ server_ts: rec.server_ts }, r)));
       }
       done.push(file);
     }
@@ -136,12 +221,39 @@ function setupTrigger(){
    moves every processed file back to raw; then run buildSheets. */
 function resetSheets(){
   const f = folders();
-  const ss = SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const ss = book();
   ss.insertSheet('_tmp');
-  ss.getSheets().filter(s => s.getName() !== '_tmp').forEach(s => ss.deleteSheet(s));
+  ss.getSheets().filter(s => s.getName() !== '_tmp' && s.getName() !== ID_SHEET).forEach(s => ss.deleteSheet(s));
   const files = f.processed.getFiles();
   while (files.hasNext()) files.next().moveTo(f.raw);
   ss.getSheetByName('_tmp').setName('README').getRange(1, 1).setValue('Data tabs are rebuilt by buildSheets().');
+}
+
+/* Run before the pilot (and any time later): removes everything from TEST
+   codes — TEST_ tabs, their raw/processed files (to Drive trash), their
+   group assignments. Also removes data saved before student IDs existed
+   (codes not on the list). If no real student has been assigned yet, the
+   50/50 blocks restart from zero too. */
+function clearTestData(){
+  const ss = book(), f = folders(), props = PropertiesService.getScriptProperties();
+  ss.getSheets().filter(s => s.getName().indexOf('TEST_') === 0).forEach(s => ss.deleteSheet(s));
+  let n = 0;
+  [f.raw, f.processed].forEach(folder => {
+    const it = folder.getFiles();
+    while (it.hasNext()){
+      const file = it.next(), pid = file.getName().replace(/^TEST__/, '').split('__')[0];
+      if (file.getName().indexOf('TEST__') === 0 || !isRealId(pid)){ file.setTrashed(true); n++; }
+    }
+  });
+  const all = props.getProperties();
+  Object.keys(all).filter(k => k.indexOf('pid_') === 0 && !isRealId(k.slice(4))).forEach(k => props.deleteProperty(k));
+  const realLeft = Object.keys(props.getProperties()).some(k => k.indexOf('pid_') === 0);
+  if (!realLeft) Object.keys(GROUPS).forEach(g => props.deleteProperty('block_' + g));
+  // tabs built from pre-ID test uploads: drop data tabs if no real files remain
+  if (!f.processed.getFiles().hasNext() && !f.raw.getFiles().hasNext()){
+    ss.getSheets().filter(s => s.getName() !== ID_SHEET && s.getName().indexOf('Sheet') !== 0).forEach(s => ss.deleteSheet(s));
+  }
+  Logger.log('trashed ' + n + ' test files' + (realLeft ? '' : '; group blocks reset'));
 }
 
 function folders(){

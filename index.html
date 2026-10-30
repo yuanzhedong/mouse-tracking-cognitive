@@ -122,7 +122,7 @@ $('langEn').classList.toggle('on', Session.lang === 'en');
 $('flow').textContent = ['entry', ...CONFIG.FLOW].join(' → ');
 $('endpointStatus').textContent = CONFIG.ENDPOINT ? 'configured' : 'not configured (local-only)';
 
-/* Codes are compared case- and space-insensitively (S001 = s 001). */
+/* Codes are compared case- and space-insensitively (7kq 4mg = 7KQ4MG). */
 const normCode = v => v.replace(/\s+/g, '').toUpperCase();
 $('pid').value = qs.get('pid') || '';
 
@@ -163,9 +163,16 @@ refresh();
 async function start(step){
   const v = normCode($('pid').value);
   if (!v){ $('err').textContent = Session.t('pid_required'); $('pid').focus(); return; }
+  if (!Session.idValid(v)){ $('err').textContent = Session.t('pid_invalid'); $('pid').focus(); return; }
   const p = new URLSearchParams(location.search);
   $('startBtn').disabled = $('resumeBtn').disabled = true;
+  $('err').textContent = '';
   const g = (p.get('mt') || p.get('cond')) ? Session.assignGroups(v, p) : await Session.fetchGroups(v);
+  if (g.unknown){                       // valid-looking but not on the student list
+    $('err').textContent = Session.t('pid_invalid');
+    $('startBtn').disabled = $('resumeBtn').disabled = false;
+    $('pid').focus(); return;
+  }
   p.set('pid', v); p.set('lang', Session.lang); p.set('mt', g.mt); p.set('hz', g.hz); p.delete('cond');
   location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
 }

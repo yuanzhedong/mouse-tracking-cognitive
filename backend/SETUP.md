@@ -41,6 +41,26 @@ In the Apps Script editor, pick **setupTrigger** in the function menu and
 click **Run** once. From then on `buildSheets` copies new uploads into the
 sheet every 10 minutes. (Run `buildSheets` by hand to update right away.)
 
+## 3b. Student IDs
+
+Run **generateIds** once (function menu → Run). It creates the
+`student_ids` tab with 1,000 IDs (`no`, `student_id`, and empty `school`,
+`class`, `given_to`, `note` columns for your records); run it again to add
+1,000 more. IDs are 6 characters without 0/O/1/I/L; the last one is a check
+character, so a mistyped or swapped character is refused on the spot.
+
+- Only IDs in this tab are real participants. The start page refuses any
+  other code ("Este código não é válido").
+- Codes starting with `TEST` (e.g. `TEST01`) always work, for trying the
+  site; their data goes to `TEST_<table>` tabs and they don't count toward
+  the 50/50 groups.
+- The list lives only in this spreadsheet, never in the public repo.
+  Deleting a row disables that ID within 10 minutes.
+- Before the pilot, run **clearTestData**: it moves all TEST (and unlisted)
+  uploads to the Drive trash, deletes the TEST_ tabs and their group
+  assignments, and — if no real student has started yet — restarts the
+  50/50 blocks.
+
 ## 4. Point the site at it
 
 In `shared/config.js`:
