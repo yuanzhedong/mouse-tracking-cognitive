@@ -9,7 +9,7 @@ const STRINGS = {
     app_title: 'Self-Control Study',
     app_subtitle: 'Student session',
     pid_label: 'Participant code',
-    pid_placeholder: 'e.g. 1234',
+    pid_placeholder: 'your number',
     pid_required: 'Please enter your participant code.',
     pid_invalid: 'This code is not valid. Please check it and type it again.',
     pid_used: 'This code has already been used. Please talk to your teacher.',
@@ -36,8 +36,8 @@ const STRINGS = {
     rating_for: 'Activity: {activity}',
 
     /* ratings (stimulus norming) */
-    r_title: 'Activity and Video Ratings',
-    r_part_a: 'Part A · Activities',
+    r_title: 'Activity Ratings',
+    r_part_a: 'Activities',
     r_part_b: 'Part B · Videos',
     r_act_instr: 'You have a quiz coming up tomorrow, and you have some free time right now. For each activity, please answer the two questions below.',
     r_act_q1: 'How enjoyable would this be for you right now?',
@@ -136,7 +136,7 @@ const STRINGS = {
     app_title: 'Estudo sobre Autocontrole',
     app_subtitle: 'Sessão do estudante',
     pid_label: 'Código do participante',
-    pid_placeholder: 'ex.: 1234',
+    pid_placeholder: 'seu número',   // not an example ID: an example would be a real, listed number
     pid_required: 'Por favor, digite o seu código de participante.',
     pid_invalid: 'Este código não é válido. Confira e digite de novo.',   // draft
     pid_used: 'Este código já foi usado. Fale com o(a) professor(a).',   // draft
@@ -160,8 +160,8 @@ const STRINGS = {
     chosen_count: '{n} de 3 selecionadas',
     rating_for: 'Atividade: {activity}',
 
-    r_title: 'Avaliação de Atividades e Vídeos',
-    r_part_a: 'Parte A · Atividades',
+    r_title: 'Avaliação de Atividades',
+    r_part_a: 'Atividades',
     r_part_b: 'Parte B · Vídeos',
     r_act_instr: 'Você tem uma prova amanhã e está com um tempo livre agora. Para cada atividade, responda às duas perguntas abaixo.',
     r_act_q1: 'O quão agradável isso seria para você agora?',

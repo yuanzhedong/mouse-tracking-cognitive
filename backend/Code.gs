@@ -156,15 +156,18 @@ function shuffle(a){
   return a;
 }
 
-/* Group counts so far (run from the editor; output in the log). */
+/* Group counts so far over listed student IDs (run from the editor; output
+   in the log), plus which IDs have a group and any leftover codes that are
+   not on the list (clearTestData removes those). */
 function groupCounts(){
   const all = PropertiesService.getScriptProperties().getProperties();
-  const n = { A: 0, B: 0, weeks: 0, months: 0 };
+  const n = { A: 0, B: 0, weeks: 0, months: 0 }, ids = [], other = [];
   Object.keys(all).filter(k => k.indexOf('pid_') === 0).forEach(k => {
-    const g = JSON.parse(all[k]); if (g.real === false || isTestId(k.slice(4))) return;
-    n[g.mt]++; n[g.hz]++;
+    const id = k.slice(4), g = JSON.parse(all[k]);
+    if (!isRealId(id)){ if (!isTestId(id)) other.push(id); return; }
+    n[g.mt]++; n[g.hz]++; ids.push(id + ':' + g.mt + '/' + g.hz);
   });
-  Logger.log(JSON.stringify(n));
+  Logger.log(JSON.stringify(n) + '  students: ' + (ids.join(' ') || 'none') + (other.length ? '  not on the list: ' + other.join(' ') : ''));
 }
 
 /* ---------- 3. raw files → spreadsheet ---------- */

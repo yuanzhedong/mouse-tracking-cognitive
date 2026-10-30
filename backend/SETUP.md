@@ -99,7 +99,6 @@ the next `buildSheets` run:
 | `task2_summary` | Task 2 session | `lock_choice`, `lock_auc`, `points`, `block1_study_ms`, `block1_video_ms`, `block2_study_ms`, `block2_video_ms`, `switches` |
 | `survey` | answered item | `section` (self_report), `item` (1–8), `value` (1–7), `label` |
 | `activity_ratings` | rated activity | `activity_id`, `category`, `image`, `enjoy`, `useful` (0–100), `order_idx`, `rt_ms` |
-| `video_ratings` | rated video preview | `video_id`, `category`, `interest` (0–100) |
 
 Every row also carries `pid`, `session_id` (unique per sitting), `step`,
 `lang`, `mt_version`, `horizon_group`, `group_source` (server / local / url),

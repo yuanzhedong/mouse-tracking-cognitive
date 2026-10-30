@@ -27,7 +27,7 @@ so a closed window can resume from the entry page.
 | `task1/` | instructions (version A or B, doc text) → 3 practice rounds (fixed study-vs-other pairs, not scored) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
 | `task2/` | split-screen ADT (doc text, 4 screens): practice 30 s ("Sessão de prática" + timer) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
 | `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
-| `ratings/` | Part A: the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: Task 2 video previews on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
+| `ratings/` | the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled (video ratings removed 10/30) | `activity_ratings` |
 | all | task start / end | `task_status` (`completion_status`: not_completed / completed) |
 | all | milestones | `session_log` |
 
@@ -93,7 +93,7 @@ active. Switch events record `via` (`hover` / `tap` / `click`).
 | `lang=pt\|en` | any page | language (default `pt`; also set by the entry page switch) |
 | `mt=A\|B`, `hz=weeks\|months` | any page | force a pilot group |
 | `review=1` | any page | researcher views: researcher panel on the entry page, trajectory plots, metrics, CSV buttons |
-| `n=N`, `nv=N` | ratings | number of activities / videos to rate (default all) |
+| `n=N` | ratings | number of activities to rate (default all 90) |
 | `practice=N`, `trials=N` | task1 | practice rounds / run only the first N trials of the list |
 | `practice=SEC`, `b1=SEC`, `b2=SEC`, `dur=SEC` | task2 | phase lengths (`dur` sets both blocks) |
 

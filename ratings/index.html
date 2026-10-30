@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="../shared/slider.css?v=202610301550">
+<link rel="stylesheet" href="../shared/slider.css?v=202610301559">
 <title>Ratings</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202610301550">
+<link rel="stylesheet" href="../shared/activity.css?v=202610301559">
 <style>
   :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,12 +73,12 @@
   </section>
 </div>
 
-<script src="../shared/config.js?v=202610301550"></script>
-<script src="../shared/i18n.js?v=202610301550"></script>
-<script src="../shared/videos.js?v=202610301550"></script>
-<script src="../shared/stimuli.js?v=202610301550"></script>
-<script src="../shared/session.js?v=202610301550"></script>
-<script src="../shared/slider.js?v=202610301550"></script>
+<script src="../shared/config.js?v=202610301559"></script>
+<script src="../shared/i18n.js?v=202610301559"></script>
+<script src="../shared/videos.js?v=202610301559"></script>
+<script src="../shared/stimuli.js?v=202610301559"></script>
+<script src="../shared/session.js?v=202610301559"></script>
+<script src="../shared/slider.js?v=202610301559"></script>
 <script>
 /* =============================================================
    RATINGS — stimulus norming (doc "Task 1 Candidate Activity Stimuli v2")
@@ -111,18 +111,10 @@ const PARTS = [
     // The card shows the Portuguese label; other languages get a caption.
     render: it => `${activityPic(it)}${activityCaption(it) ? `<div class="txt">${esc(activityCaption(it))}</div>` : ''}`,
   },
-  {
-    key: 'videos', label: t('r_part_b'), instr: t('r_vid_instr'),
-    items: shuffle(VIDEO_STIMULI).slice(0, Math.min(intParam('nv', CONFIG.RATINGS_VIDEOS_N), VIDEO_STIMULI.length)),
-    questions: [ { id: 'interest', label: t('r_vid_q'), lo: t('r_vid_lo'), hi: t('r_vid_hi') } ],
-    sheet: 'video_ratings',
-    row: (it, vals, extra) => ({ video_id: it.id, category: it.cat, interest: vals.interest, ...extra }),
-    render: it => `<img src="${it.thumb}" alt="" draggable="false"><div class="cat">${esc(Session.pick(VIDEO_CAT_LABELS[it.cat]) || it.cat)}</div>`,
-  },
+  // (video-preview ratings removed — team doc 10/30: pictures only)
 ];
-// Preload pictures/thumbnails so no item stalls on its image
+// Preload pictures so no item stalls on its image
 PARTS[0].items.map(activityImgSrc).forEach(src => { const im = new Image(); im.src = src; });
-PARTS[1].items.forEach(v => { const im = new Image(); im.src = v.thumb; });
 
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 

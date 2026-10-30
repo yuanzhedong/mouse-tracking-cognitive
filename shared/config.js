@@ -16,7 +16,6 @@ const CONFIG = {
 
   // Ratings (stimulus norming)
   RATINGS_ACTIVITIES_N: 90,   // how many of the 90 activities each student rates (?n= overrides)
-  RATINGS_VIDEOS_N: 25,       // how many video previews (?nv= overrides)
   RATINGS_SAVE_EVERY: 15,     // upload activity ratings in chunks of this size
 
   // Task 1 — goal–temptation mouse-tracking (trial order: TASK1_TRIAL_LIST
