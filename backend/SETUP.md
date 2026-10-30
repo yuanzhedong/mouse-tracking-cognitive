@@ -53,7 +53,8 @@ character, so a mistyped or swapped character is refused on the spot.
   other code ("Este código não é válido").
 - Codes starting with `TEST` (e.g. `TEST01`) always work, for trying the
   site; their data goes to `TEST_<table>` tabs and they don't count toward
-  the 50/50 groups.
+  the 50/50 groups. `TESTA…` codes (TESTA01, TESTA02, …) always get
+  version A and `TESTB…` codes version B; other TEST codes get a random one.
 - The list lives only in this spreadsheet, never in the public repo.
   Deleting a row disables that ID within 10 minutes.
 - Before the pilot, run **clearTestData**: it moves all TEST (and unlisted)

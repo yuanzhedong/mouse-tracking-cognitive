@@ -173,6 +173,9 @@ async function start(step){
     $('startBtn').disabled = $('resumeBtn').disabled = false;
     $('pid').focus(); return;
   }
+  // Test codes TESTA… / TESTB… always get version A / B (e.g. TESTA01, TESTB01).
+  const forced = (v.match(/^TEST([AB])/) || [])[1];
+  if (forced){ g.mt = forced; try { localStorage.setItem('sc_grp_mt_' + v, forced); } catch (e) {} }
   p.set('pid', v); p.set('lang', Session.lang); p.set('mt', g.mt); p.set('hz', g.hz); p.delete('cond');
   location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
 }
