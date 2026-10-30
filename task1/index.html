@@ -263,8 +263,9 @@
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
    Flow: instructions → practice trials → interstitial → main trials
          → (session: save + next page | standalone: done panel + CSV)
-   Main trials: TASK1_TRIAL_LIST (shared/stimuli.js), the team's fixed
-   order, 60 goal–temptation + 60 goal–neutral (?trials=N runs the first N).
+   Main trials: TASK1_TRIAL_LIST (shared/stimuli.js), one fixed order of
+   60 (30 goal–temptation + 30 goal–neutral, sides balanced; ?trials=N runs
+   the first N).
    Practice: random neutral–neutral pairs (not scored).
    Prompt version (Session.mt): 'A' choose now | 'B' helps on the quiz —
    one per student across all trials.
@@ -350,6 +351,7 @@ function setupTrial(){
   state.current = {
     isPractice: state.block === 'practice',
     trialIdx: i + 1, trialId: p.trial_id, trialType: p.trial_type,
+    sourceTrial: p.source_trial ?? '', sideSwapped: p.side_swapped === undefined ? '' : +p.side_swapped,
     leftAct: p.left, rightAct: p.right,
     leftType: TYPE_OF[p.left.cat], rightType: TYPE_OF[p.right.cat],
     warningShown: 0,
@@ -516,6 +518,7 @@ function trialRow(t){
   const st = local(t, t.startPos), lp = local(t, t.leftPos), rp = local(t, t.rightPos);
   return {
     block: t.isPractice ? 'practice' : 'main', trial: t.trialIdx, trial_id: t.trialId, trial_type: t.trialType,
+    source_trial: t.sourceTrial, side_swapped: t.sideSwapped,
     mt_prompt: PROMPT,
     left_id: t.leftAct.id, right_id: t.rightAct.id,
     left_image: activityImgFile(t.leftAct), right_image: activityImgFile(t.rightAct),

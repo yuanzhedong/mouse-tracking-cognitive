@@ -24,7 +24,7 @@ so a closed window can resume from the entry page.
 
 | step | content | data tables |
 |---|---|---|
-| `task1/` | instructions (version A or B, doc text) → 3 practice rounds (neutral vs. neutral) → **120 trials in the fixed order of `Task1_trial_list_60x60`** (60 goal–temptation + 60 goal–neutral), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
+| `task1/` | instructions (version A or B, doc text) → 3 practice rounds (neutral vs. neutral) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
 | `task2/` | split-screen ADT: practice 1 min (timer shown) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
 | `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
 | `ratings/` | Part A: the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled · Part B: Task 2 video previews on one 0–100 interest slider | `activity_ratings`, `video_ratings` |
@@ -156,11 +156,12 @@ README.md
 - **Version A question**: the doc's practice intro says "você *escolhe
   fazer* agora?" but its trial-stem rows say "você *gostaria de fazer*
   agora?"; the site uses "gostaria de fazer" everywhere.
-- **Trial list order**: in trials 1–60 the goal is mostly on the right
-  (21 of 30 goal–temptation trials), in 61–120 mostly on the left, so side
-  is tied to time in the task. The site follows the list as given.
-- 120 trials (~6–8 min) — the doc mentions "60 stimuli"; `?trials=` can
-  shorten it.
+- **Card text is final** (team, 10/30): some card labels differ from
+  `index.csv` / the trial list; the `pt` / `en` strings in
+  `shared/stimuli.js` are only used in the data, and some English ones are
+  outdated.
+- **Same-type runs**: the 60-trial list keeps the source order, so up to 6
+  trials of the same type (goal–temptation or goal–neutral) can come in a row.
 - The lock cards still show "STUDY / LOCKED / FUN" inside the artwork.
 - A student who reloads a task page restarts that task (previous data is
   kept, so duplicates are distinguishable by `session_id` / `client_ts`).
@@ -176,7 +177,7 @@ A binary-choice **mouse-tracking** paradigm after:
 > *Trends in Cognitive Sciences*, **22**(6), 531–543.
 > https://doi.org/10.1016/j.tics.2018.03.012
 
-Practice rounds, then the team's fixed list of 120 trials (study activity
+Practice rounds, then a fixed list of 60 trials (study activity
 vs. entertainment or chore). Cursor trajectories are recorded and scored
 with the standard metrics — **AUC**, **MD**, **x-flips**,
 **RT**, **initiation time** — plus time-normalized trajectory exports.
@@ -217,7 +218,7 @@ phase lengths for piloting.
 
 | Component | Status | Notes |
 |---|---|---|
-| Binary-choice goal–temptation task (activity cards) | done | Fixed list of 120 trials (60 goal–temptation, 60 goal–neutral), 3 neutral practice trials |
+| Binary-choice goal–temptation task (activity cards) | done | Fixed list of 60 trials (30 goal–temptation, 30 goal–neutral, sides balanced), 3 neutral practice trials |
 | Two prompt versions (A choose now vs. B helps on the quiz) | done | 50/50 per student (server-balanced), fixed, or `?mt=` |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
 | Fixed-rate cursor sampling | done | Every 16 ms (~60 Hz) from the options appearing, still periods included |
