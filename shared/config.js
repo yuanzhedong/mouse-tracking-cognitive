@@ -4,7 +4,7 @@ const CONFIG = {
   // Google Apps Script web-app URL (see backend/SETUP.md). Leave empty to
   // run local-only: data stays in the browser and can be downloaded as CSV
   // from the final page.
-  ENDPOINT: 'https://script.google.com/macros/s/AKfycbxVKc7DdfgbQy3eixK6GnwnB4f8eo_N7ctvhm2rRE6fIvZOPXIwFSvcwkJNHuwbo9YJ3A/exec',
+  ENDPOINT: 'https://script.google.com/macros/s/AKfycbzx1-hgMw3l1Zl4Kf9qeUr0DMyoP6wCSgfefZbQZdnxPrhFI-HlJ7LCq6JFMqjXrLr_TA/exec',
 
   // Default language; students can switch EN / PT on the entry page.
   DEFAULT_LANG: 'pt',
