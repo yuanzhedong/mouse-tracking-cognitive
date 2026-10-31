@@ -183,6 +183,7 @@ function buildSheets(){
     const files = f.raw.getFiles();
     while (files.hasNext() && Date.now() - t0 < 4 * 60 * 1000){
       const file = files.next();
+      if (file.isTrashed()) continue;                   // Drive still lists trashed files in their folder
       if (f.processed.getFilesByName(file.getName()).hasNext()){ file.moveTo(f.processed); continue; }   // duplicate
       let rec;
       try { rec = JSON.parse(file.getBlob().getDataAsString()); }
@@ -236,6 +237,7 @@ function clearTestData(){
     const it = folder.getFiles();
     while (it.hasNext()){
       const file = it.next(), pid = file.getName().replace(/^TEST__/, '').split('__')[0];
+      if (file.isTrashed()) continue;
       if (file.getName().indexOf('TEST__') === 0 || !isRealId(pid)){ file.setTrashed(true); n++; }
     }
   });
@@ -244,7 +246,8 @@ function clearTestData(){
   const realLeft = Object.keys(props.getProperties()).some(k => k.indexOf('pid_') === 0);
   if (!realLeft) Object.keys(GROUPS).forEach(g => props.deleteProperty('block_' + g));
   // tabs built from pre-ID test uploads: drop data tabs if no real files remain
-  if (!f.processed.getFiles().hasNext() && !f.raw.getFiles().hasNext()){
+  const anyLeft = folder => { const it = folder.getFiles(); while (it.hasNext()) if (!it.next().isTrashed()) return true; return false; };
+  if (!anyLeft(f.processed) && !anyLeft(f.raw)){
     ss.getSheets().filter(s => s.getName() !== ID_SHEET && s.getName().indexOf('Sheet') !== 0).forEach(s => ss.deleteSheet(s));
   }
   Logger.log('trashed ' + n + ' test files' + (realLeft ? '' : '; group blocks reset'));
@@ -270,7 +273,7 @@ function clearMarkedStudents(){
     const it = folder.getFiles();
     while (it.hasNext()){
       const file = it.next(), pid = file.getName().replace(/^TEST__/, '').split('__')[0];
-      if (pid in marked){ file.setTrashed(true); files++; }
+      if (!file.isTrashed() && pid in marked){ file.setTrashed(true); files++; }
     }
   });
   ss.getSheets().forEach(s => {
