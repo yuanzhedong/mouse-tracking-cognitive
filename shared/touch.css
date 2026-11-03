@@ -1,0 +1,10 @@
+/* Touch screens (iPad / tablets): no text selection or long-press
+   highlight / copy menu, no double-tap zoom. Text fields keep normal
+   selection so codes can still be typed and corrected. */
+html, body {
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;            /* no long-press callout (copy / look up / save image) */
+  touch-action: manipulation;             /* no double-tap zoom; scrolling still works */
+}
+img { -webkit-user-drag: none; -webkit-touch-callout: none; }
+input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
