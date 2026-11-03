@@ -146,9 +146,13 @@ const Session = (() => {
      queued in localStorage and retried on later page loads. */
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   async function postOnce(payload){
+    const body = JSON.stringify(payload);
+    // keepalive lets an upload finish after the page is left, but the
+    // browser refuses keepalive bodies over 64 KB (e.g. a whole ADT block),
+    // so large payloads go as a normal request.
     const res = await fetch(CONFIG.ENDPOINT, {
-      method: 'POST', mode: 'cors', keepalive: true, redirect: 'follow',
-      body: JSON.stringify(payload),
+      method: 'POST', mode: 'cors', keepalive: body.length < 60000, redirect: 'follow',
+      body,
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json().catch(() => ({ ok: true }));
