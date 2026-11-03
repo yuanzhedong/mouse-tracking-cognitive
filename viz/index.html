@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Viewer</title>
+<style>
+  :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6;
+          --goal:#2f6db5; --tempt:#d0582c; --neutral:#5f9a4c; --good:#2e7d4f; --warn:#b7791f; --bad:#a8324a; --none:#c9c2b0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--ink); padding-bottom: 10px; margin-bottom: 16px; }
+  header h1 { font-size: 18px; }
+  header .note { color: var(--soft); font-size: 12px; }
+  .load { background: var(--panel); border: 1px dashed var(--ink); padding: 18px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .load.drag { background: #e3dcc6; }
+  .load label.btn, button { padding: 8px 14px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; font: inherit; font-size: 12px; letter-spacing: .06em; }
+  .load input[type=file] { display: none; }
+  .load .hint { color: var(--soft); font-size: 12px; flex: 1 1 260px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0 10px; }
+  .tabs button { background: var(--bg); color: var(--ink); }
+  .tabs button.on { background: var(--ink); color: var(--bg); }
+  select { font: inherit; padding: 6px 8px; border: 1px solid var(--ink); background: #fff; }
+  .card { background: #fff; border: 1px solid var(--ink); padding: 14px; margin-bottom: 14px; }
+  .card h2 { font-size: 15px; margin-bottom: 8px; }
+  .card h3 { font-size: 13px; margin: 12px 0 6px; color: var(--soft); text-transform: uppercase; letter-spacing: .08em; }
+  .muted { color: var(--soft); }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { color: var(--soft); font-weight: 500; position: sticky; top: 0; background: #fff; }
+  tr.sel td { background: #f6e9d8; }
+  tbody tr.click { cursor: pointer; }
+  tbody tr.click:hover td { background: #faf4ea; }
+  .scroll { max-height: 420px; overflow: auto; }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 960px) { .grid2 { grid-template-columns: 1fr; } }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 11px; color: #fff; }
+  .pass { background: var(--good); } .warn { background: var(--warn); } .fail { background: var(--bad); } .info { background: var(--soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; margin-right: 14px; font-size: 12px; }
+  .legend i { width: 12px; height: 3px; display: inline-block; }
+  .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px 14px; }
+  .kv div b { display: block; font-size: 18px; }
+  .kv div span { color: var(--soft); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  svg text { font-family: inherit; }
+  .hidden { display: none !important; }
+  .checksum { font-size: 13px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Self-control battery · data viewer</h1>
+    <span class="note">Researchers only. Files are read in this browser — nothing is uploaded.</span>
+  </header>
+
+  <div class="load" id="drop">
+    <label class="btn">Choose data folder<input type="file" id="pickDir" webkitdirectory multiple></label>
+    <label class="btn">Choose files<input type="file" id="pickFiles" multiple accept=".json,application/json"></label>
+    <label><input type="checkbox" id="incTest"> include TEST codes</label>
+    <div class="hint">Download <b>self-control-battery-data</b> (or its <b>raw/</b> and <b>processed/</b> folders) from Drive and choose it here, or drop the JSON files on this box.</div>
+    <div id="loadInfo" class="muted"></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="bar">
+      <div class="tabs" id="tabs"></div>
+      <span style="flex:1"></span>
+      <label>Student <select id="pidSel"></select></label>
+    </div>
+    <div id="view"></div>
+  </div>
+</div>
+
+<script>
+  // stimuli.js builds picture paths from Session.ROOT; this page needs only that.
+  var Session = { ROOT: '../', lang: 'pt', pick: a => (a && (a.pt || a.en)) || '' };
+</script>
+<script src="../shared/config.js?v=202611022229"></script>
+<script src="../shared/videos.js?v=202611022229"></script>
+<script src="../shared/stimuli.js?v=202611022229"></script>
+<script src="../shared/questions.js?v=202611022229"></script>
+<script>
+/* =============================================================
+   DATA VIEWER + CHECKS (researchers)
+   Reads the Drive upload files ({server_ts, real, body:{pid, save_id,
+   tables:{...}}}) locally, merges them per table (duplicate uploads by
+   save_id dropped), then shows: Checks (does every student have
+   everything we expect?), Overview, Task 1, ADT, Questionnaire, Ratings.
+   ============================================================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => (v === '' || v === null || v === undefined) ? NaN : Number(v);
+const arr = v => Array.isArray(v) ? v : (typeof v === 'string' && v.startsWith('[') ? JSON.parse(v) : []);
+const isTest = pid => /^TEST/i.test(String(pid));
+const fmt = (v, d = 0) => Number.isFinite(v) ? v.toFixed(d) : '—';
+const median = a => { const s = a.filter(Number.isFinite).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : NaN; };
+const mean = a => { const s = a.filter(Number.isFinite); return s.length ? s.reduce((x, y) => x + y, 0) / s.length : NaN; };
+const COL = { goal: 'var(--goal)', temptation: 'var(--tempt)', neutral: 'var(--neutral)' };
+
+let ALL = {}, DATA = {}, PIDS = [], files = 0, dupes = 0;
+let tab = 'checks', pid = null, selTrial = null, t1mode = 'raw';
+
+/* ---------- loading ---------- */
+async function readFiles(list){
+  const seen = new Set(); ALL = {}; files = 0; dupes = 0;
+  for (const f of list){
+    if (!/\.json$/i.test(f.name)) continue;
+    let rec; try { rec = JSON.parse(await f.text()); } catch (e) { continue; }
+    const body = rec.body || rec; const tables = body.tables || {};
+    const sid = body.save_id || f.name;
+    if (seen.has(sid)){ dupes++; continue; }
+    seen.add(sid); files++;
+    for (const [t, rows] of Object.entries(tables)) (ALL[t] ||= []).push(...(rows || []).map(r => ({ ...r, _file: f.name, _server_ts: rec.server_ts })));
+  }
+  rebuild();
+}
+function rebuild(){
+  const inc = $('incTest').checked;
+  DATA = {};
+  for (const [t, rows] of Object.entries(ALL)) DATA[t] = rows.filter(r => inc || !isTest(r.pid));
+  PIDS = [...new Set(Object.values(DATA).flat().map(r => String(r.pid)))].filter(p => p && p !== 'undefined')
+          .sort((a, b) => (isTest(a) - isTest(b)) || a.localeCompare(b, undefined, { numeric: true }));
+  $('loadInfo').textContent = `${files} upload files${dupes ? `, ${dupes} duplicates skipped` : ''} · ${PIDS.length} students · tables: ${Object.keys(DATA).join(', ') || '—'}`;
+  $('app').classList.toggle('hidden', !PIDS.length);
+  $('pidSel').innerHTML = PIDS.map(p => `<option>${esc(p)}</option>`).join('');
+  if (!PIDS.includes(pid)) pid = PIDS[0] || null;
+  $('pidSel').value = pid; selTrial = null;
+  render();
+}
+$('pickDir').onchange = e => readFiles([...e.target.files]);
+$('pickFiles').onchange = e => readFiles([...e.target.files]);
+$('incTest').onchange = rebuild;
+const drop = $('drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', async e => {
+  e.preventDefault(); drop.classList.remove('drag');
+  const out = [];
+  const walk = async entry => {
+    if (entry.isFile) out.push(await new Promise(r => entry.file(r)));
+    else if (entry.isDirectory){ const rd = entry.createReader(); let batch;
+      do { batch = await new Promise(r => rd.readEntries(r)); for (const en of batch) await walk(en); } while (batch.length); }
+  };
+  for (const it of e.dataTransfer.items){ const en = it.webkitGetAsEntry && it.webkitGetAsEntry(); if (en) await walk(en); }
+  readFiles(out.length ? out : [...e.dataTransfer.files]);
+});
+$('pidSel').onchange = e => { pid = e.target.value; selTrial = null; render(); };
+
+const TABS = [['checks', 'Checks'], ['overview', 'Overview'], ['task1', 'Task 1'], ['adt', 'ADT (Task 2)'], ['survey', 'Questionnaire'], ['ratings', 'Ratings']];
+function render(){
+  $('tabs').innerHTML = TABS.map(([k, l]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${l}</button>`).join(' ');
+  $('tabs').querySelectorAll('button').forEach(b => b.onclick = () => { tab = b.dataset.t; render(); });
+  $('pidSel').parentElement.classList.toggle('hidden', tab === 'overview');
+  ({ checks: viewChecks, overview: viewOverview, task1: viewTask1, adt: viewADT, survey: viewSurvey, ratings: viewRatings })[tab]();
+}
+const rowsOf = (t, p = pid) => (DATA[t] || []).filter(r => String(r.pid) === String(p));
+
+/* ---------- checks ---------- */
+function checksFor(p){
+  const C = []; const add = (area, status, what, detail = '') => C.push({ area, status, what, detail });
+  const status = rowsOf('task_status', p);
+  const done = t => status.some(r => r.task === t && r.completion_status === 'completed');
+  const started = t => status.some(r => r.task === t);
+  const real = /^\d+$/.test(p);
+  const anyRow = Object.values(DATA).flat().find(r => String(r.pid) === p) || {};
+  if (real){
+    const want = Number(p) % 2 === 0 ? 'A' : 'B';
+    add('Group', anyRow.mt_version === want ? 'pass' : 'fail', `Task 1 version follows the ID (even → A, odd → B)`, `ID ${p} → ${anyRow.mt_version} (expected ${want})`);
+  } else add('Group', 'info', 'Test code', `version ${anyRow.mt_version}`);
+
+  // ---- Task 1
+  const tr = rowsOf('task1_trials', p), tj = rowsOf('task1_trajectories', p);
+  if (!tr.length){ add('Task 1', started('task1') ? 'fail' : 'warn', 'Task 1 trials saved', started('task1') ? 'task started but no trials' : 'no Task 1 data'); }
+  else {
+    const main = tr.filter(r => r.block === 'main').sort((a, b) => a.trial - b.trial), prac = tr.filter(r => r.block === 'practice');
+    const ids = main.map(r => Number(r.trial_id));
+    const inOrder = ids.every((v, i) => v === i + 1);
+    const full = TASK1_TRIAL_LIST.length;
+    add('Task 1', main.length === full ? 'pass' : (done('task1') ? 'warn' : 'fail'), `Main trials: ${full} expected`, `${main.length} saved${main.length !== full && done('task1') ? ' (shortened test run?)' : ''}`);
+    add('Task 1', inOrder ? 'pass' : 'fail', 'Trial IDs in the trial-list order', inOrder ? `1 … ${ids.length}` : ids.join(','));
+    const listOk = main.every(r => { const L = TASK1_TRIAL_LIST[Number(r.trial_id) - 1]; return L && L.left.id === r.left_id && L.right.id === r.right_id; });
+    add('Task 1', listOk ? 'pass' : 'fail', 'Left / right cards match the trial list');
+    add('Task 1', prac.length === CONFIG.TASK1_PRACTICE_TRIALS ? 'pass' : 'warn', `Practice trials: ${CONFIG.TASK1_PRACTICE_TRIALS}`, `${prac.length} saved`);
+    const need = ['rt_ms', 'initiation_time', 'warning_shown', 'auc', 'md', 'x_flips', 'chosen_id', 'chose_goal', 'input_type', 'window_w', 'window_h', 'stage_left', 'stage_top', 'start_x', 'start_y'];
+    const missing = need.filter(k => tr.some(r => r[k] === undefined));
+    add('Task 1', missing.length ? 'fail' : 'pass', 'Every trial has RT, initiation time, warning, AUC/MD/x-flips, choice, window + stage geometry', missing.length ? 'missing: ' + missing.join(', ') : '');
+    const choiceOk = tr.every(r => r.chosen_id === r.left_id || r.chosen_id === r.right_id);
+    add('Task 1', choiceOk ? 'pass' : 'fail', 'Chosen card is one of the two shown');
+    // trajectories
+    const byKey = new Map(tj.map(r => [r.block + ':' + r.trial, r]));
+    const noTraj = tr.filter(r => !byKey.has(r.block + ':' + r.trial));
+    add('Task 1', noTraj.length ? 'fail' : 'pass', 'Raw trajectory saved for every trial', noTraj.length ? `${noTraj.length} trials without samples` : `${tj.length} trajectories`);
+    let gapBad = 0, t0Bad = 0, startBad = 0, stillBad = 0, warnBad = 0, flips = 0, gaps = [];
+    for (const r of tr){
+      const t = byKey.get(r.block + ':' + r.trial); if (!t) continue;
+      const ts = arr(t.t_ms), xs = arr(t.x), ys = arr(t.y);
+      if (ts[0] !== 0) t0Bad++;
+      if (Math.abs(xs[0] - num(r.start_x)) > 1 || Math.abs(ys[0] - num(r.start_y)) > 1) startBad++;
+      const g = ts.slice(1).map((v, i) => v - ts[i]); gaps.push(...g.slice(0, -1));
+      if (median(g) > 25 || Math.max(...g.slice(0, -1)) > 120) gapBad++;
+      const it = num(r.initiation_time);
+      if (Number.isFinite(it)){
+        // still at the start up to (about) the initiation time
+        const firstMoved = ts.findIndex((v, i) => Math.hypot(xs[i] - xs[0], ys[i] - ys[0]) > 10);
+        if (firstMoved > 0 && Math.abs(ts[firstMoved] - it) > 40) stillBad++;
+      }
+      const shouldWarn = !Number.isFinite(it) || it > (num(r.init_warn_ms) || CONFIG.TASK1_INIT_WARN_MS);
+      if (shouldWarn !== (Number(r.warning_shown) === 1) && num(r.rt_ms) > (num(r.init_warn_ms) || 1000)) warnBad++;
+      if (Number(r.x_flips) > 0) flips++;
+    }
+    add('Task 1', t0Bad ? 'fail' : 'pass', 'Samples start at t = 0 (options appear)', t0Bad ? `${t0Bad} trials` : '');
+    add('Task 1', startBad ? 'fail' : 'pass', 'First sample = the START click position', startBad ? `${startBad} trials differ` : '');
+    add('Task 1', gapBad ? 'warn' : 'pass', `Fixed-rate sampling (every ~${CONFIG.TASK1_SAMPLE_MS} ms)`, `median gap ${fmt(median(gaps))} ms, longest ${fmt(Math.max(...gaps))} ms` + (gapBad ? ` · ${gapBad} trials irregular` : ''));
+    add('Task 1', stillBad ? 'warn' : 'pass', 'Still period before the first move matches initiation_time', stillBad ? `${stillBad} trials off by > 40 ms` : '');
+    add('Task 1', warnBad ? 'fail' : 'pass', `warning_shown agrees with initiation_time (reminder at ${CONFIG.TASK1_INIT_WARN_MS} ms)`, warnBad ? `${warnBad} trials disagree` : `${tr.filter(r => Number(r.warning_shown) === 1).length} warned`);
+    add('Task 1', 'info', 'x-flips recorded', `${flips} of ${tr.length} trials have ≥ 1 flip`);
+  }
+  // ---- ADT
+  const ev = rowsOf('task2_events', p), sum = rowsOf('task2_summary', p)[0];
+  if (!ev.length) add('ADT', started('task2') ? 'fail' : 'warn', 'ADT events saved', 'no ADT data');
+  else {
+    const phases = ['practice', 'block1', 'lock', 'block2'];
+    const seenPh = new Set(ev.map(e => e.phase));
+    const miss = phases.filter(x => !seenPh.has(x));
+    add('ADT', miss.length ? 'fail' : 'pass', 'All phases present (practice → block 1 → lock → block 2)', miss.length ? 'missing: ' + miss.join(', ') : '');
+    const starts = ev.filter(e => e.type === 'phase_start');
+    const durs = starts.map(e => `${e.phase} ${e.duration_sec}s`).join(' · ');
+    const exp = { practice: CONFIG.TASK2_PRACTICE_SEC, block1: CONFIG.TASK2_BLOCK1_SEC, block2: CONFIG.TASK2_BLOCK2_SEC };
+    const short = starts.some(e => exp[e.phase] && Number(e.duration_sec) !== exp[e.phase]);
+    add('ADT', short ? 'warn' : 'pass', `Phase lengths ${CONFIG.TASK2_PRACTICE_SEC}s / ${CONFIG.TASK2_BLOCK1_SEC}s / ${CONFIG.TASK2_BLOCK2_SEC}s`, durs + (short ? ' (shortened test run?)' : ''));
+    const lc = ev.find(e => e.type === 'lock_choice'), lt = ev.find(e => e.type === 'lock_trajectory');
+    add('ADT', lc ? 'pass' : 'fail', 'Lock choice recorded', lc ? `${lc.choice} (${lc.input_type}, RT ${lc.rt_ms} ms)` : '');
+    add('ADT', lt && arr(lt.samples_t).length ? 'pass' : 'fail', 'Lock choice raw trajectory saved', lt ? `${arr(lt.samples_t).length} samples` : '');
+    const ans = ev.filter(e => e.type === 'answer');
+    const bank = new Map(MATH_BANK.map(q => [q.id, q]));
+    const wrongKey = ans.filter(a => { const q = bank.get(Number(a.question_id)); return !q || q.answer !== Number(a.correct_answer); });
+    const wrongScore = ans.filter(a => (Number(a.given) === Number(a.correct_answer)) !== (a.is_correct === true || a.is_correct === 'true'));
+    add('ADT', wrongKey.length ? 'fail' : 'pass', 'Every answer\'s question and correct answer match the 152-item bank', `${ans.length} answers` + (wrongKey.length ? ` · ${wrongKey.length} mismatched` : ''));
+    add('ADT', wrongScore.length ? 'fail' : 'pass', 'is_correct agrees with what was typed', wrongScore.length ? `${wrongScore.length} disagree` : '');
+    add('ADT', ans.every(a => a.q_ms !== undefined) ? 'pass' : 'warn', 'Time on each question recorded (q_ms)');
+    add('ADT', 'info', 'Other events', ['switch', 'skip', 'erase', 'video_play', 'video_complete', 'video_skip'].map(t => `${t} ${ev.filter(e => e.type === t).length}`).join(' · '));
+    if (sum){
+      const tot = ph => ['study', 'video', 'none'].reduce((s, k) => s + num(sum[`${ph}_${k}_ms`]), 0) / 1000;
+      const off = ['practice', 'block1', 'block2'].map(ph => [ph, tot(ph), num(sum[ph + '_sec'])]).filter(([, a, b]) => Math.abs(a - b) > 1.5);
+      add('ADT', off.length ? 'warn' : 'pass', 'Study + video + neither time adds up to each phase', off.map(([ph, a, b]) => `${ph}: ${a.toFixed(1)}s vs ${b}s`).join(' · '));
+      add('ADT', 'pass', 'Summary row saved', `accuracy ${sum.accuracy} · switches ${sum.switches} · skipped ${sum.skipped}`);
+    } else add('ADT', done('task2') ? 'fail' : 'warn', 'Summary row saved', 'missing');
+  }
+  // ---- questionnaire
+  const sv = rowsOf('survey', p).filter(r => r.section === 'self_report');
+  if (!sv.length) add('Questionnaire', started('survey') ? 'fail' : 'warn', '8 statements answered', 'no questionnaire data');
+  else {
+    const items = new Set(sv.map(r => String(r.item)));
+    add('Questionnaire', items.size === 8 ? 'pass' : 'fail', '8 statements answered', `${items.size} items`);
+    add('Questionnaire', sv.every(r => r.value >= 1 && r.value <= 7) ? 'pass' : 'fail', 'Values 1–7 with labels');
+  }
+  // ---- ratings
+  const ra = rowsOf('activity_ratings', p);
+  if (!ra.length) add('Ratings', started('ratings') ? 'fail' : 'warn', 'Activity ratings saved', 'no ratings data');
+  else {
+    const uniq = new Set(ra.map(r => r.activity_id));
+    add('Ratings', uniq.size === CONFIG.RATINGS_ACTIVITIES_N ? 'pass' : (done('ratings') ? 'warn' : 'fail'), `All ${CONFIG.RATINGS_ACTIVITIES_N} pictures rated once`, `${ra.length} rows, ${uniq.size} different` + (uniq.size !== ra.length ? ' · duplicates!' : '') + (uniq.size < CONFIG.RATINGS_ACTIVITIES_N && done('ratings') ? ' (shortened test run?)' : ''));
+    add('Ratings', ra.every(r => r.enjoy >= 1 && r.enjoy <= 5 && r.useful >= 1 && r.useful <= 5) ? 'pass' : 'fail', 'enjoy and useful are 1–5');
+  }
+  // ---- completion
+  for (const t of ['task1', 'task2', 'survey', 'ratings', 'session'])
+    add('Completion', done(t) ? 'pass' : (started(t) ? 'fail' : 'warn'), `${t}: completed`, done(t) ? '' : (started(t) ? 'started, not completed' : 'not started'));
+  return C;
+}
+function viewChecks(){
+  const all = PIDS.map(p => [p, checksFor(p)]);
+  const count = (c, s) => c.filter(x => x.status === s).length;
+  const mine = (all.find(([p]) => p === pid) || [, []])[1];
+  $('view').innerHTML = `
+    <div class="card"><h2>All students</h2>
+      <table><thead><tr><th>Student</th><th>Version</th><th>Pass</th><th>Warnings</th><th>Failures</th><th>Completed</th></tr></thead><tbody>
+      ${all.map(([p, c]) => `<tr class="click${p === pid ? ' sel' : ''}" data-p="${esc(p)}"><td>${esc(p)}</td>
+        <td>${esc((Object.values(DATA).flat().find(r => String(r.pid) === p) || {}).mt_version || '')}</td>
+        <td><span class="pill pass">${count(c, 'pass')}</span></td><td>${count(c, 'warn') ? `<span class="pill warn">${count(c, 'warn')}</span>` : ''}</td>
+        <td>${count(c, 'fail') ? `<span class="pill fail">${count(c, 'fail')}</span>` : ''}</td>
+        <td>${c.filter(x => x.area === 'Completion' && x.status === 'pass').map(x => x.what.split(':')[0]).join(', ')}</td></tr>`).join('')}
+      </tbody></table></div>
+    <div class="card"><h2>Checks for ${esc(pid)}</h2>
+      <div class="checksum">${count(mine, 'pass')} passed · ${count(mine, 'warn')} warnings · ${count(mine, 'fail')} failed</div>
+      <table><thead><tr><th style="width:90px">Area</th><th style="width:70px"></th><th>Check</th><th>Detail</th></tr></thead><tbody>
+      ${mine.map(c => `<tr><td>${c.area}</td><td><span class="pill ${c.status}">${c.status}</span></td><td>${esc(c.what)}</td><td class="muted">${esc(c.detail)}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  $('view').querySelectorAll('tr[data-p]').forEach(tr => tr.onclick = () => { pid = tr.dataset.p; $('pidSel').value = pid; render(); });
+}
+
+/* ---------- overview ---------- */
+function viewOverview(){
+  const st = DATA.task_status || [];
+  const doneSet = t => new Set(st.filter(r => r.task === t && r.completion_status === 'completed').map(r => String(r.pid)));
+  const ver = p => (Object.values(DATA).flat().find(r => String(r.pid) === p) || {}).mt_version;
+  const A = PIDS.filter(p => ver(p) === 'A').length, B = PIDS.filter(p => ver(p) === 'B').length;
+  const tr = (DATA.task1_trials || []).filter(r => r.block === 'main');
+  const byV = v => tr.filter(r => r.mt_version === v);
+  const tt = (rows, type) => rows.filter(r => r.trial_type === type);
+  const pct = rows => rows.length ? `${Math.round(100 * mean(rows.map(r => Number(r.chose_goal))))}%` : '—';
+  $('view').innerHTML = `
+    <div class="card"><h2>Overview</h2><div class="kv">
+      <div><b>${PIDS.length}</b><span>students</span></div><div><b>${A} / ${B}</b><span>version A / B</span></div>
+      ${['task1', 'task2', 'survey', 'ratings', 'session'].map(t => `<div><b>${doneSet(t).size}</b><span>${t} completed</span></div>`).join('')}
+    </div></div>
+    <div class="card"><h2>Task 1 by version</h2>
+      <table><thead><tr><th></th><th>Trials</th><th>Chose study · vs fun</th><th>Chose study · vs chore</th><th>Mean RT (ms)</th><th>Mean initiation (ms)</th><th>Warned</th><th>Mean AUC</th><th>Mean x-flips</th></tr></thead><tbody>
+      ${['A', 'B'].map(v => { const r = byV(v); return `<tr><td><b>${v}</b></td><td>${r.length}</td><td>${pct(tt(r, 'goal_temptation'))}</td><td>${pct(tt(r, 'goal_neutral'))}</td>
+        <td>${fmt(mean(r.map(x => num(x.rt_ms))))}</td><td>${fmt(mean(r.map(x => num(x.initiation_time))))}</td>
+        <td>${r.length ? Math.round(100 * mean(r.map(x => Number(x.warning_shown)))) + '%' : '—'}</td><td>${fmt(mean(r.map(x => num(x.auc))), 3)}</td><td>${fmt(mean(r.map(x => num(x.x_flips))), 2)}</td></tr>`; }).join('')}
+      </tbody></table>
+      <h3>Mean time-normalized trajectory (chosen card at left, unchosen toward +x)</h3>${groupTrajPlot(tr)}</div>
+    <div class="card"><h2>ADT</h2>${adtGroupTable()}</div>`;
+}
+function groupTrajPlot(trials){
+  const tj = new Map((DATA.task1_trajectories || []).map(r => [r.pid + ':' + r.block + ':' + r.trial, r]));
+  const groups = {};
+  for (const r of trials){
+    const t = tj.get(r.pid + ':' + r.block + ':' + r.trial); if (!t) continue;
+    const xs = arr(t.x_norm), ys = arr(t.y_norm); if (!xs.length) continue;
+    const k = `${r.mt_version} · ${r.trial_type === 'goal_temptation' ? 'vs fun' : 'vs chore'} · chose ${Number(r.chose_goal) ? 'study' : 'other'}`;
+    (groups[k] ||= []).push([xs, ys]);
+  }
+  const W = 520, H = 330, sx = x => W / 2 + x * 170, sy = y => H - 20 - y * 190;
+  const colors = ['#2f6db5', '#9ab8e0', '#d0582c', '#efb39a', '#1f7a52', '#8fd0b0', '#7b3fa0', '#c7a6dd'];
+  const keys = Object.keys(groups).sort();
+  const lines = keys.map((k, i) => {
+    const g = groups[k], n = g[0][0].length;
+    const mx = [...Array(n)].map((_, j) => mean(g.map(t => t[0][j]))), my = [...Array(n)].map((_, j) => mean(g.map(t => t[1][j])));
+    return `<polyline fill="none" stroke="${colors[i % colors.length]}" stroke-width="2" points="${mx.map((x, j) => sx(x).toFixed(1) + ',' + sy(my[j]).toFixed(1)).join(' ')}"/>`;
+  }).join('');
+  return keys.length ? `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;background:#fbf8f1;border:1px solid var(--rule)">
+      <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(-1)}" y2="${sy(1.5)}" stroke="#bbb" stroke-dasharray="4 3"/>
+      <circle cx="${sx(-1)}" cy="${sy(1.5)}" r="6" fill="none" stroke="#555"/><circle cx="${sx(1)}" cy="${sy(1.5)}" r="6" fill="none" stroke="#bbb"/>
+      <circle cx="${sx(0)}" cy="${sy(0)}" r="3" fill="#555"/>${lines}</svg>
+    <div class="legend">${keys.map((k, i) => `<span><i style="background:${colors[i % colors.length]}"></i>${esc(k)} (${groups[k].length})</span>`).join('')}</div>` : '<p class="muted">no trajectories</p>';
+}
+function adtGroupTable(){
+  const S = DATA.task2_summary || [];
+  if (!S.length) return '<p class="muted">no ADT summaries</p>';
+  const by = v => S.filter(r => r.mt_version === v);
+  const share = rows => fmt(100 * mean(rows.map(r => (num(r.block1_study_ms) + num(r.block2_study_ms)) / (num(r.block1_study_ms) + num(r.block2_study_ms) + num(r.block1_video_ms) + num(r.block2_video_ms)))));
+  return `<table><thead><tr><th></th><th>Students</th><th>Put videos away</th><th>Study share in blocks (%)</th><th>Mean answers</th><th>Mean accuracy</th><th>Mean switches</th></tr></thead><tbody>
+    ${['A', 'B'].map(v => { const r = by(v); return `<tr><td><b>${v}</b></td><td>${r.length}</td><td>${r.filter(x => x.lock_choice === 'put_away').length}</td><td>${share(r)}</td>
+      <td>${fmt(mean(r.map(x => num(x.attempted))), 1)}</td><td>${fmt(mean(r.map(x => num(x.accuracy))), 2)}</td><td>${fmt(mean(r.map(x => num(x.switches))), 1)}</td></tr>`; }).join('')}
+    </tbody></table>`;
+}
+
+/* ---------- task 1 ---------- */
+function viewTask1(){
+  const tr = rowsOf('task1_trials').sort((a, b) => (a.block === 'practice' ? -1 : 0) - (b.block === 'practice' ? -1 : 0) || a.trial - b.trial);
+  const tj = new Map(rowsOf('task1_trajectories').map(r => [r.block + ':' + r.trial, r]));
+  if (!tr.length){ $('view').innerHTML = '<div class="card muted">No Task 1 data for this student.</div>'; return; }
+  const k = r => r.block + ':' + r.trial;
+  if (!selTrial || !tr.some(r => k(r) === selTrial)) selTrial = k(tr.find(r => r.block === 'main') || tr[0]);
+  const cur = tr.find(r => k(r) === selTrial), curT = tj.get(selTrial);
+  $('view').innerHTML = `
+    <div class="grid2">
+      <div class="card"><h2>Trajectories · ${esc(pid)} · version ${esc(cur.mt_version)}</h2>
+        <div class="bar" style="margin:0 0 8px"><span class="tabs">${[['raw', 'Raw (px, task area)'], ['norm', 'Normalized (101 bins)']].map(([m, l]) => `<button data-m="${m}" class="${m === t1mode ? 'on' : ''}">${l}</button>`).join(' ')}</span></div>
+        ${t1mode === 'raw' ? rawPlot(tr, tj, cur) : normPlot(tr, tj, cur)}
+        <div class="legend"><span><i style="background:var(--goal)"></i>chose study</span><span><i style="background:var(--tempt)"></i>chose fun</span><span><i style="background:var(--neutral)"></i>chose chore</span><span><i style="background:var(--ink);height:4px"></i>selected trial</span></div>
+      </div>
+      <div class="card"><h2>Trial ${esc(cur.trial_id)} · ${esc(cur.trial_type)}</h2>
+        <div class="kv" style="margin-bottom:8px">
+          <div><b>${esc(ACTIVITY_BY_ID[cur.chosen_id]?.pt || cur.chosen_id)}</b><span>chosen (${esc(cur.chosen_side)})</span></div>
+          <div><b>${esc(cur.rt_ms)} ms</b><span>RT</span></div><div><b>${esc(cur.initiation_time)} ms</b><span>initiation${Number(cur.warning_shown) ? ' · warned' : ''}</span></div>
+          <div><b>${fmt(num(cur.auc), 3)} / ${fmt(num(cur.md), 3)}</b><span>AUC / MD</span></div><div><b>${esc(cur.x_flips)}</b><span>x-flips</span></div>
+          <div><b>${esc(cur.n_samples)}</b><span>samples · ${esc(cur.input_type)}</span></div>
+          <div><b>${esc(cur.window_w)}×${esc(cur.window_h)}</b><span>window (px)</span></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          ${['left_id', 'right_id'].map(s => `<figure style="width:120px;text-align:center"><img src="${activityImgSrc(ACTIVITY_BY_ID[cur[s]] || { cat: '', id: '' })}" style="width:100%;border:${cur.chosen_id === cur[s] ? '3px solid var(--accent)' : '1px solid var(--rule)'}" alt=""><figcaption class="muted">${s === 'left_id' ? 'left' : 'right'}</figcaption></figure>`).join('')}
+        </div>
+        <h3>x and y over time (0 = options appear)</h3>${timePlot(curT, cur)}
+      </div>
+    </div>
+    <div class="card"><h2>All trials</h2><div class="scroll"><table><thead><tr><th>Block</th><th>Trial</th><th>Type</th><th>Left</th><th>Right</th><th>Chosen</th><th>Study?</th><th>RT</th><th>Init</th><th>Warn</th><th>AUC</th><th>MD</th><th>x-flips</th><th>Samples</th><th>Input</th></tr></thead><tbody>
+      ${tr.map(r => `<tr class="click${k(r) === selTrial ? ' sel' : ''}" data-k="${k(r)}"><td>${r.block}</td><td>${esc(r.trial_id)}</td><td>${esc(r.trial_type)}</td><td>${esc(r.left_id)}</td><td>${esc(r.right_id)}</td>
+        <td style="color:${COL[r.chosen_type] || 'inherit'}">${esc(r.chosen_id)}</td><td>${r.chose_goal === '' ? '' : (Number(r.chose_goal) ? 'yes' : 'no')}</td><td>${esc(r.rt_ms)}</td><td>${esc(r.initiation_time)}</td><td>${Number(r.warning_shown) ? '⚠' : ''}</td>
+        <td>${fmt(num(r.auc), 3)}</td><td>${fmt(num(r.md), 3)}</td><td>${esc(r.x_flips)}</td><td>${esc(r.n_samples)}</td><td>${esc(r.input_type)}</td></tr>`).join('')}
+    </tbody></table></div></div>`;
+  $('view').querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { t1mode = b.dataset.m; viewTask1(); });
+  $('view').querySelectorAll('tr[data-k]').forEach(row => row.onclick = () => { selTrial = row.dataset.k; viewTask1(); });
+}
+function rawPlot(tr, tj, cur){
+  const W = num(cur.stage_w) || 900, H = num(cur.stage_h) || 675;
+  const paths = tr.map(r => {
+    const t = tj.get(r.block + ':' + r.trial); if (!t) return '';
+    const xs = arr(t.x), ys = arr(t.y), sel = r === cur;
+    return `<polyline fill="none" stroke="${sel ? 'var(--ink)' : COL[r.chosen_type] || '#999'}" stroke-width="${sel ? 4 : 1.6}" stroke-opacity="${sel ? 1 : .45}" points="${xs.map((x, i) => x + ',' + ys[i]).join(' ')}"/>`;
+  }).join('');
+  const box = (x, y) => `<rect x="${x - W * .155}" y="${y - W * .155}" width="${W * .31}" height="${W * .31}" fill="none" stroke="#bbb" stroke-dasharray="6 5"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#fbf8f1;border:1px solid var(--rule)">
+    ${box(num(cur.left_x), num(cur.left_y))}${box(num(cur.right_x), num(cur.right_y))}
+    <rect x="${num(cur.start_x) - 60}" y="${num(cur.start_y) - 22}" width="120" height="44" fill="#eee" stroke="#bbb"/><text x="${num(cur.start_x)}" y="${num(cur.start_y) + 5}" text-anchor="middle" font-size="16" fill="#888">START</text>
+    ${paths}<circle cx="${num(cur.start_x)}" cy="${num(cur.start_y)}" r="6" fill="var(--accent)"/></svg>`;
+}
+function normPlot(tr, tj, cur){
+  const W = 520, H = 330, sx = x => W / 2 + x * 170, sy = y => H - 20 - y * 190;
+  const paths = tr.map(r => {
+    const t = tj.get(r.block + ':' + r.trial); if (!t) return '';
+    const xs = arr(t.x_norm), ys = arr(t.y_norm), sel = r === cur;
+    return `<polyline fill="none" stroke="${sel ? 'var(--ink)' : COL[r.chosen_type] || '#999'}" stroke-width="${sel ? 3 : 1.4}" stroke-opacity="${sel ? 1 : .45}" points="${xs.map((x, i) => sx(x).toFixed(1) + ',' + sy(ys[i]).toFixed(1)).join(' ')}"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#fbf8f1;border:1px solid var(--rule)">
+    <line x1="${sx(0)}" y1="${sy(0)}" x2="${sx(-1)}" y2="${sy(1.5)}" stroke="#bbb" stroke-dasharray="4 3"/>
+    <circle cx="${sx(-1)}" cy="${sy(1.5)}" r="7" fill="none" stroke="#555"/><text x="${sx(-1)}" y="${sy(1.5) - 12}" text-anchor="middle" font-size="11" fill="#555">chosen</text>
+    <circle cx="${sx(1)}" cy="${sy(1.5)}" r="7" fill="none" stroke="#bbb"/><text x="${sx(1)}" y="${sy(1.5) - 12}" text-anchor="middle" font-size="11" fill="#999">other</text>
+    ${paths}</svg>`;
+}
+function timePlot(t, cur){
+  if (!t) return '<p class="muted">no samples</p>';
+  const ts = arr(t.t_ms), xs = arr(t.x), ys = arr(t.y);
+  const W = 520, H = 200, T = Math.max(...ts, 1), lo = Math.min(...xs, ...ys), hi = Math.max(...xs, ...ys);
+  const sx = v => 30 + (W - 40) * v / T, sy = v => H - 20 - (H - 40) * (v - lo) / Math.max(hi - lo, 1);
+  const line = (vs, c) => `<polyline fill="none" stroke="${c}" stroke-width="2" points="${vs.map((v, i) => sx(ts[i]).toFixed(1) + ',' + sy(v).toFixed(1)).join(' ')}"/>`;
+  const dots = ts.map((v, i) => `<circle cx="${sx(v).toFixed(1)}" cy="${sy(xs[i]).toFixed(1)}" r="1.6" fill="var(--goal)"/>`).join('');
+  const it = num(cur.initiation_time), warn = num(cur.init_warn_ms) || CONFIG.TASK1_INIT_WARN_MS;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#fbf8f1;border:1px solid var(--rule)">
+    ${Number.isFinite(it) ? `<rect x="${sx(0)}" y="10" width="${sx(it) - sx(0)}" height="${H - 30}" fill="#eee"/><text x="${sx(it) + 3}" y="22" font-size="10" fill="#777">initiation ${it} ms</text>` : ''}
+    ${warn < T ? `<line x1="${sx(warn)}" x2="${sx(warn)}" y1="10" y2="${H - 20}" stroke="var(--accent)" stroke-dasharray="3 3"/><text x="${sx(warn) + 3}" y="${H - 24}" font-size="10" fill="var(--accent)">reminder</text>` : ''}
+    ${line(xs, 'var(--goal)')}${line(ys, 'var(--tempt)')}${dots}
+    <text x="30" y="${H - 5}" font-size="10" fill="#777">0 ms</text><text x="${W - 10}" y="${H - 5}" text-anchor="end" font-size="10" fill="#777">${T} ms</text></svg>
+    <div class="legend"><span><i style="background:var(--goal)"></i>x (px)</span><span><i style="background:var(--tempt)"></i>y (px)</span><span>dots = each 16-ms sample; grey = still before the first move</span></div>`;
+}
+
+/* ---------- ADT ---------- */
+function viewADT(){
+  const ev = rowsOf('task2_events').sort((a, b) => a.t_ms - b.t_ms), sum = rowsOf('task2_summary')[0];
+  if (!ev.length){ $('view').innerHTML = '<div class="card muted">No ADT data for this student.</div>'; return; }
+  const phases = ['practice', 'block1', 'block2'].map(ph => {
+    const st = ev.find(e => e.type === 'phase_start' && e.phase === ph); if (!st) return null;
+    const t0 = st.t_ms, t1 = t0 + 1000 * Number(st.duration_sec);
+    const segs = []; let side = 'none', from = t0;
+    for (const e of ev.filter(e => e.phase === ph && e.type === 'switch')){ segs.push([from, e.t_ms, side]); side = e.side; from = e.t_ms; }
+    segs.push([from, t1, side]);
+    return { ph, t0, t1, segs, marks: ev.filter(e => e.phase === ph && ['answer', 'skip', 'video_complete', 'video_skip'].includes(e.type)) };
+  }).filter(Boolean);
+  const W = 900, rowH = 46;
+  const svg = `<svg viewBox="0 0 ${W} ${phases.length * rowH + 10}" width="100%">${phases.map((p, i) => {
+    const sx = t => 110 + (W - 120) * (t - p.t0) / (p.t1 - p.t0), y = 8 + i * rowH;
+    return `<text x="0" y="${y + 18}" font-size="12">${p.ph} (${Math.round((p.t1 - p.t0) / 1000)} s)</text>
+      ${p.segs.map(([a, b, s]) => `<rect x="${sx(a)}" y="${y}" width="${Math.max(0, sx(b) - sx(a))}" height="24" fill="${s === 'study' ? 'var(--goal)' : s === 'video' ? 'var(--tempt)' : 'var(--none)'}"/>`).join('')}
+      ${p.marks.map(m => `<line x1="${sx(m.t_ms)}" x2="${sx(m.t_ms)}" y1="${y + 26}" y2="${y + 36}" stroke="${m.type === 'answer' ? (m.is_correct === true || m.is_correct === 'true' ? 'var(--good)' : 'var(--bad)') : m.type === 'skip' ? '#888' : 'var(--tempt)'}" stroke-width="2"/>`).join('')}`;
+  }).join('')}</svg>`;
+  const lc = ev.find(e => e.type === 'lock_choice'), lt = ev.find(e => e.type === 'lock_trajectory');
+  const ans = ev.filter(e => e.type === 'answer' || e.type === 'skip');
+  $('view').innerHTML = `
+    <div class="card"><h2>ADT timeline · ${esc(pid)}</h2>${svg}
+      <div class="legend"><span><i style="background:var(--goal);height:10px"></i>study side active</span><span><i style="background:var(--tempt);height:10px"></i>video side active</span><span><i style="background:var(--none);height:10px"></i>neither</span>
+      <span><i style="background:var(--good)"></i>correct</span><span><i style="background:var(--bad)"></i>wrong</span><span><i style="background:#888"></i>skip</span><span><i style="background:var(--tempt)"></i>video finished / skipped</span></div></div>
+    <div class="grid2">
+      <div class="card"><h2>Summary</h2>${sum ? `<div class="kv">
+        <div><b>${esc(sum.lock_choice)}</b><span>lock choice</span></div>
+        ${['block1', 'block2'].map(b => `<div><b>${fmt(num(sum[b + '_study_ms']) / 1000)} / ${fmt(num(sum[b + '_video_ms']) / 1000)} s</b><span>${b} study / video</span></div>`).join('')}
+        <div><b>${esc(sum.attempted)} (${esc(sum.correct)} ✓)</b><span>answers</span></div><div><b>${esc(sum.skipped)}</b><span>skipped</span></div>
+        <div><b>${esc(sum.switches)}</b><span>side switches</span></div><div><b>${esc(sum.videos_completed)}</b><span>videos finished</span></div>
+        <div><b>${sum.touch_ui === true || sum.touch_ui === 'true' ? 'touch' : 'mouse'}</b><span>device</span></div></div>` : '<p class="muted">no summary row</p>'}
+        ${lc ? `<h3>Lock choice trajectory · ${esc(lc.choice)} · RT ${esc(lc.rt_ms)} ms · AUC ${esc(lc.auc)}</h3>${lockPlot(lt)}` : ''}
+      </div>
+      <div class="card"><h2>Answers</h2><div class="scroll"><table><thead><tr><th>Phase</th><th>t (s)</th><th>Item</th><th>Block</th><th>Problem</th><th>Typed</th><th>Answer</th><th></th><th>Time (ms)</th></tr></thead><tbody>
+        ${ans.map(a => `<tr><td>${esc(a.phase)}</td><td>${fmt(a.t_ms / 1000, 1)}</td><td>${esc(a.question_id)}</td><td>${esc(a.level)}</td><td>${esc(a.question)}</td>
+          <td>${a.type === 'skip' ? '<i class="muted">skipped</i>' : esc(a.given)}</td><td>${esc(a.correct_answer)}</td>
+          <td>${a.type === 'skip' ? '' : (a.is_correct === true || a.is_correct === 'true' ? '✓' : '✗')}</td><td>${esc(a.q_ms)}</td></tr>`).join('')}
+      </tbody></table></div></div>
+    </div>`;
+}
+function lockPlot(lt){
+  if (!lt) return '<p class="muted">no lock trajectory</p>';
+  const xs = arr(lt.samples_x), ys = arr(lt.samples_y); if (!xs.length) return '';
+  const W = Math.max(...xs) + 60, H = Math.max(...ys) + 40;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="background:#fbf8f1;border:1px solid var(--rule);max-height:220px">
+    <polyline fill="none" stroke="var(--ink)" stroke-width="3" points="${xs.map((x, i) => x + ',' + ys[i]).join(' ')}"/>
+    <circle cx="${xs[0]}" cy="${ys[0]}" r="6" fill="var(--accent)"/></svg>`;
+}
+
+/* ---------- questionnaire ---------- */
+function viewSurvey(){
+  const sv = rowsOf('survey').filter(r => r.section === 'self_report').sort((a, b) => a.item - b.item);
+  const items = SELF_REPORT_ITEMS();
+  const allSv = (DATA.survey || []).filter(r => r.section === 'self_report');
+  $('view').innerHTML = `<div class="card"><h2>Questionnaire · ${esc(pid)}</h2>${sv.length ? `<table><thead><tr><th>#</th><th>Statement</th><th>Answer</th><th></th><th>Class mean (n)</th></tr></thead><tbody>
+    ${sv.map(r => { const others = allSv.filter(x => String(x.item) === String(r.item)).map(x => num(x.value));
+      return `<tr><td>${esc(r.item)}</td><td>${esc(items[r.item] || r.item_text)}</td><td><b>${esc(r.value)}</b> · ${esc(r.label)}</td>
+      <td><svg width="140" height="12"><rect width="140" height="12" fill="#eee"/><rect width="${20 * r.value}" height="12" fill="var(--goal)"/></svg></td><td>${fmt(mean(others), 2)} (${others.length})</td></tr>`; }).join('')}
+    </tbody></table>` : '<p class="muted">no questionnaire data</p>'}</div>`;
+}
+const SELF_REPORT_ITEMS = () => Object.fromEntries((typeof SELF_REPORT !== 'undefined' ? SELF_REPORT[0].items : []).map(i => [i.id, i.pt]));
+
+/* ---------- ratings ---------- */
+function viewRatings(){
+  const ra = rowsOf('activity_ratings').sort((a, b) => a.order_idx - b.order_idx);
+  const all = DATA.activity_ratings || [];
+  const byAct = {};
+  for (const r of all) (byAct[r.activity_id] ||= []).push(r);
+  const W = 420, H = 300, sx = v => 40 + (v - 1) * (W - 60) / 4, sy = v => H - 30 - (v - 1) * (H - 50) / 4;
+  const pts = Object.entries(byAct).map(([id, rs]) => { const a = ACTIVITY_BY_ID[id] || {}; const e = mean(rs.map(r => num(r.enjoy))), u = mean(rs.map(r => num(r.useful)));
+    return `<circle cx="${sx(e)}" cy="${sy(u)}" r="4.5" fill="${COL[{ study: 'goal', entertainment: 'temptation', neutral: 'neutral' }[a.cat]] || '#999'}" fill-opacity=".75"><title>${esc(a.pt || id)}: enjoy ${e.toFixed(2)}, useful ${u.toFixed(2)} (n ${rs.length})</title></circle>`; }).join('');
+  $('view').innerHTML = `<div class="grid2">
+    <div class="card"><h2>All students · mean per activity</h2>
+      <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;background:#fbf8f1;border:1px solid var(--rule)">
+        ${[1, 2, 3, 4, 5].map(v => `<line x1="${sx(v)}" x2="${sx(v)}" y1="20" y2="${H - 30}" stroke="#eee"/><line y1="${sy(v)}" y2="${sy(v)}" x1="40" x2="${W - 20}" stroke="#eee"/><text x="${sx(v)}" y="${H - 14}" font-size="10" text-anchor="middle" fill="#777">${v}</text><text x="28" y="${sy(v) + 3}" font-size="10" text-anchor="end" fill="#777">${v}</text>`).join('')}
+        <text x="${W / 2}" y="${H - 2}" font-size="11" text-anchor="middle">enjoyable now →</text><text x="12" y="14" font-size="11">useful ↑</text>${pts}</svg>
+      <div class="legend"><span><i style="background:var(--goal);height:8px"></i>study</span><span><i style="background:var(--tempt);height:8px"></i>fun</span><span><i style="background:var(--neutral);height:8px"></i>chore</span><span class="muted">hover a dot for the activity</span></div></div>
+    <div class="card"><h2>${esc(pid)} · ${ra.length} pictures rated</h2><div class="scroll"><table><thead><tr><th>#</th><th>Activity</th><th>Group</th><th>Enjoy</th><th>Useful</th><th>Time (ms)</th></tr></thead><tbody>
+      ${ra.map(r => `<tr><td>${esc(r.order_idx)}</td><td>${esc((ACTIVITY_BY_ID[r.activity_id] || {}).pt || r.activity_id)}</td><td>${esc(r.category)}</td><td>${esc(r.enjoy)}</td><td>${esc(r.useful)}</td><td>${esc(r.rt_ms)}</td></tr>`).join('')}
+    </tbody></table></div></div></div>`;
+}
+</script>
+<script src="../shared/surveys.js?v=202611022229"></script>
+</body>
+</html>

@@ -110,6 +110,30 @@ active. Switch events record `via` (`hover` / `tap` / `click`).
 A task page opened **without** `pid` runs standalone (demo mode, researcher
 view on, nothing uploaded).
 
+### Data viewer and checks (`viz/`)
+
+https://yuanzhedong.github.io/mouse-tracking-cognitive/viz/ — choose the
+downloaded Drive data folder (`self-control-battery-data`, or its `raw/` and
+`processed/` folders); the files are read in the browser, nothing is
+uploaded. Tabs:
+
+- **Checks** — per student, pass / warning / fail for everything we expect
+  to track: Task 1 (60 trials in list order, cards match the list, raw
+  samples from t = 0 at the START point every ~16 ms, still start matching
+  `initiation_time`, `warning_shown` consistent, window + stage geometry,
+  version matches the ID), ADT (all phases and lengths, lock choice + its
+  trajectory, every answer re-checked against the 152-item bank, time on
+  study / video / neither adds up), questionnaire (8 items, 1–7), ratings
+  (every picture once, 1–5), completion of every task.
+- **Overview** — counts, A / B, completion, Task 1 by version (choice rates,
+  RT, initiation, AUC, x-flips, mean normalized trajectories), ADT by version.
+- **Task 1** — a student's raw trajectories on the task area, a trial table,
+  and per trial x / y over time with the still start and the reminder time.
+- **ADT** — timeline of the active side per block with answers, skips and
+  videos; summary; lock-choice trajectory; answer table.
+- **Questionnaire**, **Ratings** — answers per student; ratings enjoy ×
+  useful per activity across students.
+
 ### Data collection
 
 Every save goes to (a) `localStorage` in the student's browser and (b) a
