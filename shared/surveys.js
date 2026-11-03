@@ -15,7 +15,7 @@ const SELF_REPORT = [
   {
     id: 'self_report',
     type: 'likert',
-    title: { en: 'About your studying', pt: 'Sobre os seus estudos' },
+    title: null,   // no title (team, 11/02): instruction line, then the items
     // instructions: draft — the doc gives only the items and the scale
     instructions: { en: 'Please indicate how much you agree or disagree with each statement.',
                     pt: 'Indique o quanto você concorda ou discorda de cada frase.' },

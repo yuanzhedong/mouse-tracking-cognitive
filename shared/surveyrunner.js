@@ -33,7 +33,8 @@ function runSurvey({ sections: SECTIONS, step: STEP, sheet: SHEET }){
     $('err').textContent = '';
     $('nextBtn').textContent = Session.t(idx === TOTAL - 1 ? 'finish' : 'next');
 
-    let html = `<section class="block"><h2>${esc(T(sec.title))}</h2><p class="instr">${esc(T(sec.instructions))}</p>`;
+    const title = T(sec.title);   // a section may have no title
+    let html = `<section class="block">${title ? `<h2>${esc(title)}</h2>` : ''}<p class="instr">${esc(T(sec.instructions))}</p>`;
 
     if (sec.type === 'likert'){
       html += `<div class="likert">` +
