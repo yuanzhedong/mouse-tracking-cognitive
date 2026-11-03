@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="../shared/slider.css?v=202611022125">
+<link rel="stylesheet" href="../shared/survey.css?v=202611022131">
 <title>Ratings</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202611022125">
+<link rel="stylesheet" href="../shared/activity.css?v=202611022131">
 <style>
   :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,12 +30,6 @@
   .stim > img { display: block; width: 100%; max-width: 420px; aspect-ratio: 16/9; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--ink); background: #000; }
   .stim .cat { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); margin-top: 8px; }
 
-  .q { margin-bottom: 26px; }
-  .q .label { font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
-  .slider { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
-  .slider .end { font-size: 12px; color: var(--soft); max-width: 90px; line-height: 1.3; }
-  .slider .end.hi { text-align: right; }
-  .val { text-align: center; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--soft); min-height: 18px; margin-top: 4px; }
 
   .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
   .nav .err { color: var(--accent); font-size: 14px; flex: 1; }
@@ -73,12 +67,11 @@
   </section>
 </div>
 
-<script src="../shared/config.js?v=202611022125"></script>
-<script src="../shared/i18n.js?v=202611022125"></script>
-<script src="../shared/videos.js?v=202611022125"></script>
-<script src="../shared/stimuli.js?v=202611022125"></script>
-<script src="../shared/session.js?v=202611022125"></script>
-<script src="../shared/slider.js?v=202611022125"></script>
+<script src="../shared/config.js?v=202611022131"></script>
+<script src="../shared/i18n.js?v=202611022131"></script>
+<script src="../shared/videos.js?v=202611022131"></script>
+<script src="../shared/stimuli.js?v=202611022131"></script>
+<script src="../shared/session.js?v=202611022131"></script>
 <script>
 /* =============================================================
    RATINGS — stimulus norming (doc "Task 1 Candidate Activity Stimuli v2")
@@ -101,9 +94,10 @@ const PARTS = [
   {
     key: 'activities', label: t('r_part_a'), instr: t('r_act_instr'),
     items: shuffle(ACTIVITIES).slice(0, Math.min(intParam('n', CONFIG.RATINGS_ACTIVITIES_N), ACTIVITIES.length)),
+    // two 5-point questions with labelled options (team table 11/02), saved 1–5
     questions: [
-      { id: 'enjoy',  label: t('r_act_q1'), lo: t('r_act_lo'), hi: t('r_act_hi') },
-      { id: 'useful', label: t('r_act_q2'), lo: t('r_act_lo'), hi: t('r_act_hi') },
+      { id: 'enjoy',  label: t('r_act_q1'), scale: [1, 2, 3, 4, 5].map(i => t('r_enjoy_' + i)) },
+      { id: 'useful', label: t('r_act_q2'), scale: [1, 2, 3, 4, 5].map(i => t('r_useful_' + i)) },
     ],
     sheet: 'activity_ratings',
     row: (it, vals, extra) => ({ activity_id: it.id, category: it.cat, image: activityImgFile(it),
@@ -138,22 +132,15 @@ function showItem(){
   $('progress').textContent = t('r_progress', { n: idx + 1, total: P.items.length });
   $('bar').style.width = `${Math.round(100 * idx / P.items.length)}%`;
   $('stim').innerHTML = P.render(it);
-  $('questions').innerHTML = P.questions.map(q => `
-    <div class="q">
-      <div class="label">${esc(q.label)}</div>
-      <div class="slider">
-        <span class="end lo">0<br>${esc(q.lo)}</span>
-        <input type="range" min="0" max="100" value="50" class="untouched" data-q="${q.id}">
-        <span class="end hi">100<br>${esc(q.hi)}</span>
-      </div>
-      <div class="val" data-val="${q.id}"></div>
-    </div>`).join('');
-  $('questions').querySelectorAll('input[type=range]').forEach(r => {
-    const touch = () => { r.classList.remove('untouched'); r.dataset.touched = '1';
-      $('questions').querySelector(`[data-val="${r.dataset.q}"]`).textContent = r.value; };
-    r.addEventListener('input', touch);
-    r.addEventListener('pointerdown', touch);
-  });
+  // same answer boxes as the questionnaire (shared/survey.css)
+  $('questions').innerHTML = `<div class="likert stacked">` + P.questions.map(q => `
+    <div class="lk-item" data-q="${q.id}">
+      <div class="lk-stmt">${esc(q.label)}</div>
+      <div class="lk-opts" style="grid-template-columns:repeat(${q.scale.length},1fr)">` +
+        q.scale.map((lab, i) => `<label><input type="radio" name="${q.id}" value="${i + 1}"><span>${esc(lab)}</span></label>`).join('') +
+      `</div>
+    </div>`).join('') + `</div>`;
+  $('questions').querySelectorAll('.lk-item').forEach(it => it.addEventListener('change', () => it.classList.remove('missing')));
   $('err').textContent = '';
   $('nextBtn').textContent = t('next');
   shownAt = performance.now();
@@ -172,9 +159,14 @@ $('introBtn').addEventListener('click', () => { idx = 0; if (part === 0) Session
 
 $('nextBtn').addEventListener('click', async () => {
   const P = PARTS[part];
-  const ranges = [...$('questions').querySelectorAll('input[type=range]')];
-  if (ranges.some(r => !r.dataset.touched)){ $('err').textContent = t('r_touch_all'); return; }
-  const vals = {}; ranges.forEach(r => vals[r.dataset.q] = +r.value);
+  const vals = {};
+  let missing = false;
+  P.questions.forEach(q => {
+    const v = $('questions').querySelector(`input[name="${q.id}"]:checked`);
+    $('questions').querySelector(`.lk-item[data-q="${q.id}"]`).classList.toggle('missing', !v);
+    if (v) vals[q.id] = +v.value; else missing = true;
+  });
+  if (missing){ $('err').textContent = t('please_answer_all'); return; }
   pending.push(P.row(P.items[idx], vals, { order_idx: idx + 1, rt_ms: Math.round(performance.now() - shownAt) }));
   $('nextBtn').disabled = true;
   idx++;

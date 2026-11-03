@@ -27,7 +27,7 @@ so a closed window can resume from the entry page.
 | `task1/` | instructions (version A or B, doc text) → 3 practice rounds (fixed study-vs-other pairs, not scored) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
 | `task2/` | split-screen ADT (doc text, 4 screens): practice 30 s ("Sessão de prática" + timer) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
 | `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
-| `ratings/` | the 90 activity cards on two 0–100 sliders (enjoyable now, useful for the quiz), shuffled (video ratings removed 10/30) | `activity_ratings` |
+| `ratings/` | the 90 activity cards, shuffled, each with two 5-point questions with labelled options (Nada agradável … Extremamente agradável; Nada útil … Extremamente útil), saved 1–5 (video ratings removed 10/30) | `activity_ratings` |
 | all | task start / end | `task_status` (`completion_status`: not_completed / completed) |
 | all | milestones | `session_log` |
 

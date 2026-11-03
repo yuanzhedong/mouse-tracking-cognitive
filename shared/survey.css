@@ -18,6 +18,9 @@
 .likert .lk-opts label:hover { border-color: var(--ink); }
 .likert .lk-opts label:has(input:checked) { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .likert .lk-opts input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.likert.stacked .lk-item { grid-template-columns: 1fr; gap: 10px; padding: 14px 0; }
+.likert.stacked .lk-stmt { font-size: 16px; }
+.likert.stacked .lk-opts label { font-size: 13px; padding: 10px 4px; }
 @media (max-width: 900px) {
   .likert .lk-item { grid-template-columns: 1fr; gap: 10px; }
   .likert .lk-stmt { font-size: 16px; }

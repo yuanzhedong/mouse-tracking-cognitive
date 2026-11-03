@@ -101,7 +101,7 @@ the next `buildSheets` run:
 | `task2_events` | Task 2 logged event | `type`, `phase` (practice / block1 / lock / block2), `t_ms`, answer / video / lock fields; `lock_trajectory` holds the lock trial's raw samples |
 | `task2_summary` | Task 2 session | `lock_choice`, `lock_auc`, `points`, `block1_study_ms`, `block1_video_ms`, `block2_study_ms`, `block2_video_ms`, `switches` |
 | `survey` | answered item | `section` (self_report), `item` (1–8), `value` (1–7), `label` |
-| `activity_ratings` | rated activity | `activity_id`, `category`, `image`, `enjoy`, `useful` (0–100), `order_idx`, `rt_ms` |
+| `activity_ratings` | rated activity | `activity_id`, `category`, `image`, `enjoy`, `useful` (1–5), `order_idx`, `rt_ms` |
 
 Every row also carries `pid`, `session_id` (unique per sitting), `step`,
 `lang`, `mt_version`, `horizon_group`, `group_source` (server / local / url),
