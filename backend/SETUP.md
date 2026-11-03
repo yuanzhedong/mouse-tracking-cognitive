@@ -98,6 +98,7 @@ the next `buildSheets` run:
 | `session_log` | milestone event | `event` |
 | `task1_trials` | Task 1 trial | `block`, `trial_id` (1–60, `shared/task1_trial_list_60.csv`), `source_trial` (row of Task1_trial_list_60x60), `side_swapped`, `trial_type`, `left_id`, `right_id`, `left_image`, `right_image`, `goal_side`, `chosen_id`, `chose_goal`, `rt_ms`, `initiation_time`, `warning_shown`, `auc`, `md`, `x_flips`, `n_samples` |
 | `task1_trajectories` | Task 1 trial | `t_ms`, `x`, `y` (JSON arrays: every ~16 ms from the options appearing to the choice, px in the stage), `x_norm`, `y_norm` (101 time-normalized bins) |
+|  |  | Long format (one row per sample): `python3 analysis/export_task1_trajectories.py <downloaded data folder> -o trajectories.csv` |
 | `task2_events` | Task 2 logged event | `type`, `phase` (practice / block1 / lock / block2), `t_ms`, answer / video / lock fields; `lock_trajectory` holds the lock trial's raw samples |
 | `task2_summary` | Task 2 session | `lock_choice`, `lock_auc`, `points`, `block1_study_ms`, `block1_video_ms`, `block2_study_ms`, `block2_video_ms`, `switches` |
 | `survey` | answered item | `section` (self_report), `item` (1–8), `value` (1–7), `label` |

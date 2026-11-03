@@ -58,6 +58,15 @@ shuffled blocks of 4 (a coin flip without the server). Every saved row carries `
   whether or not it moves — the still period before the first movement is
   in the record. Saved per trial in `task1_trajectories`: `t_ms`, `x`, `y`
   (px from the stage's top-left), plus 101 time-normalized bins.
+- **Window size**: every trial row also has `window_w` / `window_h`,
+  `screen_w` / `screen_h`, `device_pixel_ratio`, and the task area's
+  `stage_left` / `stage_top` / `stage_w` / `stage_h`, so `x + stage_left`,
+  `y + stage_top` are window coordinates.
+- **Export the raw trajectories**: download the Drive data folder (or the
+  `task1_trajectories` and `task1_trials` tabs as CSV) and run
+  `python3 analysis/export_task1_trajectories.py <folder> -o trajectories.csv`
+  — one row per 16-ms sample with `t_ms`, `x`, `y`, `x_window`, `y_window`
+  and the trial's ids, choice, RT and initiation time.
 - **initiation_time**: ms from the options appearing to the cursor first
   being 10 px from the start (from the pointer event itself).
   **warning_shown** = 1 if the "Comece a mover o mouse mais cedo!" reminder

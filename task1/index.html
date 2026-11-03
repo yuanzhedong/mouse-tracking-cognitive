@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 1</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202611022143">
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611022143">
+<link rel="stylesheet" href="../shared/activity.css?v=202611022146">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611022146">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -257,13 +257,13 @@
   </main>
 </div>
 
-<script src="../shared/config.js?v=202611022143"></script>
-<script src="../shared/i18n.js?v=202611022143"></script>
-<script src="../shared/videos.js?v=202611022143"></script>
-<script src="../shared/stimuli.js?v=202611022143"></script>
-<script src="../shared/session.js?v=202611022143"></script>
-<script src="../shared/mousetracking.js?v=202611022143"></script>
-<script src="../shared/dragcursor.js?v=202611022143"></script>
+<script src="../shared/config.js?v=202611022146"></script>
+<script src="../shared/i18n.js?v=202611022146"></script>
+<script src="../shared/videos.js?v=202611022146"></script>
+<script src="../shared/stimuli.js?v=202611022146"></script>
+<script src="../shared/session.js?v=202611022146"></script>
+<script src="../shared/mousetracking.js?v=202611022146"></script>
+<script src="../shared/dragcursor.js?v=202611022146"></script>
 <script>
 /* =============================================================
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
@@ -414,6 +414,7 @@ function startTrial(e, inputType = 'mouse'){
   const c = state.current;
   c.inputType = inputType;
   c.stageRect = $('stage').getBoundingClientRect();
+  c.win = { w: innerWidth, h: innerHeight, sw: screen.width, sh: screen.height, dpr: devicePixelRatio || 1 };
   c.startPos  = { x: e.clientX, y: e.clientY };
   $('startBtn').classList.add('hidden');
   $('optLeft').classList.remove('hidden');
@@ -542,6 +543,9 @@ function trialRow(t){
     auc: +t.auc.toFixed(6), md: +t.md.toFixed(6), x_flips: t.xFlips,
     n_samples: t.samples.length, sample_ms: SAMPLE_MS,
     stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
+    // x / y are px from the stage's top-left; + stage_left / stage_top = window (CSS px) coordinates
+    stage_left: Math.round(t.stageRect.left), stage_top: Math.round(t.stageRect.top),
+    window_w: t.win.w, window_h: t.win.h, screen_w: t.win.sw, screen_h: t.win.sh, device_pixel_ratio: t.win.dpr,
     start_x: st.x, start_y: st.y, left_x: lp.x, left_y: lp.y, right_x: rp.x, right_y: rp.y,
   };
 }
@@ -553,6 +557,9 @@ function trajectoryRow(t){
   return {
     block: t.isPractice ? 'practice' : 'main', trial: t.trialIdx, trial_id: t.trialId,
     n_samples: t.samples.length, sample_ms: SAMPLE_MS,
+    stage_left: Math.round(t.stageRect.left), stage_top: Math.round(t.stageRect.top),
+    stage_w: Math.round(t.stageRect.width), stage_h: Math.round(t.stageRect.height),
+    window_w: t.win.w, window_h: t.win.h,
     t_ms: JSON.stringify(t.samples.map(p => Math.round(p.t))),
     x: JSON.stringify(pts.map(p => p.x)),
     y: JSON.stringify(pts.map(p => p.y)),
