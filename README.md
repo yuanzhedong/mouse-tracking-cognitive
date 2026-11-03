@@ -39,10 +39,11 @@ pending), and the earlier questionnaire sections 1–5 (`SURVEYS` in
 ### Pilot groups
 
 Each participant code gets two groups, fixed for good (stored per code and
-carried in every page URL; a reload or restart never re-randomizes). With
-the upload server configured, the server deals them from shuffled blocks of
-4, so the groups stay **exactly 50/50**; without it, the entry page flips a
-coin. Every saved row carries `mt_version`, `horizon_group` and
+carried in every page URL; a reload or restart never re-randomizes). The
+**Task 1 version follows the student ID: even → A, odd → B** (1000 A, 1001 B,
+…), so IDs handed out in order split exactly 50/50; `TESTA…` / `TESTB…` codes
+get A / B. The allocation horizon (weeks / months) is dealt by the server from
+shuffled blocks of 4 (a coin flip without the server). Every saved row carries `mt_version`, `horizon_group` and
 `group_source` (`server` / `local` / `url`).
 
 | group | | |
@@ -220,7 +221,7 @@ phase lengths for piloting.
 | Component | Status | Notes |
 |---|---|---|
 | Binary-choice goal–temptation task (activity cards) | done | Fixed list of 60 trials (30 goal–temptation, 30 goal–neutral, sides balanced), 3 fixed practice trials (study vs. other) |
-| Two prompt versions (A choose now vs. B helps on the quiz) | done | 50/50 per student (server-balanced), fixed, or `?mt=` |
+| Two prompt versions (A choose now vs. B helps on the quiz) | done | by student ID: even → A, odd → B; fixed; or `?mt=` |
 | Start button → cursor centered → options appear | done | Matches Figure 1 of the paper |
 | Fixed-rate cursor sampling | done | Every 16 ms (~60 Hz) from the options appearing, still periods included |
 | **AUC** (signed area vs. idealized straight line) | done | Ideal line = trajectory start → endpoint (Freeman & Ambady, 2010); positive = deviation toward unchosen option |

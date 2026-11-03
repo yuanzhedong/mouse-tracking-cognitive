@@ -54,7 +54,10 @@ lands on another listed number is not — check `given_to` when in doubt.
   other code ("Este código não é válido").
 - Codes starting with `TEST` (e.g. `TEST01`) always work, for trying the
   site; their data goes to `TEST_<table>` tabs and they don't count toward
-  the 50/50 groups. `TESTA…` codes (TESTA01, TESTA02, …) always get
+  the 50/50 groups.
+- Task 1 version follows the student ID: even IDs (1000, 1002, …) get
+  version A, odd IDs (1001, 1003, …) version B. Hand IDs out in order and
+  the split stays 50/50. `TESTA…` codes (TESTA01, TESTA02, …) always get
   version A and `TESTB…` codes version B; other TEST codes get a random one.
 - The list lives only in this spreadsheet, never in the public repo.
   Deleting a row disables that ID within 10 minutes.

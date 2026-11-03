@@ -8,9 +8,10 @@
       and no spreadsheet write per request, so ~100 students uploading at
       the same time don't queue behind each other.
 
-   2. doGet?action=assign&pid=X&token=T — hands out the pilot groups. Each
-      group (mt: A/B, hz: weeks/months) is dealt from shuffled blocks of 4
-      (2 + 2), so the groups stay 50/50 as students arrive. A student ID is
+   2. doGet?action=assign&pid=X&token=T — hands out the pilot groups. The
+      Task 1 version (mt) follows the student ID: even → A, odd → B (1000 A,
+      1001 B, …). The allocation horizon (hz: weeks/months) is dealt from
+      shuffled blocks of 4 (2 + 2), so it stays 50/50 as students arrive. A student ID is
       tied to the browser that used it first (its token): that browser gets
       the same answer again (resume after a reload or crash), any other one
       gets error 'used'. TEST codes are never locked. To let a student
@@ -137,6 +138,7 @@ function assign(pid, token){
     }
     const out = {};
     for (const g in GROUPS){
+      if (g === 'mt' && /^\d+$/.test(pid)){ out.mt = Number(pid) % 2 === 0 ? 'A' : 'B'; continue; }   // even → A, odd → B
       let block = JSON.parse(props.getProperty(blockKey(g)) || '[]');
       if (!block.length) block = shuffle([0, 0, 1, 1]);
       out[g] = GROUPS[g][block.shift()];
