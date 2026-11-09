@@ -97,8 +97,25 @@ const Session = (() => {
     if (code && !lsGet('grp_src_' + code)) lsSet('grp_src_' + code, 'local');
     return assignGroups(code, new URLSearchParams());
   }
+  /* Task 1 memory load: none | low (2-digit number) | high (5-digit).
+     Student IDs set it, so the 6 groups (prompt A/B × load) stay balanced
+     when IDs are handed out in order: 1000 A·none, 1001 B·none, 1002 A·low,
+     1003 B·low, 1004 A·high, 1005 B·high, 1006 A·none, …
+     Test codes TESTAN… / TESTAL… / TESTAH… (and TESTB…) pick it; other test
+     codes get a random one. The URL value (carried page to page) wins. */
+  const LOADS = ['none', 'low', 'high'];
+  function loadFor(code, params = qs){
+    let v = params.get('load');
+    if (!LOADS.includes(v) && /^\d+$/.test(code)) v = LOADS[(((Math.floor((Number(code) - 1000) / 2)) % 3) + 3) % 3];
+    if (!LOADS.includes(v) && code) v = { N: 'none', L: 'low', H: 'high' }[(code.match(/^TEST[AB]([NLH])/) || [])[1]];
+    if (!LOADS.includes(v) && code) v = lsGet('grp_load_' + code);   // earlier random draw for this code
+    if (!LOADS.includes(v)) v = code ? LOADS[Math.floor(Math.random() * 3)] : 'none';
+    if (code) lsSet('grp_load_' + code, v);
+    return v;
+  }
   const { mt, hz } = assignGroups(pid);
-  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz),
+  const load = loadFor(pid);
+  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), load_condition: load, horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz),
                       group_source: (pid && lsGet('grp_src_' + pid)) || (qs.get('mt') ? 'url' : '') };
 
   const sessionId = (() => {
@@ -249,7 +266,7 @@ const Session = (() => {
     const params = new URLSearchParams(qs);
     if (pid) params.set('pid', pid);
     params.set('lang', lang);
-    params.set('mt', mt); params.set('hz', hz);
+    params.set('mt', mt); params.set('hz', hz); params.set('load', load);
     params.delete('cond');
     for (const [k, v] of Object.entries(extra)) params.set(k, v);
     const page = step === 'entry' ? 'index.html' : step === 'done' ? 'done.html' : step + '/';
@@ -296,7 +313,7 @@ const Session = (() => {
   setInterval(flushPending, 45000);
   window.addEventListener('online', flushPending);
 
-  return { ROOT, pid, standalone, review, lang, mt, hz, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
+  return { ROOT, pid, standalone, review, lang, mt, hz, load, loadFor, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
            t, pick, applyI18n, save, status, log, next, go, urlFor, langUrl, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };

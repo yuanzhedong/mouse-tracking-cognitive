@@ -41,17 +41,18 @@ pending), and the earlier questionnaire sections 1–5 (`SURVEYS` in
 
 ### Pilot groups
 
-Each participant code gets two groups, fixed for good (stored per code and
+Each participant code gets its groups, fixed for good (stored per code and
 carried in every page URL; a reload or restart never re-randomizes). The
 **Task 1 version follows the student ID: even → A, odd → B** (1000 A, 1001 B,
 …), so IDs handed out in order split exactly 50/50; `TESTA…` / `TESTB…` codes
 get A / B. The allocation horizon (weeks / months) is dealt by the server from
-shuffled blocks of 4 (a coin flip without the server). Every saved row carries `mt_version`, `horizon_group` and
+shuffled blocks of 4 (a coin flip without the server). Every saved row carries `mt_version`, `load_condition`, `horizon_group` and
 `group_source` (`server` / `local` / `url`).
 
 | group | | |
 |---|---|---|
 | `mt` — Task 1 prompt | **A** "Você terá uma prova em breve. Qual atividade você gostaria de fazer agora?" | **B** "Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?" |
+| `load` — Task 1 memory load (by ID in pairs: 1000/1001 none, 1002/1003 low, 1004/1005 high, …; test codes `TESTAN/AL/AH…`, `TESTBN/BL/BH…`) | **low**: remember **74**; **high**: remember **58319**; shown after the practice (Continue any time, moves on by itself at 25 s), typed back after the 60 trials (`task1_recall`) | **none**: no number screens |
 | `hz` — allocation horizon (allocation not in the flow) | **weeks**: 1 week / 2 weeks from now | **months**: 1 month / 2 months from now |
 
 ### Task 1 recording

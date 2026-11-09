@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 1</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202611091442">
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611091442">
+<link rel="stylesheet" href="../shared/activity.css?v=202611091459">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611091459">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -57,6 +57,11 @@
     cursor: pointer; font-family: inherit;
   }
   .intro .big-btn:hover { opacity: 0.9; }
+  .mem-number { margin: 28px 0 8px; text-align: center; font-size: clamp(56px, 10vw, 96px); font-weight: 700; letter-spacing: 0.18em; font-variant-numeric: tabular-nums; }
+  .mem-input { display: block; width: 100%; max-width: 360px; margin: 18px auto 0; padding: 14px; text-align: center;
+               font-size: clamp(32px, 5vw, 48px); letter-spacing: 0.18em; font-family: inherit;
+               border: 1px solid var(--ink); background: var(--bg); color: var(--ink); border-radius: 0; user-select: text; -webkit-user-select: text; }
+  .intro .err { color: var(--accent); text-align: center; min-height: 22px; margin-top: 10px; font-size: 17px; }
 
   main {
     display: grid; grid-template-columns: minmax(0,1fr) 260px;
@@ -173,7 +178,7 @@
 
   @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611091442">
+<link rel="stylesheet" href="../shared/touch.css?v=202611091459">
 </head>
 <body>
 <div class="container">
@@ -203,6 +208,20 @@
     <p><b data-i18n="t1_practice_done"></b></p>
     <p id="interPrompt"></p>
     <button class="big-btn" id="interBtn" data-i18n="continue_"></button>
+  </section>
+
+  <!-- memory load (low / high groups): number to keep in mind during the
+       main trials, asked for after them -->
+  <section class="intro hidden" id="memorize">
+    <p data-i18n="t1_mem_text"></p>
+    <div class="mem-number" id="memNumber"></div>
+    <button class="big-btn" id="memBtn" data-i18n="continue_"></button>
+  </section>
+  <section class="intro hidden" id="recall">
+    <h2 data-i18n="t1_recall_q"></h2>
+    <input type="text" class="mem-input" id="recallInput" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
+    <div class="err" id="recallErr"></div>
+    <button class="big-btn" id="recallBtn" data-i18n="continue_"></button>
   </section>
 
   <main class="hidden" id="main">
@@ -259,13 +278,13 @@
   </main>
 </div>
 
-<script src="../shared/config.js?v=202611091442"></script>
-<script src="../shared/i18n.js?v=202611091442"></script>
-<script src="../shared/videos.js?v=202611091442"></script>
-<script src="../shared/stimuli.js?v=202611091442"></script>
-<script src="../shared/session.js?v=202611091442"></script>
-<script src="../shared/mousetracking.js?v=202611091442"></script>
-<script src="../shared/dragcursor.js?v=202611091442"></script>
+<script src="../shared/config.js?v=202611091459"></script>
+<script src="../shared/i18n.js?v=202611091459"></script>
+<script src="../shared/videos.js?v=202611091459"></script>
+<script src="../shared/stimuli.js?v=202611091459"></script>
+<script src="../shared/session.js?v=202611091459"></script>
+<script src="../shared/mousetracking.js?v=202611091459"></script>
+<script src="../shared/dragcursor.js?v=202611091459"></script>
 <script>
 /* =============================================================
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
@@ -282,6 +301,9 @@
    cursor hasn't moved by CONFIG.TASK1_INIT_WARN_MS, the "start moving
    sooner" reminder appears (warning_shown = 1). AUC / MD / x-flips:
    shared/mousetracking.js.
+   Memory load (Session.load): low / high groups see a number
+   (CONFIG.TASK1_LOAD_NUMBERS) after the practice and are asked for it after
+   the last main trial (table task1_recall); 'none' sees neither screen.
    Saving: rows are uploaded every CONFIG.TASK1_SAVE_EVERY trials, so a
    student who leaves midway keeps the trials already done.
    ============================================================= */
@@ -301,6 +323,8 @@ const REVIEW = Session.review;
 const VERSION = Session.mt;     // 'A' | 'B'
 const PROMPT = Session.t('t1_prompt_' + VERSION);
 const TOUCH_UI = matchMedia('(hover: none)').matches;
+const LOAD = Session.load;                                  // 'none' | 'low' | 'high'
+const LOAD_NUMBER = CONFIG.TASK1_LOAD_NUMBERS[LOAD] || '';
 
 ACTIVITIES.forEach(a => { const im = new Image(); im.src = activityImgSrc(a); });
 
@@ -402,9 +426,59 @@ function showInterstitial(){
 }
 $('interBtn').addEventListener('click', () => {
   $('interstitial').classList.add('hidden');
+  if (LOAD_NUMBER) return showMemorize();
   $('main').classList.remove('hidden');
   startBlock('main');
 });
+
+/* ---------- memory load ---------- */
+
+// Continue works at any time; at CONFIG.TASK1_MEMORIZE_MAX_MS the page
+// moves on by itself (memorize_auto = 1).
+const mem = { shownAt: 0, memorizeMs: null, auto: 0, timer: null };
+function showMemorize(){
+  $('memNumber').textContent = LOAD_NUMBER;
+  $('memorize').classList.remove('hidden');
+  mem.shownAt = performance.now();
+  Session.log('task1_memorize_shown', { load_condition: LOAD });
+  mem.timer = setTimeout(() => endMemorize(1), CONFIG.TASK1_MEMORIZE_MAX_MS);
+}
+$('memBtn').addEventListener('click', () => endMemorize(0));
+function endMemorize(auto){
+  if (mem.memorizeMs !== null) return;
+  clearTimeout(mem.timer);
+  mem.memorizeMs = Math.round(performance.now() - mem.shownAt);
+  mem.auto = auto;
+  $('memorize').classList.add('hidden');
+  $('main').classList.remove('hidden');
+  startBlock('main');
+}
+
+// Asked after the last main trial; resolves to the row saved in task1_recall.
+function askRecall(){
+  return new Promise(resolve => {
+    $('main').classList.add('hidden');
+    $('recall').classList.remove('hidden');
+    $('recallInput').value = '';
+    $('recallInput').focus();
+    const t0 = performance.now();
+    const done = () => {
+      const answer = $('recallInput').value;
+      if (!answer){ $('recallErr').textContent = Session.t('t1_recall_empty'); return; }
+      let digits = 0;
+      for (let i = 0; i < LOAD_NUMBER.length; i++) if (answer[i] === LOAD_NUMBER[i]) digits++;
+      $('recall').classList.add('hidden');
+      resolve({
+        load_condition: LOAD, number_shown: LOAD_NUMBER, number_recalled: answer,
+        recall_correct: answer === LOAD_NUMBER ? 1 : 0, digits_correct_in_place: digits,
+        memorize_ms: mem.memorizeMs, memorize_auto: mem.auto, recall_ms: Math.round(performance.now() - t0),
+      });
+    };
+    $('recallInput').oninput = () => { $('recallInput').value = $('recallInput').value.replace(/\D/g, ''); $('recallErr').textContent = ''; };
+    $('recallInput').onkeydown = e => { if (e.key === 'Enter') done(); };
+    $('recallBtn').onclick = done;
+  });
+}
 
 /* ---------- trial flow ---------- */
 
@@ -593,6 +667,12 @@ async function finishTask(){
   ['optLeft','optRight','startBtn','reviewCanvas','reviewBadge','reviewMeta','nextBtn','warn']
     .forEach(id => $(id).classList.add('hidden'));
   drag.reset();
+  if (LOAD_NUMBER){
+    flushTrials();                                    // trials go out while the student answers
+    const recall = await askRecall();
+    $('main').classList.remove('hidden');
+    await Session.save({ task1_recall: [recall] }, 'task1');
+  }
   $('donePanel').classList.remove('hidden');
   $('doneNote').textContent = Session.t('saving');
   await flushTrials();

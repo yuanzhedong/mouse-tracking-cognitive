@@ -64,7 +64,7 @@
   details.research code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
   .status { display: inline-block; padding: 1px 8px; border: 1px solid var(--rule); font-size: 11px; }
 </style>
-<link rel="stylesheet" href="shared/touch.css?v=202611091442">
+<link rel="stylesheet" href="shared/touch.css?v=202611091459">
 </head>
 <body>
 <div class="container">
@@ -108,9 +108,9 @@
   </details>
 </div>
 
-<script src="shared/config.js?v=202611091442"></script>
-<script src="shared/i18n.js?v=202611091442"></script>
-<script src="shared/session.js?v=202611091442"></script>
+<script src="shared/config.js?v=202611091459"></script>
+<script src="shared/i18n.js?v=202611091459"></script>
+<script src="shared/session.js?v=202611091459"></script>
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
@@ -181,9 +181,11 @@ async function start(step){
   }
   // Task 1 version by code: student IDs even → A, odd → B (1000 A, 1001 B, …);
   // test codes TESTA… / TESTB… → A / B. Other test codes keep the server's draw.
+  // The memory load also follows the code (Session.loadFor).
   const forced = /^\d+$/.test(v) ? (Number(v) % 2 === 0 ? 'A' : 'B') : (v.match(/^TEST([AB])/) || [])[1];
   if (forced){ g.mt = forced; try { localStorage.setItem('sc_grp_mt_' + v, forced); } catch (e) {} }
   p.set('pid', v); p.set('lang', Session.lang); p.set('mt', g.mt); p.set('hz', g.hz); p.delete('cond');
+  p.set('load', Session.loadFor(v, p));   // Task 1 memory load (by ID, see shared/session.js)
   location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
 }
 $('startBtn').addEventListener('click', () => {

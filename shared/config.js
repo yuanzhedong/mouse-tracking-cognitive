@@ -25,6 +25,10 @@ const CONFIG = {
   TASK1_MOVE_THRESHOLD_PX: 10,// cursor counts as moving once it is this far from the start
   TASK1_SAMPLE_MS: 16,        // fixed sampling interval (~60 Hz), still periods included
   TASK1_SAVE_EVERY: 10,       // upload trials in batches of this size
+  // Memory load (6 groups = prompt A/B × load): the number shown before the
+  // main trials and asked for after them. 'none' sees neither screen.
+  TASK1_LOAD_NUMBERS: { none: '', low: '74', high: '58319' },
+  TASK1_MEMORIZE_MAX_MS: 25000,// number screen moves on by itself after this (Continue works any time)
 
   // 150-problem allocation (allocation/, not in the flow)
   ALLOC_TOTAL: 150,

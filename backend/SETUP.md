@@ -59,6 +59,11 @@ lands on another listed number is not — check `given_to` when in doubt.
   version A, odd IDs (1001, 1003, …) version B. Hand IDs out in order and
   the split stays 50/50. `TESTA…` codes (TESTA01, TESTA02, …) always get
   version A and `TESTB…` codes version B; other TEST codes get a random one.
+- Task 1 memory load also follows the ID, in pairs: 1000/1001 none,
+  1002/1003 low (remember 74), 1004/1005 high (remember 58319), 1006/1007
+  none, … — so the 6 groups (prompt A/B × none/low/high) stay balanced when
+  IDs are handed out in order. Test codes: `TESTAN…`, `TESTAL…`, `TESTAH…`
+  (version A with none / low / high) and the same with `TESTB…`.
 - The list lives only in this spreadsheet, never in the public repo.
   Deleting a row disables that ID within 10 minutes.
 - Each ID works on one device only: the first browser that uses it can
@@ -99,6 +104,7 @@ the next `buildSheets` run:
 | `task_status` | task start / end | `task` (assent, demographics, task1, task2, survey, ratings, session), `completion_status` (not_completed / completed) — the last row per task tells whether it was finished |
 | `session_log` | milestone event | `event` |
 | `task1_trials` | Task 1 trial | `block`, `trial_id` (1–60, `shared/task1_trial_list_60.csv`), `source_trial` (row of Task1_trial_list_60x60), `side_swapped`, `trial_type`, `left_id`, `right_id`, `left_image`, `right_image`, `goal_side`, `chosen_id`, `chose_goal`, `rt_ms`, `initiation_time`, `warning_shown`, `auc`, `md`, `x_flips`, `n_samples` |
+| `task1_recall` | student in the low / high load groups | `load_condition`, `number_shown`, `number_recalled`, `recall_correct`, `digits_correct_in_place`, `memorize_ms`, `memorize_auto` (1 = the 25 s limit moved the page on), `recall_ms` |
 | `task1_trajectories` | Task 1 trial | `t_ms`, `x`, `y` (JSON arrays: every ~16 ms from the options appearing to the choice, px in the stage), `x_norm`, `y_norm` (101 time-normalized bins) |
 |  |  | Long format (one row per sample): `python3 analysis/export_task1_trajectories.py <downloaded data folder> -o trajectories.csv` |
 | `task2_events` | Task 2 logged event | `type`, `phase` (practice / block1 / lock / block2), `t_ms`, answer / video / lock fields; `lock_trajectory` holds the lock trial's raw samples |
@@ -107,7 +113,7 @@ the next `buildSheets` run:
 | `activity_ratings` | rated activity | `activity_id`, `category`, `image`, `enjoy`, `useful` (1–5), `order_idx`, `rt_ms` |
 
 Every row also carries `pid`, `session_id` (unique per sitting), `step`,
-`lang`, `mt_version`, `horizon_group`, `group_source` (server / local / url),
+`lang`, `mt_version`, `load_condition`, `horizon_group`, `group_source` (server / local / url),
 `client_ts`, `save_id` and `server_ts`.
 
 ## Notes

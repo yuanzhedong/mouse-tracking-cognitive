@@ -76,10 +76,10 @@
   // stimuli.js builds picture paths from Session.ROOT; this page needs only that.
   var Session = { ROOT: '../', lang: 'pt', pick: a => (a && (a.pt || a.en)) || '' };
 </script>
-<script src="../shared/config.js?v=202611091442"></script>
-<script src="../shared/videos.js?v=202611091442"></script>
-<script src="../shared/stimuli.js?v=202611091442"></script>
-<script src="../shared/questions.js?v=202611091442"></script>
+<script src="../shared/config.js?v=202611091459"></script>
+<script src="../shared/videos.js?v=202611091459"></script>
+<script src="../shared/stimuli.js?v=202611091459"></script>
+<script src="../shared/questions.js?v=202611091459"></script>
 <script>
 /* =============================================================
    DATA VIEWER + CHECKS (researchers)
@@ -168,6 +168,22 @@ function checksFor(p){
     const want = Number(p) % 2 === 0 ? 'A' : 'B';
     add('Group', anyRow.mt_version === want ? 'pass' : 'fail', `Task 1 version follows the ID (even → A, odd → B)`, `ID ${p} → ${anyRow.mt_version} (expected ${want})`);
   } else add('Group', 'info', 'Test code', `version ${anyRow.mt_version}`);
+  // ---- memory load (6 groups: prompt A/B × none / low / high)
+  const LOADS = ['none', 'low', 'high'];
+  const load = anyRow.load_condition;
+  if (real){
+    const wantL = LOADS[(((Math.floor((Number(p) - 1000) / 2)) % 3) + 3) % 3];
+    add('Group', load === wantL ? 'pass' : 'fail', 'Memory load follows the ID (1000/1001 none, 1002/1003 low, 1004/1005 high, …)', `ID ${p} → ${load ?? '—'} (expected ${wantL})`);
+  } else add('Group', LOADS.includes(load) ? 'info' : 'warn', 'Memory load', load ?? 'not recorded');
+  if (load === 'low' || load === 'high'){
+    const rc = rowsOf('task1_recall', p).slice(-1)[0];
+    const want = CONFIG.TASK1_LOAD_NUMBERS[load];
+    if (!rc) add('Task 1', done('task1') ? 'fail' : 'warn', 'Number recall saved', 'no recall answer');
+    else {
+      add('Task 1', String(rc.number_shown) === want ? 'pass' : 'fail', `Number shown = ${want}`, String(rc.number_shown));
+      add('Task 1', 'info', 'Recall', `${rc.number_recalled} · ${rc.recall_correct ? 'correct' : 'wrong'} · ${rc.digits_correct_in_place}/${want.length} digits · memorized ${Math.round(rc.memorize_ms / 1000)} s`);
+    }
+  }
   const as = rowsOf('assent', p);
   const lastAssent = as.length ? as[as.length - 1].assent : null;
   const dm = rowsOf('demographics', p).slice(-1)[0];
@@ -515,6 +531,6 @@ function viewRatings(){
     </tbody></table></div></div></div>`;
 }
 </script>
-<script src="../shared/surveys.js?v=202611091442"></script>
+<script src="../shared/surveys.js?v=202611091459"></script>
 </body>
 </html>
