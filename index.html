@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Self-Control Study</title>
+<title>Sessão do estudante</title>
 <style>
   :root {
     --bg:     #f4efe4;
@@ -64,13 +64,12 @@
   details.research code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
   .status { display: inline-block; padding: 1px 8px; border: 1px solid var(--rule); font-size: 11px; }
 </style>
-<link rel="stylesheet" href="shared/touch.css?v=202611091441">
+<link rel="stylesheet" href="shared/touch.css?v=202611091442">
 </head>
 <body>
 <div class="container">
   <header>
     <div>
-      <h1 data-i18n="app_title">Self-Control Study</h1>
       <p data-i18n="app_subtitle">Student session</p>
     </div>
     <div class="lang" id="langBox">
@@ -109,9 +108,9 @@
   </details>
 </div>
 
-<script src="shared/config.js?v=202611091441"></script>
-<script src="shared/i18n.js?v=202611091441"></script>
-<script src="shared/session.js?v=202611091441"></script>
+<script src="shared/config.js?v=202611091442"></script>
+<script src="shared/i18n.js?v=202611091442"></script>
+<script src="shared/session.js?v=202611091442"></script>
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
@@ -119,7 +118,7 @@ Session.applyI18n();
    with ?review=1. */
 const qs = new URLSearchParams(location.search);
 if (qs.get('review') === '1') $('research').style.display = '';
-document.title = Session.t('app_title');
+document.title = Session.t('app_subtitle');
 $('langPt').classList.toggle('on', Session.lang === 'pt');
 $('langEn').classList.toggle('on', Session.lang === 'en');
 $('flow').textContent = ['entry', ...CONFIG.FLOW].join(' → ');

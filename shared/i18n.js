@@ -25,12 +25,9 @@ const STRINGS = {
     assent_yes: 'Yes, I want to take part.',
     assent_no: 'I do not want to take part.',
     assent_choose: 'Please choose one option.',
-    demo_title: 'About you',
     demo_grade: 'What grade (school year) are you in?',
-    demo_grade_invalid: 'Type your grade as a number (1–12).',
     demo_age: 'How old are you?',
-    demo_age_choose: 'Choose…',
-    demo_age_min: '10 or younger',
+    demo_choose: 'Choose…',
     demo_age_max: '19 or older',
     assent_declined_title: 'Thank you!',
     assent_declined_text: 'All right — you will not take part in the study. You can tell your teacher.',
@@ -170,12 +167,9 @@ const STRINGS = {
     assent_yes: 'Sim, quero participar.',
     assent_no: 'Não quero participar.',
     assent_choose: 'Escolha uma opção.',   // draft
-    demo_title: 'Sobre você',   // draft
     demo_grade: 'Em que ano escolar você está?',   // draft
-    demo_grade_invalid: 'Escreva o seu ano escolar com um número (1–12).',   // draft
     demo_age: 'Quantos anos você tem?',   // draft
-    demo_age_choose: 'Escolha…',
-    demo_age_min: '10 anos ou menos',
+    demo_choose: 'Escolha…',
     demo_age_max: '19 anos ou mais',
     assent_declined_title: 'Obrigado(a)!',   // draft
     assent_declined_text: 'Tudo bem — você não vai participar da pesquisa. Pode avisar o(a) professor(a).',   // draft

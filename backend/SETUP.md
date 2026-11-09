@@ -95,7 +95,7 @@ the next `buildSheets` run:
 | tab | one row per | key columns |
 |---|---|---|
 | `assent` | student | `assent` (yes / no — "no" ends the session; don't use that student's data), `rt_ms` |
-| `demographics` | student | `grade` (number), `age` (11–18, `<=10` or `>=19`) |
+| `demographics` | student | `grade` (4–12), `age` (8–18 or `>=19`) |
 | `task_status` | task start / end | `task` (assent, demographics, task1, task2, survey, ratings, session), `completion_status` (not_completed / completed) — the last row per task tells whether it was finished |
 | `session_log` | milestone event | `event` |
 | `task1_trials` | Task 1 trial | `block`, `trial_id` (1–60, `shared/task1_trial_list_60.csv`), `source_trial` (row of Task1_trial_list_60x60), `side_swapped`, `trial_type`, `left_id`, `right_id`, `left_image`, `right_image`, `goal_side`, `chosen_id`, `chose_goal`, `rt_ms`, `initiation_time`, `warning_shown`, `auc`, `md`, `x_flips`, `n_samples` |
