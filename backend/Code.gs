@@ -255,6 +255,24 @@ function clearTestData(){
   Logger.log('trashed ' + n + ' test files' + (realLeft ? '' : '; group blocks reset'));
 }
 
+/* Wipe ALL collected data in a few seconds — e.g. after testing, before the
+   real pilot. Run it only on purpose (from the editor): the raw/ and
+   processed/ folders go to the Drive trash whole (restorable for 30 days)
+   and empty ones replace them, every data tab is deleted (student_ids and
+   any hand-made "Sheet…" tab stay), and every device lock and group block
+   is dropped, so all IDs start fresh. */
+function resetAllData(){
+  const ss = book(), f = folders(), props = PropertiesService.getScriptProperties();
+  const stamp = new Date().toISOString().slice(0, 10);
+  // renamed first: Drive still finds trashed folders by name
+  [f.raw, f.processed].forEach(folder => { folder.setName(folder.getName() + ' (reset ' + stamp + ')'); folder.setTrashed(true); });
+  folders();
+  ss.getSheets().filter(s => s.getName() !== ID_SHEET && s.getName().indexOf('Sheet') !== 0).forEach(s => ss.deleteSheet(s));
+  const gone = Object.keys(props.getProperties()).filter(k => /^(pid_|block_|testblock_)/.test(k));
+  gone.forEach(k => props.deleteProperty(k));
+  Logger.log('reset: raw/ and processed/ moved to trash, data tabs deleted, ' + gone.length + ' locks/blocks dropped');
+}
+
 /* Wipe single students, e.g. an ID used for testing: write "clear" in the
    note column of student_ids, then run clearMarkedStudents (from the
    editor). Their upload files go to the Drive trash, their rows leave every

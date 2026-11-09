@@ -75,6 +75,11 @@ lands on another listed number is not — check `given_to` when in doubt.
 - To wipe one ID (e.g. used for testing by mistake): write `clear` in its
   `note` cell and run **clearMarkedStudents** — its files go to the trash,
   its rows leave the data tabs, and the ID starts fresh.
+- To wipe **everything** collected so far (e.g. after testing, right before
+  the real pilot), run **resetAllData**: in a few seconds the `raw/` and
+  `processed/` folders go to the Drive trash whole (restorable for 30 days)
+  and empty ones replace them, every data tab is deleted (`student_ids`
+  stays), and all device locks are released, so every ID starts fresh.
 - Before the pilot, run **clearTestData**: it moves all TEST (and unlisted)
   uploads to the Drive trash, deletes the TEST_ tabs and their group
   assignments, and — if no real student has started yet — restarts the
