@@ -27,7 +27,6 @@ const STRINGS = {
     assent_choose: 'Please choose one option.',
     demo_title: 'About you',
     demo_grade: 'What grade (school year) are you in?',
-    demo_grade_ph: 'e.g. 8',
     demo_grade_invalid: 'Type your grade as a number (1–12).',
     demo_age: 'How old are you?',
     demo_age_choose: 'Choose…',
@@ -173,7 +172,6 @@ const STRINGS = {
     assent_choose: 'Escolha uma opção.',   // draft
     demo_title: 'Sobre você',   // draft
     demo_grade: 'Em que ano escolar você está?',   // draft
-    demo_grade_ph: 'ex.: 8',
     demo_grade_invalid: 'Escreva o seu ano escolar com um número (1–12).',   // draft
     demo_age: 'Quantos anos você tem?',   // draft
     demo_age_choose: 'Escolha…',
