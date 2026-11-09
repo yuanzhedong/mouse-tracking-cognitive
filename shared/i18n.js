@@ -17,6 +17,24 @@ const STRINGS = {
     start_session: 'Start',
     entry_intro: 'You will play two short games and then answer some questions. The whole session takes about 35 minutes. Please do not close this window.',
     resume_note: 'Continue where you left off',
+    assent_title: 'Student Assent Form',
+    assent_p1: 'You are invited to take part in a research study!',   // draft translation of the PT text
+    assent_p2: 'We want to better understand how students make choices in their study routine. You will do some activities on the computer. Before starting, you will get instructions and can practice. You can stop whenever you want, with no problem at all, and this will not affect your grades or school activities.',
+    assent_p3: 'If you have questions or concerns about the study, your parent/guardian or teacher can help you contact Priscilla Zhao at puzhao@stanford.edu, or Karine Roncete at karineroncete@gmail.com or on WhatsApp (31) 99241-6231.',
+    assent_question: 'Did you understand the information, and do you agree to take part in the study?',
+    assent_yes: 'Yes, I want to take part.',
+    assent_no: 'I do not want to take part.',
+    assent_choose: 'Please choose one option.',
+    demo_title: 'About you',
+    demo_grade: 'What grade (school year) are you in?',
+    demo_grade_ph: 'e.g. 8',
+    demo_grade_invalid: 'Type your grade as a number (1–12).',
+    demo_age: 'How old are you?',
+    demo_age_choose: 'Choose…',
+    demo_age_min: '10 or younger',
+    demo_age_max: '19 or older',
+    assent_declined_title: 'Thank you!',
+    assent_declined_text: 'All right — you will not take part in the study. You can tell your teacher.',
 
     /* shared */
     next: 'Next',
@@ -145,6 +163,24 @@ const STRINGS = {
     start_session: 'Começar',
     entry_intro: 'Você vai jogar dois jogos curtos e depois responder a algumas perguntas. A sessão inteira leva cerca de 35 minutos. Não feche esta janela.',
     resume_note: 'Continuar de onde parou',
+    assent_title: 'Termo de Assentimento do(a) Estudante',
+    assent_p1: 'Você está sendo convidado(a) a participar de uma pesquisa!',
+    assent_p2: 'Queremos entender melhor como os estudantes fazem escolhas em sua rotina de estudos. Você vai realizar algumas atividades no computador. Antes de começar, receberá instruções e poderá praticar. Você pode parar quando quiser, sem problema nenhum, e isso não vai afetar suas notas ou atividades escolares.',
+    assent_p3: 'Se tiver dúvidas ou preocupações sobre a pesquisa, seu pai/mãe/responsável ou professor pode ajudá-lo(a) a entrar em contato com Priscilla Zhao pelo e-mail puzhao@stanford.edu, ou com Karine Roncete pelo e-mail karineroncete@gmail.com ou pelo WhatsApp (31) 99241-6231.',
+    assent_question: 'Você entendeu as informações e concorda em participar da pesquisa?',
+    assent_yes: 'Sim, quero participar.',
+    assent_no: 'Não quero participar.',
+    assent_choose: 'Escolha uma opção.',   // draft
+    demo_title: 'Sobre você',   // draft
+    demo_grade: 'Em que ano escolar você está?',   // draft
+    demo_grade_ph: 'ex.: 8',
+    demo_grade_invalid: 'Escreva o seu ano escolar com um número (1–12).',   // draft
+    demo_age: 'Quantos anos você tem?',   // draft
+    demo_age_choose: 'Escolha…',
+    demo_age_min: '10 anos ou menos',
+    demo_age_max: '19 anos ou mais',
+    assent_declined_title: 'Obrigado(a)!',   // draft
+    assent_declined_text: 'Tudo bem — você não vai participar da pesquisa. Pode avisar o(a) professor(a).',   // draft
 
     next: 'Próximo',
     back: 'Voltar',

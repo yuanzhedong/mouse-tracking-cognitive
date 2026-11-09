@@ -76,10 +76,10 @@
   // stimuli.js builds picture paths from Session.ROOT; this page needs only that.
   var Session = { ROOT: '../', lang: 'pt', pick: a => (a && (a.pt || a.en)) || '' };
 </script>
-<script src="../shared/config.js?v=202611030002"></script>
-<script src="../shared/videos.js?v=202611030002"></script>
-<script src="../shared/stimuli.js?v=202611030002"></script>
-<script src="../shared/questions.js?v=202611030002"></script>
+<script src="../shared/config.js?v=202611091438"></script>
+<script src="../shared/videos.js?v=202611091438"></script>
+<script src="../shared/stimuli.js?v=202611091438"></script>
+<script src="../shared/questions.js?v=202611091438"></script>
 <script>
 /* =============================================================
    DATA VIEWER + CHECKS (researchers)
@@ -168,6 +168,12 @@ function checksFor(p){
     const want = Number(p) % 2 === 0 ? 'A' : 'B';
     add('Group', anyRow.mt_version === want ? 'pass' : 'fail', `Task 1 version follows the ID (even → A, odd → B)`, `ID ${p} → ${anyRow.mt_version} (expected ${want})`);
   } else add('Group', 'info', 'Test code', `version ${anyRow.mt_version}`);
+  const as = rowsOf('assent', p);
+  const lastAssent = as.length ? as[as.length - 1].assent : null;
+  const dm = rowsOf('demographics', p).slice(-1)[0];
+  add('About', dm ? 'pass' : 'warn', 'Grade and age saved', dm ? `grade ${dm.grade} · age ${dm.age}` : 'no grade/age saved');
+  add('Assent', lastAssent === 'yes' ? 'pass' : (lastAssent === 'no' ? 'fail' : 'warn'), 'Student assent: yes',
+      lastAssent === 'no' ? 'student answered "Não quero participar" — do not use the data' : (lastAssent ? '' : 'no assent answer saved'));
 
   // ---- Task 1
   const tr = rowsOf('task1_trials', p), tj = rowsOf('task1_trajectories', p);
@@ -264,7 +270,7 @@ function checksFor(p){
     add('Ratings', ra.every(r => r.enjoy >= 1 && r.enjoy <= 5 && r.useful >= 1 && r.useful <= 5) ? 'pass' : 'fail', 'enjoy and useful are 1–5');
   }
   // ---- completion
-  for (const t of ['task1', 'task2', 'survey', 'ratings', 'session'])
+  for (const t of ['assent', 'demographics', 'task1', 'task2', 'survey', 'ratings', 'session'])
     add('Completion', done(t) ? 'pass' : (started(t) ? 'fail' : 'warn'), `${t}: completed`, done(t) ? '' : (started(t) ? 'started, not completed' : 'not started'));
   return C;
 }
@@ -509,6 +515,6 @@ function viewRatings(){
     </tbody></table></div></div></div>`;
 }
 </script>
-<script src="../shared/surveys.js?v=202611030002"></script>
+<script src="../shared/surveys.js?v=202611091438"></script>
 </body>
 </html>

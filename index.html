@@ -19,7 +19,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     min-height: 100vh;
   }
-  .container { max-width: 640px; margin: 0 auto; padding: 40px 20px; }
+  .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
   header {
     display: flex; justify-content: space-between; align-items: baseline;
     padding-bottom: 12px; margin-bottom: 28px;
@@ -39,19 +39,19 @@
     background: var(--panel); border: 1px solid var(--ink);
     padding: 28px 32px;
   }
-  .card p { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
-  label { display: block; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
+  .card p { font-size: clamp(17px, 2.1vw, 22px); line-height: 1.55; margin-bottom: 20px; }
+  label { display: block; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
   input[type=text] {
-    width: 100%; padding: 12px 14px; font-size: 18px; font-family: inherit;
+    width: 100%; padding: 14px 16px; font-size: 22px; font-family: inherit;
     border: 1px solid var(--ink); background: var(--bg); color: var(--ink);
     letter-spacing: 0.06em;
   }
   .err { color: var(--accent); font-size: 13px; margin-top: 8px; min-height: 18px; }
   .big-btn {
     display: block; width: 100%; margin-top: 20px;
-    padding: 14px; border: 1px solid var(--ink);
+    padding: 16px; border: 1px solid var(--ink);
     background: var(--ink); color: var(--bg);
-    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase;
     cursor: pointer; font-family: inherit;
   }
   .big-btn:hover { opacity: 0.9; }
@@ -64,7 +64,7 @@
   details.research code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
   .status { display: inline-block; padding: 1px 8px; border: 1px solid var(--rule); font-size: 11px; }
 </style>
-<link rel="stylesheet" href="shared/touch.css?v=202611030002">
+<link rel="stylesheet" href="shared/touch.css?v=202611091438">
 </head>
 <body>
 <div class="container">
@@ -94,6 +94,8 @@
       Flow: <code id="flow"></code><br>
       Upload endpoint: <span class="status" id="endpointStatus"></span><br>
       Standalone task pages (demo mode, researcher view on):
+      <a href="assent/">assent</a> ·
+      <a href="demographics/">grade + age</a> ·
       <a href="survey/">survey</a> ·
       <a href="ratings/?n=6">ratings (short)</a> ·
       <a href="daily_reset/">daily reset</a> ·
@@ -107,9 +109,9 @@
   </details>
 </div>
 
-<script src="shared/config.js?v=202611030002"></script>
-<script src="shared/i18n.js?v=202611030002"></script>
-<script src="shared/session.js?v=202611030002"></script>
+<script src="shared/config.js?v=202611091438"></script>
+<script src="shared/i18n.js?v=202611091438"></script>
+<script src="shared/session.js?v=202611091438"></script>
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();

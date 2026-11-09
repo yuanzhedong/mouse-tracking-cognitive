@@ -17,7 +17,7 @@
 
   section.block { background: var(--panel); border: 1px solid var(--ink); padding: 26px 30px; margin-bottom: 18px; }
   section.block h2 { font-size: 19px; margin-bottom: 10px; }
-  section.block p.instr { font-size: 15px; line-height: 1.6; margin-bottom: 18px; }
+  section.block p.instr { font-size: clamp(17px, 2vw, 22px); line-height: 1.55; margin-bottom: 20px; }
 
 
   /* top-3 checklist */
@@ -33,13 +33,13 @@
 
   .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; }
   .nav .err { color: var(--accent); font-size: 14px; flex: 1; }
-  .nav button { padding: 12px 34px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-family: inherit; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .nav button { padding: 14px 44px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-family: inherit; font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
   .nav button:hover { opacity: 0.9; }
   .nav button:disabled { opacity: 0.5; cursor: default; }
 
 </style>
-<link rel="stylesheet" href="../shared/survey.css?v=202611030002">
-<link rel="stylesheet" href="../shared/touch.css?v=202611030002">
+<link rel="stylesheet" href="../shared/survey.css?v=202611091438">
+<link rel="stylesheet" href="../shared/touch.css?v=202611091438">
 </head>
 <body>
 <div class="container">
@@ -55,11 +55,11 @@
   </div>
 </div>
 
-<script src="../shared/config.js?v=202611030002"></script>
-<script src="../shared/i18n.js?v=202611030002"></script>
-<script src="../shared/surveys.js?v=202611030002"></script>
-<script src="../shared/session.js?v=202611030002"></script>
-<script src="../shared/surveyrunner.js?v=202611030002"></script>
+<script src="../shared/config.js?v=202611091438"></script>
+<script src="../shared/i18n.js?v=202611091438"></script>
+<script src="../shared/surveys.js?v=202611091438"></script>
+<script src="../shared/session.js?v=202611091438"></script>
+<script src="../shared/surveyrunner.js?v=202611091438"></script>
 <script>
 Session.applyI18n();
 document.title = Session.t('survey_title');

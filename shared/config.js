@@ -12,7 +12,7 @@ const CONFIG = {
   // Student session order (team doc 10/28). Each step is a page;
   // Session.next() walks it. Not in the flow but still available as pages:
   // 'daily_reset', 'allocation'.
-  FLOW: ['task1', 'task2', 'survey', 'ratings', 'done'],
+  FLOW: ['assent', 'demographics', 'task1', 'task2', 'survey', 'ratings', 'done'],
 
   // Ratings (stimulus norming)
   RATINGS_ACTIVITIES_N: 90,   // how many of the 90 activities each student rates (?n= overrides)

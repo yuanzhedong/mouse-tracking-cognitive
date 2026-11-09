@@ -9,11 +9,14 @@ switch on the entry page.
 ## Student session flow (team doc 10/28)
 
 ```
-index.html → task1/ → task2/ → survey/ → ratings/ → done.html
- entry +     Game 1    Game 2   8-item    activities  thank-you
- groups      mouse-    ADT      self-     + videos
-             tracking           report
+index.html → assent/ → demographics/ → task1/ → task2/ → survey/ → ratings/ → done.html
+ entry +     student   grade +         Game 1    Game 2   8-item    activities  thank-you
+ groups      assent    age             mouse-    ADT      self-     (enjoy /
+                                       tracking           report    useful)
 ```
+
+On the assent page "Não quero participar" ends the session there; the
+answer is saved either way (`assent` table).
 
 **The single student link is the site root** (`index.html`). The student
 types their code (case and spaces are ignored: `s 001` = `S001`); the entry

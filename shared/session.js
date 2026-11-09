@@ -242,7 +242,7 @@ const Session = (() => {
   function currentStep(){
     const p = location.pathname;
     if (/\/done\.html$/.test(p)) return 'done';
-    const m = p.match(/\/(survey|ratings|daily_reset|task1|allocation|task2)\/?(index\.html)?$/);
+    const m = p.match(/\/(assent|demographics|survey|ratings|daily_reset|task1|allocation|task2)\/?(index\.html)?$/);
     return m ? m[1] : 'entry';
   }
   function urlFor(step, extra = {}){

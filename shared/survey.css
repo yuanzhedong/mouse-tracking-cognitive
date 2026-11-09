@@ -6,13 +6,13 @@
   padding: 12px 0; border-top: 1px solid var(--rule);
 }
 .likert .lk-item:first-child { border-top: 0; padding-top: 4px; }
-.likert .lk-stmt { font-size: 15px; line-height: 1.4; }
+.likert .lk-stmt { font-size: clamp(16px, 1.7vw, 20px); line-height: 1.4; }
 .likert .lk-item.missing .lk-stmt { color: var(--accent); }
 .likert .lk-opts { display: grid; gap: 6px; }
 .likert .lk-opts label {
   display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 5px;
   padding: 8px 3px; border: 1px solid var(--rule); background: var(--bg); height: 100%;
-  font-size: 11px; line-height: 1.2; text-align: center; color: var(--ink);
+  font-size: clamp(12px, 1.1vw, 14px); line-height: 1.25; text-align: center; color: var(--ink);
   cursor: pointer; user-select: none;
 }
 .likert .lk-opts label:hover { border-color: var(--ink); }
@@ -20,11 +20,11 @@
 .likert .lk-opts input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 /* ratings page: question in the first column, 5 options to its right */
 .likert.rating .lk-item { grid-template-columns: minmax(220px, 1fr) minmax(0, 1.9fr); padding: 14px 0; }
-.likert.rating .lk-stmt { font-size: 16px; }
-.likert.rating .lk-opts label { font-size: 13px; padding: 10px 4px; }
+.likert.rating .lk-stmt { font-size: clamp(17px, 1.8vw, 21px); }
+.likert.rating .lk-opts label { font-size: clamp(13px, 1.25vw, 16px); padding: 10px 4px; }
 @media (max-width: 900px) {
   .likert .lk-item { grid-template-columns: 1fr; gap: 10px; }
-  .likert .lk-stmt { font-size: 16px; }
+  .likert .lk-stmt { font-size: 18px; }
 }
 @media (max-width: 640px) {
   .likert .lk-opts { grid-template-columns: 1fr !important; }
