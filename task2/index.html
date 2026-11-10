@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 2</title>
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611091459">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611092015">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -57,6 +57,15 @@
     cursor: pointer; font-family: inherit;
   }
   .intro .big-btn:hover { opacity: 0.9; }
+  /* G2 / G3 estimates */
+  .est-q { margin-bottom: 26px; }
+  .est-q label { display: block; font-size: clamp(17px, 2.1vw, 23px); font-weight: 600; line-height: 1.45; margin-bottom: 10px; }
+  .est-scale { margin: 0 0 12px 20px; font-size: clamp(15px, 1.8vw, 19px); color: var(--soft); line-height: 1.6; }
+  .est-row { display: flex; align-items: center; gap: 12px; font-size: clamp(17px, 2.1vw, 23px); }
+  .est-input { width: 130px; padding: 10px 12px; font-size: clamp(22px, 3vw, 30px); text-align: center; font-family: inherit;
+               border: 1px solid var(--ink); background: var(--bg); color: var(--ink); border-radius: 0; user-select: text; -webkit-user-select: text; }
+  .est-input.missing { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .intro .err { color: var(--accent); min-height: 22px; margin-top: 4px; font-size: 17px; text-align: center; }
 
   /* ---------- lock-screen instructions ---------- */
   .lock-options { display: flex; flex-direction: column; gap: 14px; margin-top: 22px; }
@@ -272,7 +281,7 @@
   .hidden { display: none !important; }
   @media (max-width: 700px) { main.split { grid-template-columns: 1fr; } }   /* iPad portrait keeps the split */
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611091459">
+<link rel="stylesheet" href="../shared/touch.css?v=202611092015">
 </head>
 <body>
 <div class="container">
@@ -303,6 +312,42 @@
     <button class="big-btn" id="block1Btn" data-i18n="start"></button>
   </section>
 
+  <!-- G2 / G3 (estimate versions), after the practice instead of #practiceDone:
+       page 1 instructions → page 2 estimates → page 3 start; G2 also gets
+       #feedback after round 1 -->
+  <section class="intro hidden" id="estIntro">
+    <h2 data-i18n="t2e_well_done"></h2>
+    <p id="estRounds"></p>
+    <p data-i18n="t2e_practice_helps"></p>
+    <p data-i18n="t2e_math"></p>
+    <p><b data-i18n="t2e_before"></b></p>
+    <button class="big-btn" id="estIntroBtn" data-i18n="continue_"></button>
+  </section>
+  <section class="intro hidden" id="estForm">
+    <div class="est-q">
+      <label for="estCorrect" id="estCorrectQ"></label>
+      <div class="est-row"><input type="text" class="est-input" id="estCorrect" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"><span data-i18n="t2e_questions"></span></div>
+    </div>
+    <div class="est-q">
+      <label for="estVideo" id="estVideoQ"></label>
+      <ul class="est-scale"><li data-i18n="t2e_pct_0"></li><li id="estPct50"></li><li id="estPct100"></li></ul>
+      <div class="est-row"><input type="text" class="est-input" id="estVideo" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"><span>% (0–100)</span></div>
+    </div>
+    <div class="err" id="estErr"></div>
+    <button class="big-btn" id="estFormBtn" data-i18n="continue_"></button>
+  </section>
+  <section class="intro hidden" id="estStart">
+    <h2 data-i18n="t2_pd_start"></h2>
+    <p id="estRound1Len"></p>
+    <button class="big-btn" id="estStartBtn" data-i18n="t2e_start_round1"></button>
+  </section>
+  <section class="intro hidden" id="feedback">
+    <h2 data-i18n="t2e_fb_title"></h2>
+    <p id="fbCorrect"></p>
+    <p id="fbVideo"></p>
+    <button class="big-btn" id="feedbackBtn" data-i18n="continue_"></button>
+  </section>
+
   <!-- lock-screen instructions (shown after block 1) -->
   <section class="intro hidden" id="lockScreen">
     <p id="lockIntro"></p>
@@ -313,10 +358,10 @@
       </div>
       <div class="choice-info">
         <div class="t" data-i18n="t2_keep"></div>
-        <div class="d" data-i18n="t2_keep_desc"></div>
+        <div class="d" id="keepDesc"></div>
       </div>
     </div>
-    <p class="lock-note" data-i18n="t2_no_wrong"></p>
+    <p class="lock-note" id="lockNote" data-i18n="t2_no_wrong"></p>
     <button class="big-btn" id="lockContinue" data-i18n="continue_"></button>
   </section>
 
@@ -408,13 +453,13 @@
 
 </div>
 
-<script src="../shared/config.js?v=202611091459"></script>
-<script src="../shared/i18n.js?v=202611091459"></script>
-<script src="../shared/session.js?v=202611091459"></script>
-<script src="../shared/questions.js?v=202611091459"></script>
-<script src="../shared/videos.js?v=202611091459"></script>
-<script src="../shared/mousetracking.js?v=202611091459"></script>
-<script src="../shared/dragcursor.js?v=202611091459"></script>
+<script src="../shared/config.js?v=202611092015"></script>
+<script src="../shared/i18n.js?v=202611092015"></script>
+<script src="../shared/session.js?v=202611092015"></script>
+<script src="../shared/questions.js?v=202611092015"></script>
+<script src="../shared/videos.js?v=202611092015"></script>
+<script src="../shared/mousetracking.js?v=202611092015"></script>
+<script src="../shared/dragcursor.js?v=202611092015"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -440,7 +485,14 @@ const secParam = (name, dflt) => {
 };
 const PRACTICE_SEC = secParam('practice', CONFIG.TASK2_PRACTICE_SEC);
 const B1_SEC = secParam('b1', secParam('dur', CONFIG.TASK2_BLOCK1_SEC)); // block 1, before the lock choice
-const B2_SEC = secParam('b2', secParam('dur', CONFIG.TASK2_BLOCK2_SEC)); // block 2, after it
+/* ADT version (Session.adt): G1 as before; G2 estimate + feedback; G3
+   estimate only. Practice is the same in all three. G2 / G3: after the
+   practice, three pages (instructions → estimates for round 1 → start),
+   round 1, then G2 sees its round-1 results, then the lock choice (own
+   wording) and round 2, which lasts 4 minutes instead of 3. */
+const ADT = Session.adt;
+const ESTIMATE = ADT === 'G2' || ADT === 'G3';
+const B2_SEC = secParam('b2', secParam('dur', ESTIMATE ? CONFIG.TASK2_BLOCK2_SEC_ESTIMATE : CONFIG.TASK2_BLOCK2_SEC)); // block 2, after it
 const PHASE_SEC = { practice: PRACTICE_SEC, block1: B1_SEC, block2: B2_SEC };
 const TICK_MS = 200;
 const REVIEW = Session.review;
@@ -458,7 +510,18 @@ document.title = Session.t('t2_title');
   document.getElementById('intro2').innerHTML = Session.t('t2_intro_2');
   document.getElementById('lockIntro').innerHTML = Session.t('t2_lock_intro', { min: mainMin });
   document.getElementById('pdTime').textContent = Session.t('t2_pd_time', { min: Math.round((B1_SEC + B2_SEC) / 60) });
-  document.getElementById('putAwayDesc').textContent = Session.t('t2_put_away_desc', { min: mainMin });
+  const lockKey = Session.adt === 'G3' ? 't2e3_' : Session.adt === 'G2' ? 't2e2_' : 't2_';
+  if (lockKey !== 't2_') document.getElementById('lockIntro').innerHTML = Session.t(lockKey + 'lock_intro', { min: mainMin });
+  document.getElementById('putAwayDesc').textContent = Session.t(lockKey + 'put_away_desc', { min: mainMin });
+  document.getElementById('keepDesc').textContent = Session.t(lockKey + 'keep_desc');
+  if (lockKey !== 't2_') document.getElementById('lockNote').textContent = Session.t('t2e_no_wrong');
+  const r1 = Math.round(B1_SEC / 60);
+  document.getElementById('estRounds').textContent = Session.t('t2e_rounds', { min: r1 });
+  document.getElementById('estCorrectQ').textContent = Session.t('t2e_q_correct', { min: r1 });
+  document.getElementById('estVideoQ').textContent = Session.t('t2e_q_video', { min: r1 });
+  document.getElementById('estPct50').textContent = Session.t('t2e_pct_50', { half: +(B1_SEC / 120).toFixed(1) });
+  document.getElementById('estPct100').textContent = Session.t('t2e_pct_100', { min: r1 });
+  document.getElementById('estRound1Len').textContent = Session.t('t2e_round1_len', { min: r1 });
 }
 
 // VIDEOS comes from ../shared/videos.js; QuestionBank from ../shared/questions.js
@@ -475,7 +538,7 @@ function shuffle(arr){
 }
 
 const state = {
-  phase: 'intro',        // intro | practice | practice_done | block1 | lock | block2 | done
+  phase: 'intro',        // intro | practice | practice_done | block1 | feedback (G2) | lock | block2 | done
   startTime: null,
   phaseElapsedMs: 0,
   phaseSec: PRACTICE_SEC,
@@ -674,7 +737,7 @@ function tick(){
   $('timeLeft').textContent = `${mm}:${String(ss).padStart(2, '0')}`;
   if (remain <= 0){
     if (state.phase === 'practice')    showPracticeDone();
-    else if (state.phase === 'block1') enterLockScreen();
+    else if (state.phase === 'block1'){ round1Results(); ADT === 'G2' ? showFeedback() : enterLockScreen(); }
     else                               endSession();
   }
 }
@@ -699,10 +762,65 @@ function pauseSplit(){
 function showPracticeDone(){
   pauseSplit();
   state.phase = 'practice_done';
-  $('practiceDone').classList.remove('hidden');
-  logEvent('practice_done_shown');
+  $(ESTIMATE ? 'estIntro' : 'practiceDone').classList.remove('hidden');
+  logEvent('practice_done_shown', { adt_version: ADT });
   saveEvents();
 }
+
+/* ---------- G2 / G3: estimates before round 1, G2: feedback after ---------- */
+
+const est = { correct: null, videoPct: null, shownAt: 0, ms: null, round1Correct: null, round1VideoPct: null };
+$('estIntroBtn').addEventListener('click', () => {
+  if (state.phase !== 'practice_done') return;
+  $('estIntro').classList.add('hidden');
+  $('estForm').classList.remove('hidden');
+  est.shownAt = performance.now();
+  $('estCorrect').focus();
+});
+['estCorrect', 'estVideo'].forEach(id => $(id).addEventListener('input', () => {
+  $(id).value = $(id).value.replace(/\D/g, '');          // whole numbers only
+  $(id).classList.remove('missing');
+  $('estErr').textContent = '';
+}));
+$('estFormBtn').addEventListener('click', () => {
+  const c = $('estCorrect').value, v = $('estVideo').value;
+  const okC = c !== '' && +c <= 200, okV = v !== '' && +v <= 100;
+  $('estCorrect').classList.toggle('missing', !okC);
+  $('estVideo').classList.toggle('missing', !okV);
+  if (!okC || !okV){
+    $('estErr').textContent = Session.t(c === '' || v === '' ? 'please_answer_all' : (!okV ? 't2e_err_pct' : 't2e_err_correct'));
+    return;
+  }
+  est.correct = +c; est.videoPct = +v; est.ms = Math.round(performance.now() - est.shownAt);
+  logEvent('estimate', { est_correct: est.correct, est_video_pct: est.videoPct, rt_ms: est.ms });
+  $('estForm').classList.add('hidden');
+  $('estStart').classList.remove('hidden');
+});
+$('estStartBtn').addEventListener('click', () => {
+  if (state.phase !== 'practice_done') return;
+  $('estStart').classList.add('hidden');
+  beginPhase('block1', B1_SEC);
+});
+
+// round-1 results: correct answers and the share of the round on the video side
+function round1Results(){
+  est.round1Correct = state.events.filter(e => e.phase === 'block1' && e.type === 'answer' && e.is_correct).length;
+  est.round1VideoPct = Math.round(100 * state.dwell.block1.video / (B1_SEC * 1000));
+}
+function showFeedback(){
+  pauseSplit();
+  state.phase = 'feedback';
+  $('fbCorrect').textContent = Session.t('t2e_fb_correct', { n: est.round1Correct });
+  $('fbVideo').textContent = Session.t('t2e_fb_video', { pct: est.round1VideoPct });
+  $('feedback').classList.remove('hidden');
+  logEvent('feedback_shown', { round1_correct: est.round1Correct, round1_video_pct: est.round1VideoPct });
+  saveEvents();
+}
+$('feedbackBtn').addEventListener('click', () => {
+  if (state.phase !== 'feedback') return;
+  $('feedback').classList.add('hidden');
+  enterLockScreen();
+});
 $('block1Btn').addEventListener('click', () => {
   if (state.phase !== 'practice_done') return;
   $('practiceDone').classList.add('hidden');
@@ -738,6 +856,7 @@ function startSession(){
 
 function enterLockScreen(){
   pauseSplit();
+  $('feedback').classList.add('hidden');
   state.phase = 'lock';
   $('lockScreen').classList.remove('hidden');
   logEvent('lock_instructions_shown');
@@ -969,7 +1088,11 @@ function summaryRow(){
   const correct   = state.events.filter(e => e.type === 'answer' && e.is_correct).length;
   const d = state.dwell, m = state.lockMetrics;
   return {
+    adt_version: ADT,
     practice_sec: PRACTICE_SEC, block1_sec: B1_SEC, block2_sec: B2_SEC,
+    est_correct: est.correct ?? '', est_video_pct: est.videoPct ?? '', est_ms: est.ms ?? '',
+    round1_correct: est.round1Correct ?? '', round1_video_pct: est.round1VideoPct ?? '',
+    feedback_shown: ADT === 'G2' ? 1 : 0,
     lock_choice: state.lockChoice,
     lock_auc: m ? +m.auc.toFixed(6) : '', lock_md: m ? +m.md.toFixed(6) : '', lock_x_flips: m ? m.xFlips : '',
     points: state.points, attempted, correct,

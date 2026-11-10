@@ -15,8 +15,8 @@ const CONFIG = {
   FLOW: ['assent', 'demographics', 'task1', 'task2', 'survey', 'ratings', 'done'],
 
   // Ratings (stimulus norming)
-  RATINGS_ACTIVITIES_N: 90,   // how many of the 90 activities each student rates (?n= overrides)
-  RATINGS_SAVE_EVERY: 15,     // upload activity ratings in chunks of this size
+  RATINGS_ACTIVITIES_N: 15,   // each student rates 15 of the 90 activities, picked at random (?n= overrides)
+  RATINGS_SAVE_EVERY: 5,      // upload activity ratings in chunks of this size
 
   // Task 1 — goal–temptation mouse-tracking (trial order: TASK1_TRIAL_LIST
   // in shared/stimuli.js; ?trials=N runs only the first N)
@@ -37,5 +37,6 @@ const CONFIG = {
   // question → block 2. ?practice=, ?b1=, ?b2= override (?dur= sets both blocks).
   TASK2_PRACTICE_SEC: 30,
   TASK2_BLOCK1_SEC: 4 * 60,
-  TASK2_BLOCK2_SEC: 3 * 60,
+  TASK2_BLOCK2_SEC: 3 * 60,            // G1
+  TASK2_BLOCK2_SEC_ESTIMATE: 4 * 60,   // G2 / G3 (estimate versions): two rounds of 4 minutes
 };

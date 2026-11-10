@@ -113,9 +113,26 @@ const Session = (() => {
     if (code) lsSet('grp_load_' + code, v);
     return v;
   }
+  /* ADT (Task 2) version: G1 as before | G2 estimate + feedback | G3
+     estimate only. Student IDs set it in blocks of 6 (1000–1005 G1,
+     1006–1011 G2, 1012–1017 G3, 1018 G1, …), so every 18 consecutive IDs
+     cover all 18 combinations with Task 1's 6 groups. Test codes pick it
+     with a digit after the load letter (TESTAL2… → G2); other test codes get
+     a random one. The URL value (carried page to page) wins. */
+  const ADTS = ['G1', 'G2', 'G3'];
+  function adtFor(code, params = qs){
+    let v = params.get('adt');
+    if (!ADTS.includes(v) && /^\d+$/.test(code)) v = ADTS[(((Math.floor((Number(code) - 1000) / 6)) % 3) + 3) % 3];
+    if (!ADTS.includes(v) && code) v = { 1: 'G1', 2: 'G2', 3: 'G3' }[(code.match(/^TEST[AB][NLH]([123])/) || [])[1]];
+    if (!ADTS.includes(v) && code) v = lsGet('grp_adt_' + code);   // earlier random draw for this code
+    if (!ADTS.includes(v)) v = code ? ADTS[Math.floor(Math.random() * 3)] : 'G1';
+    if (code) lsSet('grp_adt_' + code, v);
+    return v;
+  }
   const { mt, hz } = assignGroups(pid);
   const load = loadFor(pid);
-  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), load_condition: load, horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz),
+  const adt = adtFor(pid);
+  const groupCols = { mt_version: mt, mt_rand: GROUPS.mt.indexOf(mt), load_condition: load, adt_version: adt, horizon_group: hz, hz_rand: GROUPS.hz.indexOf(hz),
                       group_source: (pid && lsGet('grp_src_' + pid)) || (qs.get('mt') ? 'url' : '') };
 
   const sessionId = (() => {
@@ -266,7 +283,7 @@ const Session = (() => {
     const params = new URLSearchParams(qs);
     if (pid) params.set('pid', pid);
     params.set('lang', lang);
-    params.set('mt', mt); params.set('hz', hz); params.set('load', load);
+    params.set('mt', mt); params.set('hz', hz); params.set('load', load); params.set('adt', adt);
     params.delete('cond');
     for (const [k, v] of Object.entries(extra)) params.set(k, v);
     const page = step === 'entry' ? 'index.html' : step === 'done' ? 'done.html' : step + '/';
@@ -313,7 +330,7 @@ const Session = (() => {
   setInterval(flushPending, 45000);
   window.addEventListener('online', flushPending);
 
-  return { ROOT, pid, standalone, review, lang, mt, hz, load, loadFor, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
+  return { ROOT, pid, standalone, review, lang, mt, hz, load, loadFor, adt, adtFor, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
            t, pick, applyI18n, save, status, log, next, go, urlFor, langUrl, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };

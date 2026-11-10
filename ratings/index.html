@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="../shared/survey.css?v=202611091459">
+<link rel="stylesheet" href="../shared/survey.css?v=202611092015">
 <title>Ratings</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202611091459">
+<link rel="stylesheet" href="../shared/activity.css?v=202611092015">
 <style>
   :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -38,7 +38,7 @@
   .nav button:disabled { opacity: 0.5; cursor: default; }
   .hidden { display: none !important; }
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611091459">
+<link rel="stylesheet" href="../shared/touch.css?v=202611092015">
 </head>
 <body>
 <div class="container">
@@ -69,18 +69,17 @@
   </section>
 </div>
 
-<script src="../shared/config.js?v=202611091459"></script>
-<script src="../shared/i18n.js?v=202611091459"></script>
-<script src="../shared/videos.js?v=202611091459"></script>
-<script src="../shared/stimuli.js?v=202611091459"></script>
-<script src="../shared/session.js?v=202611091459"></script>
+<script src="../shared/config.js?v=202611092015"></script>
+<script src="../shared/i18n.js?v=202611092015"></script>
+<script src="../shared/videos.js?v=202611092015"></script>
+<script src="../shared/stimuli.js?v=202611092015"></script>
+<script src="../shared/session.js?v=202611092015"></script>
 <script>
 /* =============================================================
    RATINGS — stimulus norming (doc "Task 1 Candidate Activity Stimuli v2")
-   Part A: each activity on two 0–100 sliders (enjoyable now / useful for
-           the quiz). Order shuffled per student across the 3 categories.
-   Part B: each video preview (thumbnail) on one 0–100 interest slider.
-   Sliders start "untouched" (no anchoring value shown) and must be moved.
+   Each student rates CONFIG.RATINGS_ACTIVITIES_N (15) of the 90 activities,
+   picked at random and shown in random order, on two 5-point questions
+   (enjoyable now / useful for the quiz).
    ============================================================= */
 
 const $ = id => document.getElementById(id);

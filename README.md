@@ -30,7 +30,7 @@ so a closed window can resume from the entry page.
 | `task1/` | instructions (version A or B, doc text) → 3 practice rounds (fixed study-vs-other pairs, not scored) → **60 trials in one fixed order** (`shared/task1_trial_list_60.csv`: 30 goal–temptation + 30 goal–neutral picked from `Task1_trial_list_60x60`, each study activity twice, every other activity once, sides balanced), illustrated cards from `Task1_activity_illustrations` | `task1_trials`, `task1_trajectories` |
 | `task2/` | split-screen ADT (doc text, 4 screens): practice 30 s ("Sessão de prática" + timer) → block 1, 4 min → lock-screen question (put the videos away / keep them; mouse-tracked) → block 2, 3 min. No time-remaining display in the blocks | `task2_events`, `task2_summary` |
 | `survey/` | 8-item self-report, 7-point agree scale (doc 10/28) | `survey` |
-| `ratings/` | the 90 activity cards, shuffled, each with two 5-point questions with labelled options (Nada agradável … Extremamente agradável; Nada útil … Extremamente útil), saved 1–5 (video ratings removed 10/30) | `activity_ratings` |
+| `ratings/` | 15 of the 90 activity cards, picked at random per student, each with two 5-point questions with labelled options (Nada agradável … Extremamente agradável; Nada útil … Extremamente útil), saved 1–5 (video ratings removed 10/30) | `activity_ratings` |
 | all | task start / end | `task_status` (`completion_status`: not_completed / completed) |
 | all | milestones | `session_log` |
 
@@ -46,13 +46,14 @@ carried in every page URL; a reload or restart never re-randomizes). The
 **Task 1 version follows the student ID: even → A, odd → B** (1000 A, 1001 B,
 …), so IDs handed out in order split exactly 50/50; `TESTA…` / `TESTB…` codes
 get A / B. The allocation horizon (weeks / months) is dealt by the server from
-shuffled blocks of 4 (a coin flip without the server). Every saved row carries `mt_version`, `load_condition`, `horizon_group` and
+shuffled blocks of 4 (a coin flip without the server). Every saved row carries `mt_version`, `load_condition`, `adt_version`, `horizon_group` and
 `group_source` (`server` / `local` / `url`).
 
 | group | | |
 |---|---|---|
 | `mt` — Task 1 prompt | **A** "Você terá uma prova em breve. Qual atividade você gostaria de fazer agora?" | **B** "Você terá uma prova em breve. Qual atividade mais ajudaria você a ir bem na prova?" |
 | `load` — Task 1 memory load (by ID in pairs: 1000/1001 none, 1002/1003 low, 1004/1005 high, …; test codes `TESTAN/AL/AH…`, `TESTBN/BL/BH…`) | **low**: remember **74**; **high**: remember **58319**; shown after the practice (Continue any time, moves on by itself at 25 s), typed back after the 60 trials (`task1_recall`) | **none**: no number screens |
+| `adt` — ADT version (by ID in blocks of 6: 1000–1005 G1, 1006–1011 G2, 1012–1017 G3, …; test codes `TEST[AB][NLH][123]…`) | **G2**: after the practice, estimate round 1 (questions correct, % of time on videos), see round-1 results, lock choice, round 2 = 4 min; **G3**: same without the results | **G1**: as before (round 2 = 3 min) |
 | `hz` — allocation horizon (allocation not in the flow) | **weeks**: 1 week / 2 weeks from now | **months**: 1 month / 2 months from now |
 
 ### Task 1 recording
@@ -107,7 +108,7 @@ active. Switch events record `via` (`hover` / `tap` / `click`).
 | `lang=pt\|en` | any page | language (default `pt`; also set by the entry page switch) |
 | `mt=A\|B`, `hz=weeks\|months` | any page | force a pilot group |
 | `review=1` | any page | researcher views: researcher panel on the entry page, trajectory plots, metrics, CSV buttons |
-| `n=N` | ratings | number of activities to rate (default all 90) |
+| `n=N` | ratings | number of activities to rate (default 15, picked at random) |
 | `practice=N`, `trials=N` | task1 | practice rounds / run only the first N trials of the list |
 | `practice=SEC`, `b1=SEC`, `b2=SEC`, `dur=SEC` | task2 | phase lengths (`dur` sets both blocks) |
 

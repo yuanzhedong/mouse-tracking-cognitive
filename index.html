@@ -64,7 +64,7 @@
   details.research code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
   .status { display: inline-block; padding: 1px 8px; border: 1px solid var(--rule); font-size: 11px; }
 </style>
-<link rel="stylesheet" href="shared/touch.css?v=202611091459">
+<link rel="stylesheet" href="shared/touch.css?v=202611092015">
 </head>
 <body>
 <div class="container">
@@ -108,9 +108,9 @@
   </details>
 </div>
 
-<script src="shared/config.js?v=202611091459"></script>
-<script src="shared/i18n.js?v=202611091459"></script>
-<script src="shared/session.js?v=202611091459"></script>
+<script src="shared/config.js?v=202611092015"></script>
+<script src="shared/i18n.js?v=202611092015"></script>
+<script src="shared/session.js?v=202611092015"></script>
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
@@ -186,6 +186,7 @@ async function start(step){
   if (forced){ g.mt = forced; try { localStorage.setItem('sc_grp_mt_' + v, forced); } catch (e) {} }
   p.set('pid', v); p.set('lang', Session.lang); p.set('mt', g.mt); p.set('hz', g.hz); p.delete('cond');
   p.set('load', Session.loadFor(v, p));   // Task 1 memory load (by ID, see shared/session.js)
+  p.set('adt', Session.adtFor(v, p));     // ADT version G1 / G2 / G3 (by ID)
   location.href = (step === 'done' ? 'done.html' : step + '/') + '?' + p.toString();
 }
 $('startBtn').addEventListener('click', () => {

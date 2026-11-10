@@ -64,6 +64,11 @@ lands on another listed number is not — check `given_to` when in doubt.
   none, … — so the 6 groups (prompt A/B × none/low/high) stay balanced when
   IDs are handed out in order. Test codes: `TESTAN…`, `TESTAL…`, `TESTAH…`
   (version A with none / low / high) and the same with `TESTB…`.
+- The ADT version (G1 as before, G2 estimate + feedback, G3 estimate only)
+  follows the ID in blocks of 6: 1000–1005 G1, 1006–1011 G2, 1012–1017 G3,
+  1018–1023 G1, … — every 18 consecutive IDs cover all 18 combinations with
+  the Task 1 groups. In test codes a digit after the load letter picks it:
+  `TESTAL2…` = version A, low load, G2.
 - The list lives only in this spreadsheet, never in the public repo.
   Deleting a row disables that ID within 10 minutes.
 - Each ID works on one device only: the first browser that uses it can
@@ -113,12 +118,12 @@ the next `buildSheets` run:
 | `task1_trajectories` | Task 1 trial | `t_ms`, `x`, `y` (JSON arrays: every ~16 ms from the options appearing to the choice, px in the stage), `x_norm`, `y_norm` (101 time-normalized bins) |
 |  |  | Long format (one row per sample): `python3 analysis/export_task1_trajectories.py <downloaded data folder> -o trajectories.csv` |
 | `task2_events` | Task 2 logged event | `type`, `phase` (practice / block1 / lock / block2), `t_ms`, answer / video / lock fields; `lock_trajectory` holds the lock trial's raw samples |
-| `task2_summary` | Task 2 session | `lock_choice`, `lock_auc`, `points`, `block1_study_ms`, `block1_video_ms`, `block2_study_ms`, `block2_video_ms`, `switches` |
+| `task2_summary` | Task 2 session | `adt_version`, `est_correct`, `est_video_pct` (G2/G3 estimates for round 1), `round1_correct`, `round1_video_pct`, `feedback_shown` (G2), `lock_choice`, `lock_auc`, `points`, `block1_study_ms`, `block1_video_ms`, `block2_study_ms`, `block2_video_ms`, `switches` |
 | `survey` | answered item | `section` (self_report), `item` (1–8), `value` (1–7), `label` |
-| `activity_ratings` | rated activity | `activity_id`, `category`, `image`, `enjoy`, `useful` (1–5), `order_idx`, `rt_ms` |
+| `activity_ratings` | rated activity (15 random of the 90 per student) | `activity_id`, `category`, `image`, `enjoy`, `useful` (1–5), `order_idx`, `rt_ms` |
 
 Every row also carries `pid`, `session_id` (unique per sitting), `step`,
-`lang`, `mt_version`, `load_condition`, `horizon_group`, `group_source` (server / local / url),
+`lang`, `mt_version`, `load_condition`, `adt_version`, `horizon_group`, `group_source` (server / local / url),
 `client_ts`, `save_id` and `server_ts`.
 
 ## Notes

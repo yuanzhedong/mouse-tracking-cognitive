@@ -76,10 +76,10 @@
   // stimuli.js builds picture paths from Session.ROOT; this page needs only that.
   var Session = { ROOT: '../', lang: 'pt', pick: a => (a && (a.pt || a.en)) || '' };
 </script>
-<script src="../shared/config.js?v=202611091459"></script>
-<script src="../shared/videos.js?v=202611091459"></script>
-<script src="../shared/stimuli.js?v=202611091459"></script>
-<script src="../shared/questions.js?v=202611091459"></script>
+<script src="../shared/config.js?v=202611092015"></script>
+<script src="../shared/videos.js?v=202611092015"></script>
+<script src="../shared/stimuli.js?v=202611092015"></script>
+<script src="../shared/questions.js?v=202611092015"></script>
 <script>
 /* =============================================================
    DATA VIEWER + CHECKS (researchers)
@@ -248,9 +248,27 @@ function checksFor(p){
     add('ADT', miss.length ? 'fail' : 'pass', 'All phases present (practice → block 1 → lock → block 2)', miss.length ? 'missing: ' + miss.join(', ') : '');
     const starts = ev.filter(e => e.type === 'phase_start');
     const durs = starts.map(e => `${e.phase} ${e.duration_sec}s`).join(' · ');
-    const exp = { practice: CONFIG.TASK2_PRACTICE_SEC, block1: CONFIG.TASK2_BLOCK1_SEC, block2: CONFIG.TASK2_BLOCK2_SEC };
+    // ADT version: G1 as before; G2 estimate + feedback; G3 estimate only (round 2 = 4 min)
+    const adt = anyRow.adt_version;
+    const ADTS = ['G1', 'G2', 'G3'];
+    if (real){
+      const wantG = ADTS[(((Math.floor((Number(p) - 1000) / 6)) % 3) + 3) % 3];
+      add('ADT', adt === wantG ? 'pass' : 'fail', 'ADT version follows the ID (blocks of 6: 1000–1005 G1, 1006–1011 G2, 1012–1017 G3, …)', `ID ${p} → ${adt ?? '—'} (expected ${wantG})`);
+    } else add('ADT', ADTS.includes(adt) ? 'info' : 'warn', 'ADT version', adt ?? 'not recorded');
+    const estV = adt === 'G2' || adt === 'G3';
+    const b2 = estV ? CONFIG.TASK2_BLOCK2_SEC_ESTIMATE : CONFIG.TASK2_BLOCK2_SEC;
+    const exp = { practice: CONFIG.TASK2_PRACTICE_SEC, block1: CONFIG.TASK2_BLOCK1_SEC, block2: b2 };
     const short = starts.some(e => exp[e.phase] && Number(e.duration_sec) !== exp[e.phase]);
-    add('ADT', short ? 'warn' : 'pass', `Phase lengths ${CONFIG.TASK2_PRACTICE_SEC}s / ${CONFIG.TASK2_BLOCK1_SEC}s / ${CONFIG.TASK2_BLOCK2_SEC}s`, durs + (short ? ' (shortened test run?)' : ''));
+    add('ADT', short ? 'warn' : 'pass', `Phase lengths ${CONFIG.TASK2_PRACTICE_SEC}s / ${CONFIG.TASK2_BLOCK1_SEC}s / ${b2}s`, durs + (short ? ' (shortened test run?)' : ''));
+    const es = ev.find(e => e.type === 'estimate'), fb = ev.find(e => e.type === 'feedback_shown');
+    if (estV){
+      const okE = es && Number(es.est_correct) >= 0 && Number(es.est_correct) <= 200 && Number(es.est_video_pct) >= 0 && Number(es.est_video_pct) <= 100;
+      add('ADT', okE ? 'pass' : 'fail', 'Round-1 estimates saved (questions 0–200, video 0–100%)', es ? `${es.est_correct} questions · ${es.est_video_pct}% video` : 'missing');
+    } else add('ADT', es ? 'fail' : 'pass', 'G1: no estimate pages', es ? 'estimate found' : '');
+    if (adt === 'G2'){
+      const c1 = ev.filter(e => e.phase === 'block1' && e.type === 'answer' && (e.is_correct === true || e.is_correct === 'true')).length;
+      add('ADT', fb && Number(fb.round1_correct) === c1 ? 'pass' : 'fail', 'G2: round-1 feedback shown and matches the answers', fb ? `${fb.round1_correct} correct (answers say ${c1}) · ${fb.round1_video_pct}% video` : 'missing');
+    } else add('ADT', fb ? 'fail' : 'pass', `${adt || 'G1/G3'}: no feedback page`, fb ? 'feedback found' : '');
     const lc = ev.find(e => e.type === 'lock_choice'), lt = ev.find(e => e.type === 'lock_trajectory');
     add('ADT', lc ? 'pass' : 'fail', 'Lock choice recorded', lc ? `${lc.choice} (${lc.input_type}, RT ${lc.rt_ms} ms)` : '');
     add('ADT', lt && arr(lt.samples_t).length ? 'pass' : 'fail', 'Lock choice raw trajectory saved', lt ? `${arr(lt.samples_t).length} samples` : '');
@@ -282,7 +300,7 @@ function checksFor(p){
   if (!ra.length) add('Ratings', started('ratings') ? 'fail' : 'warn', 'Activity ratings saved', 'no ratings data');
   else {
     const uniq = new Set(ra.map(r => r.activity_id));
-    add('Ratings', uniq.size === CONFIG.RATINGS_ACTIVITIES_N ? 'pass' : (done('ratings') ? 'warn' : 'fail'), `All ${CONFIG.RATINGS_ACTIVITIES_N} pictures rated once`, `${ra.length} rows, ${uniq.size} different` + (uniq.size !== ra.length ? ' · duplicates!' : '') + (uniq.size < CONFIG.RATINGS_ACTIVITIES_N && done('ratings') ? ' (shortened test run?)' : ''));
+    add('Ratings', uniq.size === CONFIG.RATINGS_ACTIVITIES_N ? 'pass' : (done('ratings') ? 'warn' : 'fail'), `${CONFIG.RATINGS_ACTIVITIES_N} random pictures rated, none twice`, `${ra.length} rows, ${uniq.size} different` + (uniq.size !== ra.length ? ' · duplicates!' : '') + (uniq.size < CONFIG.RATINGS_ACTIVITIES_N && done('ratings') ? ' (shortened test run?)' : ''));
     add('Ratings', ra.every(r => r.enjoy >= 1 && r.enjoy <= 5 && r.useful >= 1 && r.useful <= 5) ? 'pass' : 'fail', 'enjoy and useful are 1–5');
   }
   // ---- completion
@@ -531,6 +549,6 @@ function viewRatings(){
     </tbody></table></div></div></div>`;
 }
 </script>
-<script src="../shared/surveys.js?v=202611091459"></script>
+<script src="../shared/surveys.js?v=202611092015"></script>
 </body>
 </html>
