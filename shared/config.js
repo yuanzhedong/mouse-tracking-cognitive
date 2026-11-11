@@ -37,6 +37,5 @@ const CONFIG = {
   // question → block 2. ?practice=, ?b1=, ?b2= override (?dur= sets both blocks).
   TASK2_PRACTICE_SEC: 30,
   TASK2_BLOCK1_SEC: 4 * 60,
-  TASK2_BLOCK2_SEC: 3 * 60,            // G1
-  TASK2_BLOCK2_SEC_ESTIMATE: 4 * 60,   // G2 / G3 (estimate versions): two rounds of 4 minutes
+  TASK2_BLOCK2_SEC: 4 * 60,   // all three versions (G1 / G2 / G3): 30 s + 4 min + 4 min
 };

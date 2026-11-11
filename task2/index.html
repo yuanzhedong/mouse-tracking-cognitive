@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Game 2</title>
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611101819">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611101823">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -281,7 +281,7 @@
   .hidden { display: none !important; }
   @media (max-width: 700px) { main.split { grid-template-columns: 1fr; } }   /* iPad portrait keeps the split */
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611101819">
+<link rel="stylesheet" href="../shared/touch.css?v=202611101823">
 </head>
 <body>
 <div class="container">
@@ -453,13 +453,13 @@
 
 </div>
 
-<script src="../shared/config.js?v=202611101819"></script>
-<script src="../shared/i18n.js?v=202611101819"></script>
-<script src="../shared/session.js?v=202611101819"></script>
-<script src="../shared/questions.js?v=202611101819"></script>
-<script src="../shared/videos.js?v=202611101819"></script>
-<script src="../shared/mousetracking.js?v=202611101819"></script>
-<script src="../shared/dragcursor.js?v=202611101819"></script>
+<script src="../shared/config.js?v=202611101823"></script>
+<script src="../shared/i18n.js?v=202611101823"></script>
+<script src="../shared/session.js?v=202611101823"></script>
+<script src="../shared/questions.js?v=202611101823"></script>
+<script src="../shared/videos.js?v=202611101823"></script>
+<script src="../shared/mousetracking.js?v=202611101823"></script>
+<script src="../shared/dragcursor.js?v=202611101823"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -471,7 +471,7 @@
    Flow (team doc 10/28, 8 min in all):
           intro → PRACTICE 1 min (timer shown) → BLOCK 1 4 min
           → LOCK-SCREEN CHOICE (put the videos away / keep them)
-          → BLOCK 2 3 min (video side off if "put away") → summary.
+          → BLOCK 2 4 min (video side off if "put away") → summary.
    Neither block shows the time remaining.
    The lock choice is the design's core measure. Time allocation,
    switches, answers, and video events are logged per phase, uploaded
@@ -489,10 +489,11 @@ const B1_SEC = secParam('b1', secParam('dur', CONFIG.TASK2_BLOCK1_SEC)); // bloc
    estimate only. Practice is the same in all three. G2 / G3: after the
    practice, three pages (instructions → estimates for round 1 → start),
    round 1, then G2 sees its round-1 results, then the lock choice (own
-   wording) and round 2, which lasts 4 minutes instead of 3. */
+   wording) and round 2. Timing is the same in all three: 30 s practice,
+   4 min round 1, 4 min round 2. */
 const ADT = Session.adt;
 const ESTIMATE = ADT === 'G2' || ADT === 'G3';
-const B2_SEC = secParam('b2', secParam('dur', ESTIMATE ? CONFIG.TASK2_BLOCK2_SEC_ESTIMATE : CONFIG.TASK2_BLOCK2_SEC)); // block 2, after it
+const B2_SEC = secParam('b2', secParam('dur', CONFIG.TASK2_BLOCK2_SEC)); // block 2, after it
 const PHASE_SEC = { practice: PRACTICE_SEC, block1: B1_SEC, block2: B2_SEC };
 const TICK_MS = 200;
 const REVIEW = Session.review;
@@ -505,7 +506,7 @@ Session.applyI18n();
 document.title = Session.t('t2_title');
 {
   const mainMin  = Math.round(B2_SEC / 60);
-  const totalMin = Math.round((PRACTICE_SEC + B1_SEC + B2_SEC) / 60);
+  const totalMin = Math.round((B1_SEC + B2_SEC) / 60);   // the two rounds (8 min); the practice isn't counted
   document.getElementById('intro1').innerHTML = Session.t(TOUCH_UI ? 't2_intro_1_touch' : 't2_intro_1', { min: totalMin });
   document.getElementById('intro2').innerHTML = Session.t('t2_intro_2');
   document.getElementById('lockIntro').innerHTML = Session.t('t2_lock_intro', { min: mainMin });

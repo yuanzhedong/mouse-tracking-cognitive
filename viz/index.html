@@ -76,10 +76,10 @@
   // stimuli.js builds picture paths from Session.ROOT; this page needs only that.
   var Session = { ROOT: '../', lang: 'pt', pick: a => (a && (a.pt || a.en)) || '' };
 </script>
-<script src="../shared/config.js?v=202611101819"></script>
-<script src="../shared/videos.js?v=202611101819"></script>
-<script src="../shared/stimuli.js?v=202611101819"></script>
-<script src="../shared/questions.js?v=202611101819"></script>
+<script src="../shared/config.js?v=202611101823"></script>
+<script src="../shared/videos.js?v=202611101823"></script>
+<script src="../shared/stimuli.js?v=202611101823"></script>
+<script src="../shared/questions.js?v=202611101823"></script>
 <script>
 /* =============================================================
    DATA VIEWER + CHECKS (researchers)
@@ -256,7 +256,7 @@ function checksFor(p){
       add('ADT', adt === wantG ? 'pass' : 'fail', 'ADT version follows the ID (blocks of 6: 1000–1005 G1, 1006–1011 G2, 1012–1017 G3, …)', `ID ${p} → ${adt ?? '—'} (expected ${wantG})`);
     } else add('ADT', ADTS.includes(adt) ? 'info' : 'warn', 'ADT version', adt ?? 'not recorded');
     const estV = adt === 'G2' || adt === 'G3';
-    const b2 = estV ? CONFIG.TASK2_BLOCK2_SEC_ESTIMATE : CONFIG.TASK2_BLOCK2_SEC;
+    const b2 = CONFIG.TASK2_BLOCK2_SEC;
     const exp = { practice: CONFIG.TASK2_PRACTICE_SEC, block1: CONFIG.TASK2_BLOCK1_SEC, block2: b2 };
     const short = starts.some(e => exp[e.phase] && Number(e.duration_sec) !== exp[e.phase]);
     add('ADT', short ? 'warn' : 'pass', `Phase lengths ${CONFIG.TASK2_PRACTICE_SEC}s / ${CONFIG.TASK2_BLOCK1_SEC}s / ${b2}s`, durs + (short ? ' (shortened test run?)' : ''));
@@ -549,6 +549,6 @@ function viewRatings(){
     </tbody></table></div></div></div>`;
 }
 </script>
-<script src="../shared/surveys.js?v=202611101819"></script>
+<script src="../shared/surveys.js?v=202611101823"></script>
 </body>
 </html>
