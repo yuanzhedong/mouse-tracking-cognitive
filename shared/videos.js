@@ -35,6 +35,21 @@ const VIDEOS = [
   { n: 37, cat: 'Sports',  id: '5f8slUpj8Tc' },  // Neymar — training goal
   { n: 38, cat: 'Sports',  id: 'rsJ4lwOk81M' },  // Neymar — golaço
   { n: 42, cat: 'Sports',  id: '3dr7PQAV4_s' },  // Rayssa — world skate champion
+  // added 2026-11-10 (team list; not in the review sheet). n = position in that list.
+  { n: 101, cat: 'Humor',   id: 'TymDd4B69QU' },  // Luccas Neto — flour tower
+  { n: 103, cat: 'Humor',   id: 'cyABhBTjNBI' },  // Emilly Vick — food challenge
+  { n: 104, cat: 'Science', id: 'TCvc7ISbakw' },  // Manual do Mundo — foggy swim goggles
+  { n: 104, cat: 'Science', id: 'qPR-4W6dm30' },  // Manual do Mundo — tornado in a bottle
+  { n: 105, cat: 'Science', id: '-8Ggc4AdpHo' },  // Manual do Mundo — don't copy money
+  { n: 106, cat: 'Science', id: 'hkOuZjNJPEI' },  // Coisa de Nerd — 2,500-year-old boat
+  { n: 107, cat: 'Fantasy', id: 'c8WET0k7-zc' },  // imaginago — Mulan
+  { n: 108, cat: 'Sports',  id: 'CaFqGGcQz5s' },  // The football feed — This IS Brazil
+  { n: 109, cat: 'Sports',  id: 'wSt2OVVVHbM' },  // FOOTREALM — Brazilian skills
+  { n: 111, cat: 'KPop',    id: '67U9c2EJnj8' },  // CazéTV — Jung Kook
+  { n: 112, cat: 'Sports',  id: 'WZ9-ekgkY5o' },  // CazéTV — swim with Jamal's dance
+  // Left out: #102 (youtube.com/shorts/6MeNxH4R1) — the link is cut off (9 of 11
+  // characters); #110 DlUtLr7Byuc (CazéTV, Mbappé) — embed error 150, owner disallows
+  // embedding. All others verified to play in the IFrame player on 2026-11-10.
 ];
 
 /* Category names shown to participants. */
@@ -44,4 +59,5 @@ const VIDEO_CAT_LABELS = {
   KPop:    { en: 'K-pop',   pt: 'K-pop' },
   Fantasy: { en: 'Fantasy', pt: 'Fantasia' },
   Sports:  { en: 'Sports',  pt: 'Esportes' },
+  Science: { en: 'Science', pt: 'Ciência' },
 };
