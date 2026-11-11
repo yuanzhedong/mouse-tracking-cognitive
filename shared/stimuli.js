@@ -9,8 +9,8 @@ const ACTIVITIES = [
   // Study activities (goal)
   { id: 'study_01', cat: 'study', en: "Explain a difficult idea in your own words", pt: "Explicar uma ideia difícil com suas próprias palavras" },
   { id: 'study_02', cat: 'study', en: "Teach the material to a friend", pt: "Ensinar a matéria para um amigo" },
-  { id: 'study_03', cat: 'study', en: "Work through a difficult problem step by step", pt: "Resolver uma questão difícil passo a passo" },
-  { id: 'study_04', cat: 'study', en: "Practice questions without looking at your notes", pt: "Resolver questões sem consultar suas anotações" },
+  { id: 'study_03', cat: 'study', en: "Work through a difficult problem", pt: "Resolver uma questão difícil" },
+  { id: 'study_04', cat: 'study', en: "Do exercises without looking at your notes", pt: "Resolver exercícios sem consultar suas anotações" },
   { id: 'study_05', cat: 'study', en: "Close your notes and write down three key ideas you remember", pt: "Fechar suas anotações e escrever três ideias principais que você consegue lembrar" },
   { id: 'study_06', cat: 'study', en: "Make a list of questions you still have", pt: "Listar todas as suas dúvidas" },
   { id: 'study_07', cat: 'study', en: "Think aloud as you solve a problem", pt: "Pensar em voz alta enquanto resolve uma questão" },
@@ -26,15 +26,15 @@ const ACTIVITIES = [
   { id: 'study_17', cat: 'study', en: "Watch a tutorial about a difficult topic", pt: "Assistir a uma videoaula sobre um assunto difícil" },
   { id: 'study_18', cat: 'study', en: "Review the topics you know the least", pt: "Revisar os assuntos que você menos domina" },
   { id: 'study_19', cat: 'study', en: "Try the question again without looking at the example", pt: "Tentar resolver a questão novamente sem consultar o exemplo" },
-  { id: 'study_20', cat: 'study', en: "Go through the teacher's review sheet", pt: "Estudar pelo roteiro de revisão do professor" },
+  { id: 'study_20', cat: 'study', en: "Study with the teacher's review", pt: "Estudar com a revisão feita pelo professor" },
   { id: 'study_21', cat: 'study', en: "Review your class notes", pt: "Rever suas anotações da aula" },
   { id: 'study_22', cat: 'study', en: "Reread the textbook chapter", pt: "Reler o capítulo do livro" },
   { id: 'study_23', cat: 'study', en: "Make a summary of the material", pt: "Fazer um resumo da matéria" },
-  { id: 'study_24', cat: 'study', en: "Study with digital flashcards", pt: "Estudar com flashcards digitais" },
+  { id: 'study_24', cat: 'study', en: "Study with flashcards", pt: "Estudar com fichas" },
   { id: 'study_25', cat: 'study', en: "Watch a review video lesson", pt: "Assistir a uma videoaula de revisão" },
-  { id: 'study_26', cat: 'study', en: "Highlight the key points", pt: "Marcar os pontos principais" },
+  { id: 'study_26', cat: 'study', en: "Underline the key points in the book", pt: "Sublinhar os pontos principais no livro" },
   { id: 'study_27', cat: 'study', en: "Make a mind map of the topic", pt: "Fazer um mapa mental da matéria" },
-  { id: 'study_28', cat: 'study', en: "Memorize the key definitions", pt: "Decorar as definições principais" },
+  { id: 'study_28', cat: 'study', en: "Memorize the main definitions", pt: "Decorar as principais definições" },
   { id: 'study_29', cat: 'study', en: "Organize your notes and add any missing information", pt: "Organizar suas anotações e acrescentar as informações que faltam" },
   { id: 'study_30', cat: 'study', en: "Solve the exercises in the book", pt: "Resolver os exercícios do livro" },
   // Entertainment activities (temptation)
@@ -60,7 +60,7 @@ const ACTIVITIES = [
   { id: 'entertainment_20', cat: 'entertainment', en: "Go to a friend's house", pt: "Ir à casa de um amigo" },
   { id: 'entertainment_21', cat: 'entertainment', en: "Go to the mall with friends", pt: "Ir ao shopping com os amigos" },
   { id: 'entertainment_22', cat: 'entertainment', en: "Go out to eat with friends", pt: "Sair para comer com os amigos" },
-  { id: 'entertainment_23', cat: 'entertainment', en: "Order a snack on iFood", pt: "Pedir um lanche no iFood" },
+  { id: 'entertainment_23', cat: 'entertainment', en: "Order a snack", pt: "Pedir um lanche" },
   { id: 'entertainment_24', cat: 'entertainment', en: "Play soccer outside", pt: "Jogar bola lá fora" },
   { id: 'entertainment_25', cat: 'entertainment', en: "Play volleyball", pt: "Jogar vôlei" },
   { id: 'entertainment_26', cat: 'entertainment', en: "Ride a bike", pt: "Andar de bicicleta" },
@@ -187,7 +187,9 @@ const TASK1_PRACTICE_LIST = [
 
 /* Pictures. The card already shows the (Portuguese) label, so pages show
    the card alone, with no caption, in every language. */
-const activityImgSrc = act => Session.ROOT + 'shared/activity_images/' + act.cat + '/' + act.id + '.png';
+// Bump IMG_VERSION whenever card images are replaced, so browsers don't show a cached old card.
+const IMG_VERSION = '20261110';
+const activityImgSrc = act => Session.ROOT + 'shared/activity_images/' + act.cat + '/' + act.id + '.png?v=' + IMG_VERSION;
 const activityImgFile = act => act.cat + '/' + act.id + '.png';
 function activityPic(act){
   return `<span class="pic"><img src="${activityImgSrc(act)}" alt="${act.pt.replace(/"/g, '&quot;')}" draggable="false"></span>`;
