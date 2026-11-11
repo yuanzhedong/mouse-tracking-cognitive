@@ -85,6 +85,10 @@ lands on another listed number is not — check `given_to` when in doubt.
   `processed/` folders go to the Drive trash whole (restorable for 30 days)
   and empty ones replace them, every data tab is deleted (`student_ids`
   stays), and all device locks are released, so every ID starts fresh.
+- To wipe everything **later** (e.g. after a testing day), run
+  **scheduleResetAllData**: resetAllData then runs once, 5 hours later
+  (`RESET_DELAY_HOURS` in the script), even with every computer off. It shows
+  under Triggers as `scheduledReset`; delete it there to cancel.
 - Before the pilot, run **clearTestData**: it moves all TEST (and unlisted)
   uploads to the Drive trash, deletes the TEST_ tabs and their group
   assignments, and — if no real student has started yet — restarts the

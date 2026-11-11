@@ -273,6 +273,20 @@ function resetAllData(){
   Logger.log('reset: raw/ and processed/ moved to trash, data tabs deleted, ' + gone.length + ' locks/blocks dropped');
 }
 
+/* Run from the editor to wipe everything later instead of now: resetAllData
+   runs once, RESET_DELAY_HOURS from now (Google fires it within about 15
+   minutes of that time). Running it again replaces the earlier timer. */
+const RESET_DELAY_HOURS = 5;
+function scheduleResetAllData(){
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'scheduledReset').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('scheduledReset').timeBased().after(RESET_DELAY_HOURS * 3600 * 1000).create();
+  Logger.log('resetAllData scheduled for about ' + new Date(Date.now() + RESET_DELAY_HOURS * 3600 * 1000));
+}
+function scheduledReset(){
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'scheduledReset').forEach(t => ScriptApp.deleteTrigger(t));
+  resetAllData();
+}
+
 /* Wipe single students, e.g. an ID used for testing: write "clear" in the
    note column of student_ids, then run clearMarkedStudents (from the
    editor). Their upload files go to the Drive trash, their rows leave every
