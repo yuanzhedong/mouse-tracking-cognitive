@@ -31,9 +31,15 @@ answer is saved either way (`assent` table).
   (`shared/guard.js`): "Leave site?" on refresh / close (desktop browsers),
   F5 / Ctrl+R / Cmd+R / back keys and the back button do nothing, no
   right-click, no pull-to-refresh.
-- **iPad: full screen** — open the site in Safari, Share → *Add to Home
-  Screen*, and start it from that icon: no address bar, tabs or reload
-  button. Guided Access (Settings → Accessibility) keeps students in it.
+- **Full screen from the link**: pressing Começar / Continuar puts the
+  page in full screen (iPad Safari / Chrome and PCs: no address bar, tabs,
+  reload button or taskbar). The whole session then runs inside the start
+  page (an iframe), so full screen stays on from assent to the end; if a
+  student leaves it, a "Toque aqui para voltar à tela cheia" button brings
+  it back. A refresh returns to the start page; typing the code again
+  continues where the student stopped. (Optional: Share → *Add to Home
+  Screen* on an iPad opens it as an app, already full screen; Guided Access
+  keeps students in it.)
 - **Every screen fits without scrolling** down to ~1366×580 (school PCs
   with browser bars and taskbar): the mouse-tracking boards keep 4:3 and
   follow the screen height; the questionnaire shows 4 statements per page.
