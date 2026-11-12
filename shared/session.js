@@ -289,12 +289,22 @@ const Session = (() => {
     const page = step === 'entry' ? 'index.html' : step === 'done' ? 'done.html' : step + '/';
     return ROOT + page + '?' + params.toString();
   }
-  function go(step, extra){ location.href = urlFor(step, extra); }
+  let leaving = false;   // set while the site itself moves to the next page: shared/guard.js lets that through
+  function go(step, extra){ leaving = true; location.href = urlFor(step, extra); }
   /* Same page in the other language (the EN / PT switch). */
   function langUrl(l){ const p = new URLSearchParams(location.search); p.set('lang', l); return location.pathname + '?' + p.toString(); }
+  /* Where the student is inside a task (Task 1, ADT, ratings), so a refresh
+     or a return with the same ID continues there instead of starting the
+     task over. Kept in this browser; cleared when the task is finished. */
+  const progKey = task => 'prog_' + task + '_' + pid;
+  function progress(task, value){
+    if (standalone) return null;
+    if (value === undefined){ try { return JSON.parse(lsGet(progKey(task)) || 'null'); } catch (e) { return null; } }
+    if (value === null) lsDel(progKey(task)); else lsSet(progKey(task), JSON.stringify(value));
+  }
   function next(fromStep){
     fromStep = fromStep || currentStep();
-    if (!standalone) lsSet('done_' + pid, fromStep);
+    if (!standalone){ lsSet('done_' + pid, fromStep); lsDel(progKey(fromStep)); }
     const i = CONFIG.FLOW.indexOf(fromStep);
     const nxt = i < 0 ? CONFIG.FLOW[0] : CONFIG.FLOW[i + 1];
     if (nxt) go(nxt);
@@ -331,7 +341,8 @@ const Session = (() => {
   window.addEventListener('online', flushPending);
 
   return { ROOT, pid, standalone, review, lang, mt, hz, load, loadFor, adt, adtFor, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
-           t, pick, applyI18n, save, status, log, next, go, urlFor, langUrl, currentStep,
+           get leaving(){ return leaving; },
+           t, pick, applyI18n, save, status, log, next, progress, go, urlFor, langUrl, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };
 })();

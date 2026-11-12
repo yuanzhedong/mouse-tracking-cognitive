@@ -3,14 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="../shared/survey.css?v=202611101901">
+<!-- iPad: "Add to Home Screen" opens the site full screen, without the browser bars -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sessão">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../shared/icon-180.png">
+<link rel="stylesheet" href="../shared/survey.css?v=202611111856">
 <title>Ratings</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202611101901">
+<link rel="stylesheet" href="../shared/activity.css?v=202611111856">
 <style>
   :root { --bg:#f4efe4; --panel:#ece5d3; --ink:#1f1e2c; --soft:#7a7587; --accent:#a8324a; --rule:#d8cfb6; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
-  .container { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: clamp(10px, 3.5vh, 32px) 20px; }
   header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--ink); }
   header h1 { font-size: 16px; font-weight: 600; }
   header .step { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--soft); }
@@ -18,9 +24,9 @@
   .bar div { height: 100%; background: var(--accent); transition: width 0.2s; }
 
   .intro, .card { background: var(--panel); border: 1px solid var(--ink); padding: 28px 32px; }
-  .intro { padding: clamp(24px, 4vw, 44px) clamp(22px, 4.5vw, 52px); }
-  .intro h2 { font-size: clamp(22px, 2.8vw, 32px); margin-bottom: 18px; }
-  .intro p { font-size: clamp(17px, 2.1vw, 23px); line-height: 1.55; margin-bottom: 14px; }
+  .intro { padding: clamp(14px, min(4vw, 4.5vh), 44px) clamp(20px, 4.5vw, 52px); }
+  .intro h2 { font-size: clamp(19px, min(2.8vw, 4.2vh), 32px); margin-bottom: 18px; }
+  .intro p { font-size: clamp(15px, min(2.1vw, 2.9vh), 23px); line-height: 1.55; margin-bottom: 14px; }
   .big-btn { display: block; margin: 22px auto 0; padding: 14px 48px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; font-family: inherit; }
   .big-btn:hover { opacity: 0.9; }
   .big-btn:disabled { opacity: 0.5; cursor: default; }
@@ -30,6 +36,15 @@
   .stim .txt { font-size: 24px; font-weight: 600; line-height: 1.35; }
   .stim > img { display: block; width: 100%; max-width: 420px; aspect-ratio: 16/9; object-fit: cover; margin: 0 auto 10px; border: 1px solid var(--ink); background: #000; }
   .stim .cat { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--soft); margin-top: 8px; }
+  /* Wide screens: picture on the left, the two questions on the right, so the
+     whole card fits without scrolling; the picture follows the screen height. */
+  @media (min-width: 900px) {
+    #card:not(.hidden) { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 28px; align-items: center; }
+    #card .stim { grid-row: 1 / 3; border-bottom: 0; margin: 0; padding: 0; }
+    #card .stim .pic { width: min(340px, calc(100vh - 190px)); margin: 0; }
+    #card .nav { grid-column: 2; }
+    #card .likert.rating .lk-item { grid-template-columns: 1fr; gap: 8px; }
+  }
 
 
   .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; }
@@ -38,7 +53,7 @@
   .nav button:disabled { opacity: 0.5; cursor: default; }
   .hidden { display: none !important; }
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611101901">
+<link rel="stylesheet" href="../shared/touch.css?v=202611111856">
 </head>
 <body>
 <div class="container">
@@ -69,11 +84,12 @@
   </section>
 </div>
 
-<script src="../shared/config.js?v=202611101901"></script>
-<script src="../shared/i18n.js?v=202611101901"></script>
-<script src="../shared/videos.js?v=202611101901"></script>
-<script src="../shared/stimuli.js?v=202611101901"></script>
-<script src="../shared/session.js?v=202611101901"></script>
+<script src="../shared/config.js?v=202611111856"></script>
+<script src="../shared/i18n.js?v=202611111856"></script>
+<script src="../shared/videos.js?v=202611111856"></script>
+<script src="../shared/stimuli.js?v=202611111856"></script>
+<script src="../shared/session.js?v=202611111856"></script>
+<script src="../shared/guard.js?v=202611111856"></script>
 <script>
 /* =============================================================
    RATINGS — stimulus norming (doc "Task 1 Candidate Activity Stimuli v2")
@@ -89,7 +105,15 @@ const t = (k, v) => Session.t(k, v);
 Session.applyI18n();
 document.title = t('r_title');
 
-function shuffle(arr){ const a = arr.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+/* The 15 cards and their order come from the student ID (seeded shuffle),
+   so a refresh or a return shows the same cards; no ID → random. */
+function seeded(str){
+  let h = 2166136261;
+  for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+}
+const rand = Session.standalone ? Math.random : seeded('ratings:' + Session.pid);
+function shuffle(arr){ const a = arr.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
 const PARTS = [
   {
@@ -171,6 +195,7 @@ $('nextBtn').addEventListener('click', async () => {
   pending.push(P.row(P.items[idx], vals, { order_idx: idx + 1, rt_ms: Math.round(performance.now() - shownAt) }));
   $('nextBtn').disabled = true;
   idx++;
+  Session.progress('ratings', { idx });
   if (idx < P.items.length){
     flush(false);                       // chunked upload in the background
     showItem();
@@ -200,7 +225,16 @@ async function finish(){
   }
 }
 
-showIntro();
+// Leaving midway (refresh, tab closed): send the ratings not yet uploaded.
+window.addEventListener('pagehide', () => flush(true));
+
+// Refresh / return with the same ID: continue with the next unrated card.
+const resumeAt = (Session.progress('ratings') || {}).idx || 0;
+if (resumeAt > 0 && resumeAt < PARTS[0].items.length){
+  idx = resumeAt;
+  Session.log('ratings_resume', { from_item: idx + 1 });
+  showItem();
+} else showIntro();
 </script>
 </body>
 </html>

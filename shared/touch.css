@@ -5,6 +5,7 @@ html, body {
   -webkit-user-select: none; user-select: none;
   -webkit-touch-callout: none;            /* no long-press callout (copy / look up / save image) */
   touch-action: manipulation;             /* no double-tap zoom; scrolling still works */
+  overscroll-behavior: none;              /* no pull-to-refresh / rubber-band at the page edges */
 }
 img { -webkit-user-drag: none; -webkit-touch-callout: none; }
 input, textarea, [contenteditable] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }

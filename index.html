@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- iPad: "Add to Home Screen" opens the site full screen, without the browser bars -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sessão">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/icon-180.png">
 <title>Sessão do estudante</title>
 <style>
   :root {
@@ -19,7 +25,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     min-height: 100vh;
   }
-  .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+  .container { max-width: 800px; margin: 0 auto; padding: clamp(10px, 3.5vh, 32px) 20px; }
   header {
     display: flex; justify-content: space-between; align-items: baseline;
     padding-bottom: 12px; margin-bottom: 28px;
@@ -39,7 +45,7 @@
     background: var(--panel); border: 1px solid var(--ink);
     padding: 28px 32px;
   }
-  .card p { font-size: clamp(17px, 2.1vw, 22px); line-height: 1.55; margin-bottom: 20px; }
+  .card p { font-size: clamp(15px, min(2.1vw, 2.9vh), 22px); line-height: 1.55; margin-bottom: 20px; }
   label { display: block; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--soft); margin-bottom: 6px; }
   input[type=text] {
     width: 100%; padding: 14px 16px; font-size: 22px; font-family: inherit;
@@ -66,7 +72,7 @@
   details.research code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
   .status { display: inline-block; padding: 1px 8px; border: 1px solid var(--rule); font-size: 11px; }
 </style>
-<link rel="stylesheet" href="shared/touch.css?v=202611101901">
+<link rel="stylesheet" href="shared/touch.css?v=202611111856">
 </head>
 <body>
 <div class="container">
@@ -110,9 +116,9 @@
   </details>
 </div>
 
-<script src="shared/config.js?v=202611101901"></script>
-<script src="shared/i18n.js?v=202611101901"></script>
-<script src="shared/session.js?v=202611101901"></script>
+<script src="shared/config.js?v=202611111856"></script>
+<script src="shared/i18n.js?v=202611111856"></script>
+<script src="shared/session.js?v=202611111856"></script>
 <script>
 const $ = id => document.getElementById(id);
 Session.applyI18n();
@@ -196,9 +202,19 @@ async function start(step){
 }
 $('startBtn').addEventListener('click', () => {
   const v = normCode($('pid').value);
-  // fresh start: forget earlier progress — except a finished real session,
-  // which start() refuses
-  try { if (v && (localStorage.getItem('sc_done_' + v) !== 'done' || Session.isTestId(v))) localStorage.removeItem('sc_done_' + v); } catch (e) {}
+  let last = null;
+  try { last = v ? localStorage.getItem('sc_done_' + v) : null; } catch (e) {}
+  // A real ID that already has progress in this browser continues where it
+  // stopped (also inside a task); a finished one is refused by start().
+  const i = CONFIG.FLOW.indexOf(last);
+  if (v && !Session.isTestId(v) && i >= 0 && CONFIG.FLOW[i + 1] && CONFIG.FLOW[i + 1] !== 'done') return start(CONFIG.FLOW[i + 1]);
+  // Test codes start over: forget their steps and in-task progress.
+  try {
+    if (v && Session.isTestId(v)){
+      localStorage.removeItem('sc_done_' + v);
+      Object.keys(localStorage).filter(k => k.startsWith('sc_prog_') && k.endsWith('_' + v)).forEach(k => localStorage.removeItem(k));
+    }
+  } catch (e) {}
   start(CONFIG.FLOW[0]);
 });
 $('pid').addEventListener('keydown', e => { if (e.key === 'Enter') $('startBtn').click(); });

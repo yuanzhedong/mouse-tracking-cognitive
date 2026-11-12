@@ -18,6 +18,26 @@ index.html → assent/ → demographics/ → task1/ → task2/ → survey/ → r
 On the assent page "Não quero participar" ends the session there; the
 answer is saved either way (`assent` table).
 
+### Refresh, leaving and coming back
+
+- **Progress inside a task is kept** in the browser (`Session.progress`):
+  after a refresh, or when the student types the same ID again on the same
+  device, Task 1 continues with the next trial, the ADT goes back to the
+  last finished phase (an interrupted round starts over; events carry
+  `attempt` = 0, 1, … — keep the highest), the ratings continue with the next
+  card (the 15 cards come from the ID, so they are always the same).
+  Everything already done was uploaded.
+- **Accidental leaving is blocked where a page can block it**
+  (`shared/guard.js`): "Leave site?" on refresh / close (desktop browsers),
+  F5 / Ctrl+R / Cmd+R / back keys and the back button do nothing, no
+  right-click, no pull-to-refresh.
+- **iPad: full screen** — open the site in Safari, Share → *Add to Home
+  Screen*, and start it from that icon: no address bar, tabs or reload
+  button. Guided Access (Settings → Accessibility) keeps students in it.
+- **Every screen fits without scrolling** down to ~1366×580 (school PCs
+  with browser bars and taskbar): the mouse-tracking boards keep 4:3 and
+  follow the screen height; the questionnaire shows 4 statements per page.
+
 **The single student link is the site root** (`index.html`). The student
 types their code (case and spaces are ignored: `s 001` = `S001`); the entry
 page then gets the pilot groups (below) and starts the flow.

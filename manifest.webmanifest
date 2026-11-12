@@ -1,0 +1,14 @@
+{
+  "name": "Sessão do estudante",
+  "short_name": "Sessão",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#f4efe4",
+  "theme_color": "#f4efe4",
+  "icons": [
+    { "src": "shared/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "shared/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

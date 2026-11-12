@@ -3,9 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- iPad: "Add to Home Screen" opens the site full screen, without the browser bars -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sessão">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../shared/icon-180.png">
 <title>Game 1</title>
-<link rel="stylesheet" href="../shared/activity.css?v=202611101901">
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611101901">
+<link rel="stylesheet" href="../shared/activity.css?v=202611111856">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611111856">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -22,7 +28,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     min-height: 100vh;
   }
-  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: clamp(8px, 2.5vh, 20px) 20px; }
 
   header {
     display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
@@ -41,13 +47,13 @@
 
   /* intro / interstitial cards */
   .intro {
-    max-width: 900px; margin: 32px auto;
+    max-width: 900px; margin: clamp(6px, 3vh, 32px) auto;
     background: var(--panel); border: 1px solid var(--ink);
-    padding: clamp(24px, 4vw, 44px) clamp(22px, 4.5vw, 52px);
+    padding: clamp(14px, min(4vw, 4.5vh), 44px) clamp(20px, 4.5vw, 52px);
   }
   /* instruction text scales with the screen (larger on laptops / iPads) */
-  .intro h2 { font-size: clamp(22px, 2.8vw, 32px); margin-bottom: 18px; }
-  .intro p  { font-size: clamp(17px, 2.1vw, 23px); line-height: 1.55; margin-bottom: 14px; }
+  .intro h2 { font-size: clamp(19px, min(2.8vw, 4.2vh), 32px); margin-bottom: 18px; }
+  .intro p  { font-size: clamp(15px, min(2.1vw, 2.9vh), 23px); line-height: 1.55; margin-bottom: 14px; }
   .intro .stem { margin-top: 18px; padding: 12px 14px; background: var(--bg); border-left: 3px solid var(--accent); font-weight: 600; }
   .intro .big-btn {
     display: block; margin: 24px auto 0;
@@ -67,7 +73,10 @@
     display: grid; grid-template-columns: minmax(0,1fr) 260px;
     gap: 16px; align-items: start;
   }
-  main.no-aside { grid-template-columns: minmax(0,1fr); max-width: 900px; margin: 0 auto; }
+  /* The board keeps 4:3 and is also limited by the screen height, so it is
+     always fully visible (no scrolling) — smaller on short screens. */
+  main.no-aside { grid-template-columns: minmax(0,1fr); max-width: min(900px, calc((100vh - 90px) * 4 / 3)); margin: 0 auto; }
+  @supports (height: 100dvh) { main.no-aside { max-width: min(900px, calc((100dvh - 90px) * 4 / 3)); } }
 
   .stage {
     position: relative; aspect-ratio: 4/3;
@@ -178,7 +187,7 @@
 
   @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611101901">
+<link rel="stylesheet" href="../shared/touch.css?v=202611111856">
 </head>
 <body>
 <div class="container">
@@ -278,13 +287,14 @@
   </main>
 </div>
 
-<script src="../shared/config.js?v=202611101901"></script>
-<script src="../shared/i18n.js?v=202611101901"></script>
-<script src="../shared/videos.js?v=202611101901"></script>
-<script src="../shared/stimuli.js?v=202611101901"></script>
-<script src="../shared/session.js?v=202611101901"></script>
-<script src="../shared/mousetracking.js?v=202611101901"></script>
-<script src="../shared/dragcursor.js?v=202611101901"></script>
+<script src="../shared/config.js?v=202611111856"></script>
+<script src="../shared/i18n.js?v=202611111856"></script>
+<script src="../shared/videos.js?v=202611111856"></script>
+<script src="../shared/stimuli.js?v=202611111856"></script>
+<script src="../shared/session.js?v=202611111856"></script>
+<script src="../shared/guard.js?v=202611111856"></script>
+<script src="../shared/mousetracking.js?v=202611111856"></script>
+<script src="../shared/dragcursor.js?v=202611111856"></script>
 <script>
 /* =============================================================
    TASK 1 — GOAL–TEMPTATION MOUSE-TRACKING
@@ -348,6 +358,7 @@ const state = {
   unsaved: [],         // finished trials not yet uploaded
   current: null,
   stage: 'idle',       // idle | awaiting_start | in_trial | review | done
+  offset: 0,           // main trials finished before a refresh / return (resume)
 };
 const sampler = createSampler(SAMPLE_MS, MOVE_THRESHOLD_PX);
 let warnTimer = null;
@@ -364,17 +375,18 @@ function buildPlan(block, n){
 
 const list = () => state.block === 'practice' ? state.practice : state.trials;
 const total = () => state.block === 'practice' ? N_PRACTICE : N_MAIN;
+const doneCount = () => list().length + (state.block === 'main' ? state.offset : 0);
 
 function updateTrialLabel(){
-  $('trialLabel').textContent = Session.t('t1_trial', { n: Math.min(list().length + 1, total()), total: total() });
+  $('trialLabel').textContent = Session.t('t1_trial', { n: Math.min(doneCount() + 1, total()), total: total() });
 }
 
 function setupTrial(){
-  if (list().length >= total()){
+  if (doneCount() >= total()){
     if (state.block === 'practice') return showInterstitial();
     return finishTask();
   }
-  const i = list().length;
+  const i = doneCount();
   const p = state.plan[i];
   state.current = {
     isPractice: state.block === 'practice',
@@ -421,6 +433,7 @@ function startBlock(block){
 
 function showInterstitial(){
   state.stage = 'idle';
+  saveProgress();
   $('main').classList.add('hidden');
   $('interstitial').classList.remove('hidden');
 }
@@ -449,6 +462,7 @@ function endMemorize(auto){
   clearTimeout(mem.timer);
   mem.memorizeMs = Math.round(performance.now() - mem.shownAt);
   mem.auto = auto;
+  saveProgress();
   $('memorize').classList.add('hidden');
   $('main').classList.remove('hidden');
   startBlock('main');
@@ -651,6 +665,7 @@ function sampleRows(t){
 
 function queueSave(trial){
   state.unsaved.push(trial);
+  saveProgress();
   if (state.unsaved.length >= CONFIG.TASK1_SAVE_EVERY) flushTrials();
 }
 function flushTrials(){
@@ -676,8 +691,8 @@ async function finishTask(){
   $('donePanel').classList.remove('hidden');
   $('doneNote').textContent = Session.t('saving');
   await flushTrials();
-  await Session.status('task1', 'completed', { n_planned: N_MAIN, n_done: state.trials.length });
-  await Session.log('task1_complete', { mt_version: VERSION, n_main: state.trials.length });
+  await Session.status('task1', 'completed', { n_planned: N_MAIN, n_done: state.offset + state.trials.length });
+  await Session.log('task1_complete', { mt_version: VERSION, n_main: state.offset + state.trials.length });
   if (Session.standalone){
     $('doneNote').textContent = 'Standalone run — export the CSV or reset.';
   } else {
@@ -700,6 +715,34 @@ $('resetBtn').addEventListener('click', () => {
   $('nTrials').textContent = '0';
   startBlock('practice');
 });
+
+/* ---------- resume after a refresh / return with the same ID ----------
+   Progress (practice finished, number shown, main trials done) is kept in
+   this browser; trials already done were saved (pagehide), so the task
+   continues with the next trial. An interrupted practice starts over. */
+function saveProgress(){
+  Session.progress('task1', {
+    practice_done: state.practice.length >= N_PRACTICE || state.block === 'main',
+    memorize_ms: mem.memorizeMs, memorize_auto: mem.auto,
+    main_done: state.block === 'main' ? doneCount() : 0,
+  });
+}
+const resumeFrom = Session.progress('task1');
+if (resumeFrom && resumeFrom.practice_done){
+  ['intro', 'intro2'].forEach(id => $(id).classList.add('hidden'));
+  $('topBar').classList.remove('hidden');
+  mem.memorizeMs = resumeFrom.memorize_ms ?? null;
+  mem.auto = resumeFrom.memorize_auto || 0;
+  Session.log('task1_resume', { main_done: resumeFrom.main_done, load_condition: LOAD });
+  if (!resumeFrom.main_done && (!LOAD_NUMBER || mem.memorizeMs === null)){
+    state.block = 'practice'; state.practice = Array(N_PRACTICE).fill(null);
+    showInterstitial();                       // practice was finished: go on from the "now the real game" screen
+  } else {
+    state.offset = resumeFrom.main_done;
+    $('main').classList.remove('hidden');
+    startBlock('main');
+  }
+}
 
 updateTrialLabel();
 </script>

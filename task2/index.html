@@ -3,8 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- iPad: "Add to Home Screen" opens the site full screen, without the browser bars -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sessão">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../shared/icon-180.png">
 <title>Game 2</title>
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611101901">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611111856">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -22,7 +28,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     min-height: 100vh;
   }
-  .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: clamp(8px, 2.5vh, 20px) 20px; }
 
   header {
     display: flex; justify-content: space-between; align-items: center;
@@ -42,13 +48,13 @@
 
   /* ---------- intro ---------- */
   .intro {
-    max-width: 900px; margin: 32px auto;
+    max-width: 900px; margin: clamp(6px, 3vh, 32px) auto;
     background: var(--panel); border: 1px solid var(--ink);
-    padding: clamp(24px, 4vw, 44px) clamp(22px, 4.5vw, 52px);
+    padding: clamp(14px, min(4vw, 4.5vh), 44px) clamp(20px, 4.5vw, 52px);
   }
   /* instruction text scales with the screen (larger on laptops / iPads) */
-  .intro h2 { font-size: clamp(22px, 2.8vw, 32px); margin-bottom: 18px; }
-  .intro p  { font-size: clamp(17px, 2.1vw, 23px); line-height: 1.55; margin-bottom: 14px; }
+  .intro h2 { font-size: clamp(19px, min(2.8vw, 4.2vh), 32px); margin-bottom: 18px; }
+  .intro p  { font-size: clamp(15px, min(2.1vw, 2.9vh), 23px); line-height: 1.55; margin-bottom: 14px; }
   .intro .big-btn {
     display: block; margin: 24px auto 0;
     padding: 14px 48px; border: 1px solid var(--ink);
@@ -59,9 +65,9 @@
   .intro .big-btn:hover { opacity: 0.9; }
   /* G2 / G3 estimates */
   .est-q { margin-bottom: 26px; }
-  .est-q label { display: block; font-size: clamp(17px, 2.1vw, 23px); font-weight: 600; line-height: 1.45; margin-bottom: 10px; }
+  .est-q label { display: block; font-size: clamp(15px, min(2.1vw, 2.9vh), 23px); font-weight: 600; line-height: 1.45; margin-bottom: 10px; }
   .est-scale { margin: 0 0 12px 20px; font-size: clamp(15px, 1.8vw, 19px); color: var(--soft); line-height: 1.6; }
-  .est-row { display: flex; align-items: center; gap: 12px; font-size: clamp(17px, 2.1vw, 23px); }
+  .est-row { display: flex; align-items: center; gap: 12px; font-size: clamp(15px, min(2.1vw, 2.9vh), 23px); }
   .est-input { width: 130px; padding: 10px 12px; font-size: clamp(22px, 3vw, 30px); text-align: center; font-family: inherit;
                border: 1px solid var(--ink); background: var(--bg); color: var(--ink); border-radius: 0; user-select: text; -webkit-user-select: text; }
   .est-input.missing { outline: 2px solid var(--accent); border-color: var(--accent); }
@@ -80,7 +86,7 @@
   /* ---------- lock-screen choice stage (mouse-tracking) ---------- */
   .lock-stage {
     position: relative; aspect-ratio: 4/3;
-    max-width: 860px; margin: 20px auto;
+    max-width: min(860px, calc((100vh - 70px) * 4 / 3)); margin: clamp(6px, 2vh, 20px) auto;   /* fits the screen height */
     background: var(--panel); border: 1px solid var(--ink);
     overflow: hidden; user-select: none;
   }
@@ -154,7 +160,7 @@
   /* ---------- split screen ---------- */
   main.split {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    align-items: stretch; min-height: 540px;
+    align-items: stretch; min-height: min(540px, calc(100vh - 90px));   /* room for the practice timer bar */
   }
   .pane {
     border: 1px solid var(--ink);
@@ -226,7 +232,7 @@
   }
   .player {
     flex: 1; position: relative; border-radius: 10px; overflow: hidden;
-    background: #000; min-height: 380px;
+    background: #000; min-height: min(380px, calc(100vh - 230px));   /* shorter on short screens, so the split fits */
   }
   .player iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   /* Touch screens: a finger can't hover, and taps on the YouTube iframe
@@ -281,7 +287,7 @@
   .hidden { display: none !important; }
   @media (max-width: 700px) { main.split { grid-template-columns: 1fr; } }   /* iPad portrait keeps the split */
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611101901">
+<link rel="stylesheet" href="../shared/touch.css?v=202611111856">
 </head>
 <body>
 <div class="container">
@@ -453,13 +459,14 @@
 
 </div>
 
-<script src="../shared/config.js?v=202611101901"></script>
-<script src="../shared/i18n.js?v=202611101901"></script>
-<script src="../shared/session.js?v=202611101901"></script>
-<script src="../shared/questions.js?v=202611101901"></script>
-<script src="../shared/videos.js?v=202611101901"></script>
-<script src="../shared/mousetracking.js?v=202611101901"></script>
-<script src="../shared/dragcursor.js?v=202611101901"></script>
+<script src="../shared/config.js?v=202611111856"></script>
+<script src="../shared/i18n.js?v=202611111856"></script>
+<script src="../shared/session.js?v=202611111856"></script>
+<script src="../shared/guard.js?v=202611111856"></script>
+<script src="../shared/questions.js?v=202611111856"></script>
+<script src="../shared/videos.js?v=202611111856"></script>
+<script src="../shared/mousetracking.js?v=202611111856"></script>
+<script src="../shared/dragcursor.js?v=202611111856"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation
@@ -562,13 +569,16 @@ const state = {
   videoLocked: false,
   events: [],
   timer: null,
+  attempt: 0,
 };
 
 const running = () => state.phase in PHASE_SEC;
 const now = () => state.startTime === null ? 0 : Math.round(performance.now() - state.startTime);
 
+// attempt: 0, or how many times the page was reloaded and resumed — after
+// an interrupted round both attempts are in the data; keep the highest.
 function logEvent(type, detail = {}){
-  state.events.push({ t_ms: now(), phase: state.phase, type, ...detail });
+  state.events.push({ t_ms: now(), phase: state.phase, type, attempt: state.attempt, ...detail });
 }
 
 /* ---------- YouTube player ---------- */
@@ -740,7 +750,7 @@ function tick(){
   $('timeLeft').textContent = `${mm}:${String(ss).padStart(2, '0')}`;
   if (remain <= 0){
     if (state.phase === 'practice')    showPracticeDone();
-    else if (state.phase === 'block1'){ round1Results(); ADT === 'G2' ? showFeedback() : enterLockScreen(); }
+    else if (state.phase === 'block1'){ round1Results(); checkpoint('round1_done'); ADT === 'G2' ? showFeedback() : enterLockScreen(); }
     else                               endSession();
   }
 }
@@ -768,6 +778,7 @@ function showPracticeDone(){
   $(ESTIMATE ? 'estIntro' : 'practiceDone').classList.remove('hidden');
   logEvent('practice_done_shown', { adt_version: ADT });
   saveEvents();
+  checkpoint('practice_done');
 }
 
 /* ---------- G2 / G3: estimates before round 1, G2: feedback after ---------- */
@@ -796,6 +807,8 @@ $('estFormBtn').addEventListener('click', () => {
   }
   est.correct = +c; est.videoPct = +v; est.ms = Math.round(performance.now() - est.shownAt);
   logEvent('estimate', { est_correct: est.correct, est_video_pct: est.videoPct, rt_ms: est.ms });
+  saveEvents();
+  checkpoint('practice_done');
   $('estForm').classList.add('hidden');
   $('estStart').classList.remove('hidden');
 });
@@ -942,6 +955,15 @@ function centerOf(el){
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }
 
+function putVideosAway(){
+  state.videoLocked = true;
+  if (playerReady) player.stopVideo();
+  $('playerBox').classList.add('hidden');
+  $('nextVideoBtn').classList.add('hidden');
+  $('videoOff').classList.remove('hidden');
+  $('vidCat').textContent = '';
+}
+
 function pickLock(side, e){
   if (state.phase !== 'lock' || !lockTrial.started || lockTrial.done) return;
   lockTrial.done = true;
@@ -971,7 +993,7 @@ function pickLock(side, e){
   // time-normalized trajectory (101 bins) as JSON arrays in one event
   const r0 = lockTrial.stageRect;
   state.events.push({
-    t_ms: now(), phase: 'lock', type: 'lock_trajectory', n_bins: m.normalized.length,
+    t_ms: now(), phase: 'lock', type: 'lock_trajectory', attempt: state.attempt, n_bins: m.normalized.length,
     // raw fixed-rate samples: t ms from the options appearing, x/y px in the stage
     samples_t: JSON.stringify(lockTrial.samples.map(p => Math.round(p.t))),
     samples_x: JSON.stringify(lockTrial.samples.map(p => Math.round(p.x - r0.left))),
@@ -980,14 +1002,9 @@ function pickLock(side, e){
     y_norm: JSON.stringify(m.normalized.map(p => +p.y.toFixed(5))),
   });
 
-  if (choice === 'put_away'){
-    state.videoLocked = true;
-    if (playerReady) player.stopVideo();
-    $('playerBox').classList.add('hidden');
-    $('nextVideoBtn').classList.add('hidden');
-    $('videoOff').classList.remove('hidden');
-    $('vidCat').textContent = '';
-  }
+  if (choice === 'put_away') putVideosAway();
+  saveEvents();
+  checkpoint('lock_done');
 
   if (!REVIEW){
     ['lockOptLeft','lockOptRight','lockPrompt'].forEach(id => $(id).classList.add('hidden'));
@@ -1186,6 +1203,48 @@ $('exportBtn').addEventListener('click', () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
+
+/* ---------- resume after a refresh / return with the same ID ----------
+   A checkpoint is kept in this browser at each phase boundary (after the
+   practice, after the G2/G3 estimates, after round 1, after the lock
+   choice). Reloading continues from the last one: the interrupted round
+   starts over (its clock and video can't be restored), finished phases are
+   not repeated. Events up to the checkpoint were already uploaded. */
+function checkpoint(stage){
+  Session.progress('task2', {
+    stage, t_ms: now(), events: state.events, dwell: state.dwell, points: state.points,
+    switches: state.switches, videosCompleted: state.videosCompleted, vidIdx: state.vidIdx,
+    lockChoice: state.lockChoice, lockMetrics: state.lockMetrics, est: { ...est, shownAt: 0 }, attempt: state.attempt,
+  });
+}
+function resumeSession(cp){
+  Object.assign(state, {
+    events: cp.events, dwell: cp.dwell, points: cp.points, switches: cp.switches,
+    videosCompleted: cp.videosCompleted, vidIdx: cp.vidIdx || 0,
+    lockChoice: cp.lockChoice, lockMetrics: cp.lockMetrics, attempt: (cp.attempt || 0) + 1,
+  });
+  Object.assign(est, cp.est);
+  savedEvents = state.events.length;                     // already uploaded
+  state.startTime = performance.now() - cp.t_ms;          // t_ms keeps counting from the first start
+  $('intro').classList.add('hidden');
+  logEvent('resume', { from: cp.stage });
+  serveQuestion();
+  updateVidCat();
+  if (cp.stage === 'practice_done'){
+    showPracticeDone();
+    if (ESTIMATE && est.correct !== null){                // estimates already given: straight to "start round 1"
+      $('estIntro').classList.add('hidden');
+      $('estStart').classList.remove('hidden');
+    }
+  } else if (cp.stage === 'round1_done'){
+    ADT === 'G2' ? showFeedback() : enterLockScreen();
+  } else if (cp.stage === 'lock_done'){
+    if (state.lockChoice === 'put_away') putVideosAway();
+    beginPhase('block2', B2_SEC);
+  }
+}
+const resumeFrom = Session.progress('task2');
+if (resumeFrom && resumeFrom.stage) resumeSession(resumeFrom);
 
 /* ---------- init ---------- */
 

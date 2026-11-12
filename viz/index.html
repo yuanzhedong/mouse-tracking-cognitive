@@ -76,10 +76,10 @@
   // stimuli.js builds picture paths from Session.ROOT; this page needs only that.
   var Session = { ROOT: '../', lang: 'pt', pick: a => (a && (a.pt || a.en)) || '' };
 </script>
-<script src="../shared/config.js?v=202611101901"></script>
-<script src="../shared/videos.js?v=202611101901"></script>
-<script src="../shared/stimuli.js?v=202611101901"></script>
-<script src="../shared/questions.js?v=202611101901"></script>
+<script src="../shared/config.js?v=202611111856"></script>
+<script src="../shared/videos.js?v=202611111856"></script>
+<script src="../shared/stimuli.js?v=202611111856"></script>
+<script src="../shared/questions.js?v=202611111856"></script>
 <script>
 /* =============================================================
    DATA VIEWER + CHECKS (researchers)
@@ -266,7 +266,9 @@ function checksFor(p){
       add('ADT', okE ? 'pass' : 'fail', 'Round-1 estimates saved (questions 0–200, video 0–100%)', es ? `${es.est_correct} questions · ${es.est_video_pct}% video` : 'missing');
     } else add('ADT', es ? 'fail' : 'pass', 'G1: no estimate pages', es ? 'estimate found' : '');
     if (adt === 'G2'){
-      const c1 = ev.filter(e => e.phase === 'block1' && e.type === 'answer' && (e.is_correct === true || e.is_correct === 'true')).length;
+      const b1 = ev.filter(e => e.phase === 'block1');
+      const lastTry = Math.max(0, ...b1.map(e => Number(e.attempt) || 0));   // after a refresh: the redone round 1
+      const c1 = b1.filter(e => (Number(e.attempt) || 0) === lastTry && e.type === 'answer' && (e.is_correct === true || e.is_correct === 'true')).length;
       add('ADT', fb && Number(fb.round1_correct) === c1 ? 'pass' : 'fail', 'G2: round-1 feedback shown and matches the answers', fb ? `${fb.round1_correct} correct (answers say ${c1}) · ${fb.round1_video_pct}% video` : 'missing');
     } else add('ADT', fb ? 'fail' : 'pass', `${adt || 'G1/G3'}: no feedback page`, fb ? 'feedback found' : '');
     const lc = ev.find(e => e.type === 'lock_choice'), lt = ev.find(e => e.type === 'lock_trajectory');
@@ -549,6 +551,6 @@ function viewRatings(){
     </tbody></table></div></div></div>`;
 }
 </script>
-<script src="../shared/surveys.js?v=202611101901"></script>
+<script src="../shared/surveys.js?v=202611111856"></script>
 </body>
 </html>
