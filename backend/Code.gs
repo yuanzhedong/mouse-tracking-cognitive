@@ -175,8 +175,11 @@ function groupCounts(){
 /* ---------- 3. raw files → spreadsheet ---------- */
 
 function buildSheets(){
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(1000)) return;                     // a previous run is still going
+  // Its own lock (the spreadsheet's), not the script lock: assign() — the
+  // start-page code check — takes the script lock and must never wait
+  // minutes behind a long sheet build.
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(1000)) return;                     // a previous run (or a backup) is still going
   try {
     const f = folders();
     const ss = book();
@@ -255,22 +258,47 @@ function clearTestData(){
   Logger.log('trashed ' + n + ' test files' + (realLeft ? '' : '; group blocks reset'));
 }
 
-/* Wipe ALL collected data in a few seconds — e.g. after testing, before the
-   real pilot. Run it only on purpose (from the editor): the raw/ and
-   processed/ folders go to the Drive trash whole (restorable for 30 days)
-   and empty ones replace them, every data tab is deleted (student_ids and
-   any hand-made "Sheet…" tab stay), and every device lock and group block
-   is dropped, so all IDs start fresh. */
+/* Start over with no data in a few seconds — e.g. after testing, before the
+   real pilot. Run it only on purpose (from the editor). Nothing is lost:
+   the spreadsheet is copied first (backupData) and the raw/ and processed/
+   folders are moved into backups/ as "reset YYYY-MM-DD HHmm"; empty ones
+   replace them, every data tab is deleted (student_ids and any hand-made
+   "Sheet…" tab stay), and every device lock and group block is dropped, so
+   all IDs start fresh. */
 function resetAllData(){
+  backupData();                                          // a timestamped copy of the spreadsheet first
   const ss = book(), f = folders(), props = PropertiesService.getScriptProperties();
-  const stamp = new Date().toISOString().slice(0, 10);
-  // renamed first: Drive still finds trashed folders by name
-  [f.raw, f.processed].forEach(folder => { folder.setName(folder.getName() + ' (reset ' + stamp + ')'); folder.setTrashed(true); });
-  folders();
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HHmm');
+  // the old upload folders are kept, not deleted: backups/reset <stamp>/raw and …/processed
+  const archive = f.backups.createFolder('reset ' + stamp);
+  [f.raw, f.processed].forEach(folder => folder.moveTo(archive));
+  folders();                                             // fresh, empty raw/ and processed/
   ss.getSheets().filter(s => s.getName() !== ID_SHEET && s.getName().indexOf('Sheet') !== 0).forEach(s => ss.deleteSheet(s));
   const gone = Object.keys(props.getProperties()).filter(k => /^(pid_|block_|testblock_)/.test(k));
   gone.forEach(k => props.deleteProperty(k));
-  Logger.log('reset: raw/ and processed/ moved to trash, data tabs deleted, ' + gone.length + ' locks/blocks dropped');
+  Logger.log('reset: raw/ and processed/ kept in backups/reset ' + stamp + ', data tabs deleted, ' + gone.length + ' locks/blocks dropped');
+}
+
+/* ---------- backups ----------
+   backupData copies the spreadsheet (every upload is in its tabs once
+   buildSheets has run) to self-control-battery-data/backups/
+   "SelfControl_Pilot_Data backup YYYY-MM-DD HHmm". It takes seconds; it runs
+   every 6 hours once setupBackupTrigger has been run, and before
+   resetAllData. resetAllData also keeps every upload file: it moves the old
+   raw/ and processed/ folders into backups/ as "reset YYYY-MM-DD HHmm".
+   Nothing in backups/ is ever deleted by the script.
+   To recover: open a spreadsheet copy; or move a "reset …" folder's files
+   back into raw/ and run buildSheets (or resetSheets) to rebuild the tabs. */
+function backupData(){
+  const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HHmm');
+  DriveApp.getFileById(book().getId()).makeCopy('SelfControl_Pilot_Data backup ' + stamp, folders().backups);
+  Logger.log('backup ' + stamp + ': spreadsheet copied to backups/');
+}
+
+/* Run once: backupData every 6 hours. */
+function setupBackupTrigger(){
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'backupData').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('backupData').timeBased().everyHours(6).create();
 }
 
 /* Run from the editor to wipe everything later instead of now: resetAllData
@@ -354,7 +382,7 @@ function folders(){
     props.setProperty('data_folder', root.getId());
   }
   const sub = name => { const it = root.getFoldersByName(name); return it.hasNext() ? it.next() : root.createFolder(name); };
-  return { root: root, raw: sub('raw'), processed: sub('processed') };
+  return { root: root, raw: sub('raw'), processed: sub('processed'), backups: sub('backups') };
 }
 
 function appendRows(ss, name, rows){

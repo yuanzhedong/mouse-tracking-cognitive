@@ -81,10 +81,17 @@ lands on another listed number is not — check `given_to` when in doubt.
   `note` cell and run **clearMarkedStudents** — its files go to the trash,
   its rows leave the data tabs, and the ID starts fresh.
 - To wipe **everything** collected so far (e.g. after testing, right before
-  the real pilot), run **resetAllData**: in a few seconds the `raw/` and
-  `processed/` folders go to the Drive trash whole (restorable for 30 days)
-  and empty ones replace them, every data tab is deleted (`student_ids`
-  stays), and all device locks are released, so every ID starts fresh.
+  the real pilot), run **resetAllData**: in a few seconds the spreadsheet is
+  copied to `backups/`, the `raw/` and `processed/` folders are moved into
+  `backups/reset YYYY-MM-DD HHmm/` (kept, not deleted) and empty ones
+  replace them, every data tab is deleted (`student_ids` stays), and all
+  device locks are released, so every ID starts fresh.
+- **Backups**: run **setupBackupTrigger** once — every 6 hours
+  `backupData` saves a timestamped copy of the spreadsheet in `backups/`
+  ("SelfControl_Pilot_Data backup YYYY-MM-DD HHmm"); run `backupData` any
+  time for an extra copy. Nothing in `backups/` is deleted by the script.
+  To recover, open a copy, or move a reset folder's files back into `raw/`
+  and run `buildSheets`.
 - To wipe everything **later** (e.g. after a testing day), run
   **scheduleResetAllData**: resetAllData then runs once, 5 hours later
   (`RESET_DELAY_HOURS` in the script), even with every computer off. It shows
