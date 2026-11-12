@@ -10,7 +10,7 @@
 <link rel="manifest" href="../manifest.webmanifest">
 <link rel="apple-touch-icon" href="../shared/icon-180.png">
 <title>Game 2</title>
-<link rel="stylesheet" href="../shared/dragcursor.css?v=202611112006">
+<link rel="stylesheet" href="../shared/dragcursor.css?v=202611112050">
 <style>
   :root {
     --bg:     #f4efe4;
@@ -285,9 +285,11 @@
   .done .controls button:hover { opacity: 0.85; }
 
   .hidden { display: none !important; }
-  @media (max-width: 700px) { main.split { grid-template-columns: 1fr; } }   /* iPad portrait keeps the split */
+  /* Study and videos stay side by side on tablets held upright too (pilot
+     tablets: 601 px wide); only phones stack them. */
+  @media (max-width: 480px) { main.split { grid-template-columns: 1fr; } }
 </style>
-<link rel="stylesheet" href="../shared/touch.css?v=202611112006">
+<link rel="stylesheet" href="../shared/touch.css?v=202611112050">
 </head>
 <body>
 <div class="container">
@@ -459,14 +461,14 @@
 
 </div>
 
-<script src="../shared/config.js?v=202611112006"></script>
-<script src="../shared/i18n.js?v=202611112006"></script>
-<script src="../shared/session.js?v=202611112006"></script>
-<script src="../shared/guard.js?v=202611112006"></script>
-<script src="../shared/questions.js?v=202611112006"></script>
-<script src="../shared/videos.js?v=202611112006"></script>
-<script src="../shared/mousetracking.js?v=202611112006"></script>
-<script src="../shared/dragcursor.js?v=202611112006"></script>
+<script src="../shared/config.js?v=202611112050"></script>
+<script src="../shared/i18n.js?v=202611112050"></script>
+<script src="../shared/session.js?v=202611112050"></script>
+<script src="../shared/guard.js?v=202611112050"></script>
+<script src="../shared/questions.js?v=202611112050"></script>
+<script src="../shared/videos.js?v=202611112050"></script>
+<script src="../shared/mousetracking.js?v=202611112050"></script>
+<script src="../shared/dragcursor.js?v=202611112050"></script>
 <script>
 /* =============================================================
    TASK 2 — SPLIT-SCREEN ADT: study content vs. video temptation

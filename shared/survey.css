@@ -23,10 +23,12 @@
 .likert.rating .lk-stmt { font-size: clamp(17px, 1.8vw, 21px); }
 .likert.rating .lk-opts label { font-size: clamp(13px, 1.25vw, 16px); padding: 10px 4px; }
 @media (max-width: 900px) {
-  .likert .lk-item { grid-template-columns: 1fr; gap: 10px; }
-  .likert .lk-stmt { font-size: 18px; }
+  .likert .lk-item { grid-template-columns: 1fr; gap: 6px; }
+  .likert .lk-stmt { font-size: clamp(15px, 2.1vh, 18px); }
+  .likert .lk-opts { gap: 4px; }
+  .likert .lk-opts label { padding: 4px 2px; gap: 3px; font-size: 12px; line-height: 1.15; hyphens: auto; }
 }
-@media (max-width: 640px) {
+@media (max-width: 480px) {   /* phones only: upright tablets keep the 7 answers in one row */
   .likert .lk-opts { grid-template-columns: 1fr !important; }
   .likert .lk-opts label { flex-direction: row; justify-content: flex-start; padding: 10px 12px; font-size: 14px; text-align: left; }
 }

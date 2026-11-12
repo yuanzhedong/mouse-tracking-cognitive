@@ -18,6 +18,15 @@ index.html → assent/ → demographics/ → task1/ → task2/ → survey/ → r
 On the assent page "Não quero participar" ends the session there; the
 answer is saved either way (`assent` table).
 
+### Browser storage on shared devices
+
+Each student's data is ~0.5 MB. For real IDs the site no longer keeps a full
+local copy (only the upload queue, until the server confirms), and every page
+load removes earlier students' copies — on day 1 of the pilot those copies
+filled shared tablets' storage (~5 MB) after a few students, and uploads cut
+off by a page change were lost. A step now also waits (up to 15 s) for its
+uploads before moving on, and the done page says when everything is saved.
+
 ### Refresh, leaving and coming back
 
 - **Progress inside a task is kept** in the browser (`Session.progress`):
@@ -40,8 +49,9 @@ answer is saved either way (`assent` table).
   continues where the student stopped. (Optional: Share → *Add to Home
   Screen* on an iPad opens it as an app, already full screen; Guided Access
   keeps students in it.)
-- **Every screen fits without scrolling** down to ~1366×580 (school PCs
-  with browser bars and taskbar): the mouse-tracking boards keep 4:3 and
+- **Every screen fits without scrolling** on upright tablets (601×878,
+  the pilot devices) and down to ~1366×580 (school PCs with browser bars
+  and taskbar); the ADT keeps study | videos side by side on tablets: the mouse-tracking boards keep 4:3 and
   follow the screen height; the questionnaire shows 4 statements per page.
 
 **The single student link is the site root** (`index.html`). The student

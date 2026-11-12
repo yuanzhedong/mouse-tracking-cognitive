@@ -15,6 +15,8 @@ const STRINGS = {
     pid_used: 'This code has already been used. Please talk to your teacher.',
     pid_checking: 'Checking your code…',
     fs_back: 'Tap here to go back to full screen',
+    done_saving: 'Saving your answers… please don’t close this page yet.',
+    done_saved: 'All saved. You can close this page.',
     lang_label: 'Language',
     start_session: 'Start',
     entry_intro: 'You will play two short games and then answer some questions. The whole session takes about 35 minutes. Please do not close this window.',
@@ -188,6 +190,8 @@ const STRINGS = {
     pid_used: 'Este código já foi usado. Fale com o(a) professor(a).',   // draft
     pid_checking: 'Verificando o código…',   // draft
     fs_back: 'Toque aqui para voltar à tela cheia',   // draft
+    done_saving: 'Salvando suas respostas… não feche esta página ainda.',   // draft
+    done_saved: 'Tudo salvo. Você já pode fechar esta página.',   // draft
     lang_label: 'Idioma',
     start_session: 'Começar',
     entry_intro: 'Você vai jogar dois jogos curtos e depois responder a algumas perguntas. A sessão inteira leva cerca de 35 minutos. Não feche esta janela.',

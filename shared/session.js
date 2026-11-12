@@ -25,7 +25,7 @@ const Session = (() => {
   const qs = new URLSearchParams(location.search);
 
   const lsGet = k => { try { return localStorage.getItem('sc_' + k); } catch (e) { return null; } };
-  const lsSet = (k, v) => { try { localStorage.setItem('sc_' + k, v); } catch (e) {} };
+  const lsSet = (k, v) => { try { localStorage.setItem('sc_' + k, v); return true; } catch (e) { return false; } };   // false: storage full
   const lsDel = k => { try { localStorage.removeItem('sc_' + k); } catch (e) {} };
 
   /* ---------- identity ---------- */
@@ -157,9 +157,25 @@ const Session = (() => {
   }
 
   /* ---------- persistence ---------- */
+  /* A full copy of the student's data in this browser is only kept where it
+     is used: local-only runs, the researcher view and TEST codes (CSV
+     download on the done page). For real IDs with a server it was redundant
+     and, at ~0.5 MB per student, filled a shared tablet's storage (~5 MB)
+     after a few students — then the upload queue could not hold anything
+     and uploads cut off by a page change were lost (pilot day 1). */
   const storeKey = 'store_' + (standalone ? 'demo' : pid);
+  const keepLocal = !CONFIG.ENDPOINT || standalone || review || isTestId(pid);
   function readStore(){ try { return JSON.parse(lsGet(storeKey) || '{}'); } catch (e) { return {}; } }
-  function writeStore(s){ lsSet(storeKey, JSON.stringify(s)); }
+  function writeStore(s){ if (keepLocal) lsSet(storeKey, JSON.stringify(s)); }
+  // Free the space taken by earlier students' copies (real IDs; the data is on
+  // the server or in the upload queue, which is kept).
+  function freeSpace(){
+    if (!CONFIG.ENDPOINT) return;
+    try {
+      Object.keys(localStorage).filter(k => /^sc_store_\d+$/.test(k) && k !== 'sc_' + storeKey).forEach(k => localStorage.removeItem(k));
+      if (!keepLocal) localStorage.removeItem('sc_' + storeKey);
+    } catch (e) {}
+  }
 
   function stamp(row, step){
     return {
@@ -210,7 +226,16 @@ const Session = (() => {
      loses nothing: the next page load sends it. (A payload can then arrive
      twice; rows carry save_id, and the sheet builder drops duplicates.) */
   function readPending(){ try { return JSON.parse(lsGet('pending') || '[]'); } catch (e) { return []; } }
-  function enqueue(payload){ const q = readPending(); q.push(payload); lsSet('pending', JSON.stringify(q)); }
+  function enqueue(payload){
+    const q = readPending(); q.push(payload);
+    if (!lsSet('pending', JSON.stringify(q))){ freeSpace(); lsSet('pending', JSON.stringify(q)); }
+  }
+  const pendingCount = () => readPending().length;
+  // Resolves when this page's uploads have finished (or after ms).
+  async function waitUploads(ms){
+    const end = Date.now() + ms;
+    while (inFlight.size && Date.now() < end) await sleep(200);
+  }
   function dequeue(saveId){ lsSet('pending', JSON.stringify(readPending().filter(p => p.save_id !== saveId))); }
   const inFlight = new Set();
   async function send(payload, attempts){
@@ -302,11 +327,13 @@ const Session = (() => {
     if (value === undefined){ try { return JSON.parse(lsGet(progKey(task)) || 'null'); } catch (e) { return null; } }
     if (value === null) lsDel(progKey(task)); else lsSet(progKey(task), JSON.stringify(value));
   }
-  function next(fromStep){
+  async function next(fromStep){
     fromStep = fromStep || currentStep();
     if (!standalone){ lsSet('done_' + pid, fromStep); lsDel(progKey(fromStep)); }
     const i = CONFIG.FLOW.indexOf(fromStep);
     const nxt = i < 0 ? CONFIG.FLOW[0] : CONFIG.FLOW[i + 1];
+    // let this step's last uploads finish first: a page change would cut them off
+    await waitUploads(15000);
     if (nxt) go(nxt);
   }
   function lastCompleted(){ return pid ? lsGet('done_' + pid) : null; }
@@ -336,13 +363,14 @@ const Session = (() => {
   function sheets(){ return Object.keys(readStore()); }
   function clearStore(){ lsDel(storeKey); if (pid) lsDel('done_' + pid); }
 
+  freeSpace();
   flushPending();
   setInterval(flushPending, 45000);
   window.addEventListener('online', flushPending);
 
   return { ROOT, pid, standalone, review, lang, mt, hz, load, loadFor, adt, adtFor, groupCols, assignGroups, fetchGroups, idValid, isTestId, sessionId,
            get leaving(){ return leaving; },
-           t, pick, applyI18n, save, status, log, next, progress, go, urlFor, langUrl, currentStep,
+           t, pick, applyI18n, save, status, log, next, progress, pendingCount, flushPending, waitUploads, go, urlFor, langUrl, currentStep,
            lastCompleted, resumeStep, exportSheet, sheets, clearStore,
            csvOf, download, readStore };
 })();

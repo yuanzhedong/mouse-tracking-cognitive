@@ -23,14 +23,17 @@
   .box { margin-top: 12px; border-top: 1px solid var(--rule); padding-top: 12px; line-height: 1.8; }
   .box button { margin: 3px 4px 3px 0; padding: 6px 10px; border: 1px solid var(--ink); background: var(--bg); font-family: inherit; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
   .note { color: var(--accent); }
+  .save-state { margin-top: 14px; font-weight: 600; color: #2f6b3a; }
+  .save-state.busy { color: #a8324a; }
 </style>
-<link rel="stylesheet" href="shared/touch.css?v=202611112006">
+<link rel="stylesheet" href="shared/touch.css?v=202611112050">
 </head>
 <body>
 <div class="container">
   <div class="card">
     <h1 data-i18n="done_title"></h1>
     <p data-i18n="done_body"></p>
+    <p class="save-state" id="saveState"></p>
   </div>
   <details id="research" style="display:none">
     <summary data-i18n="researcher">Researcher</summary>
@@ -41,15 +44,28 @@
     </div>
   </details>
 </div>
-<script src="shared/config.js?v=202611112006"></script>
-<script src="shared/i18n.js?v=202611112006"></script>
-<script src="shared/session.js?v=202611112006"></script>
+<script src="shared/config.js?v=202611112050"></script>
+<script src="shared/i18n.js?v=202611112050"></script>
+<script src="shared/session.js?v=202611112050"></script>
 <script>
 Session.applyI18n();
 document.title = Session.t('done_title');
 Session.log('session_complete');
 if (!Session.standalone) Session.status('session', 'completed');
 try { if (Session.pid) localStorage.setItem('sc_done_' + Session.pid, 'done'); } catch (e) {}
+
+// Keep sending until nothing is left to upload, and say so: the student
+// (or teacher) knows when the device can be closed.
+if (CONFIG.ENDPOINT && !Session.standalone){
+  const el = document.getElementById('saveState');
+  const check = () => {
+    const left = Session.pendingCount();
+    el.textContent = Session.t(left ? 'done_saving' : 'done_saved');
+    el.classList.toggle('busy', left > 0);
+    if (left) { Session.flushPending(); setTimeout(check, 2000); }
+  };
+  setTimeout(check, 1500);
+}
 // Researcher panel: shown in review mode, or when there is no upload endpoint
 // (then the CSV download is the only copy of the data).
 if (Session.review || !CONFIG.ENDPOINT) document.getElementById('research').style.display = '';
